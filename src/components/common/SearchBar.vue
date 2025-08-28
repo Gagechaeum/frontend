@@ -5,7 +5,7 @@
       :id="id"
       :value="modelValue"
       :placeholder="placeholder"
-      class="w-full rounded-2xl border border-gray-300 px-4 py-3 pl-12 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+      class="w-full rounded-2xl border border-gray-300 px-4 py-3 pl-12 text-sm focus:border-gray-400 focus:outline-none"
       @input="emit('update:modelValue', $event.target.value)"
     />
     <button

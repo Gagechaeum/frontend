@@ -30,18 +30,16 @@ const props = defineProps({
 
 const emit = defineEmits(['click']);
 
-const base =
-  'rounded-2xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 rounded-button';
+const base = 'rounded-2xl font-medium transition-colors rounded-button';
 const sizeMap = {
   sm: 'px-3 py-2 text-sm',
   md: 'px-4 py-2.5 text-sm',
   lg: 'px-6 py-3',
 };
 const variantMap = {
-  primary: 'bg-primary text-white hover:bg-brand-blue-royal focus:ring-info',
-  secondary:
-    'border border-primary text-primary hover:bg-primary/5 focus:ring-info',
-  ghost: 'text-neutral-700 hover:bg-neutral-100 focus:ring-neutral-200',
+  primary: 'bg-primary text-white hover:bg-brand-blue-royal',
+  secondary: 'border border-primary text-primary hover:bg-primary/5 ',
+  ghost: 'text-neutral-700 hover:bg-neutral-100',
 };
 
 const classes = computed(() =>
