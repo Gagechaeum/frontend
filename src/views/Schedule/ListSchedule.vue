@@ -4,16 +4,17 @@
       v-model="status"
       :year="year"
       :month="month"
+      :query="query"
       @update:year="v => (year = v)"
       @update:month="v => (month = v)"
-      @open:filters="openFilters"
+      @update:query="v => (query = v)"
+      @open:filters="showFilters = true"
     />
 
     <section class="rounded-xl border border-neutral-100 bg-white">
       <div class="flex items-center justify-between px-4 py-3">
-        <p class="text-xs font-bold text-neutral-700">총 128건</p>
+        <p class="text-xs font-bold text-neutral-700">총 {{ rows.length }}건</p>
       </div>
-
       <ul class="divide-y divide-neutral-100">
         <li
           v-for="row in rows"
@@ -23,32 +24,32 @@
           <div class="col-span-12 md:col-span-6">
             <p class="text-sm font-bold">{{ row.title }}</p>
             <p class="text-xs text-neutral-600">
-              {{ row.org }} · 접수기간 {{ row.period }}
+              {{ row.org }} · 접수기간 {{ fmtPeriod(row) }}
             </p>
           </div>
-
           <div class="col-span-6 md:col-span-3">
             <span
               class="inline-flex items-center gap-2 text-xs font-bold text-neutral-700"
             >
               <span
                 class="size-2.5 rounded-full"
-                :style="{ background: row.stateColor }"
+                :style="{ background: stateColor(row.status) }"
               />
-              {{ row.state }}
+              {{ stateText(row.status) }}
             </span>
           </div>
-
-          <div class="col-span-6 flex flex-wrap gap-2 md:col-span-2">
+          <div class="col-span-6 flex items-center gap-2 md:col-span-2">
+            <StarToggle
+              :active="fav.has(row.id)"
+              @toggle="fav.toggle(row.id)"
+            />
             <span
               v-for="t in row.tags"
               :key="t"
               class="rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-700"
+              >{{ t }}</span
             >
-              {{ t }}
-            </span>
           </div>
-
           <div class="col-span-12 flex justify-end md:col-span-1">
             <button
               class="h-7 rounded-[10px] bg-primary-alt px-3 text-[12px] font-black text-neutral-900"
@@ -59,57 +60,68 @@
         </li>
       </ul>
     </section>
+
+    <SavedFiltersModal :open="showFilters" @close="showFilters = false" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import ScheduleToolbar from '@/components/schedule/ScheduleToolbar.vue';
+import StarToggle from '@/components/schedule/StarToggle.vue';
+import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
+import { useScheduleFilters } from '@/stores/scheduleFilters';
+import { useFavorites } from '@/stores/favorites';
+import { fetchPolicies } from '@/stores/policies';
+
+const filters = useScheduleFilters();
+const fav = useFavorites();
 
 const status = ref('all');
 const year = ref(2025);
 const month = ref(8);
+const query = ref('');
+const showFilters = ref(false);
+const rows = ref([]);
 
-const rows = [
-  {
-    id: 1,
-    title: '청년 창업 자금 대출',
-    org: 'KB국민은행',
-    period: '08.01 ~ 08.31',
-    state: '접수중',
-    stateColor: '#0EA5E9',
-    tags: ['서울', '서비스업', '청년'],
-  },
-  {
-    id: 2,
-    title: '소상공인 경영안정 자금',
-    org: '소상공인시장진흥공단',
-    period: '07.15 ~ 08.25',
-    state: '마감임박',
-    stateColor: '#FFBC00',
-    tags: ['전국', '소매업', '전연령'],
-  },
-  {
-    id: 3,
-    title: '중소기업 운영자금 대출',
-    org: '신한은행',
-    period: '09.01 ~ 09.30',
-    state: '예정',
-    stateColor: '#004DA9',
-    tags: ['부산', '제조업', '전체'],
-  },
-  {
-    id: 4,
-    title: '지역 재도약 패키지',
-    org: '부천광역시',
-    period: '07.01 ~ 07.31',
-    state: '마감',
-    stateColor: '#4B5563',
-    tags: ['부산', '음식업', '청년'],
-  },
-];
+onMounted(() => {
+  filters.load();
+  fav.load();
+});
+watch([() => filters.activeCriteria, query, status, year, month], loadList, {
+  immediate: true,
+});
 
-function openFilters() {
-  alert('모든 필터 모달(추후 연결)');
+async function loadList() {
+  rows.value = await fetchPolicies({
+    q: query.value,
+    status: status.value,
+    year: year.value,
+    month: month.value,
+    ...filters.activeCriteria,
+  });
+}
+function fmtPeriod(it) {
+  const s = it.period?.start?.slice(5).replace('-', '.');
+  const e = it.period?.end?.slice(5).replace('-', '.');
+  return s && e ? `${s} ~ ${e}` : '';
+}
+function stateText(s) {
+  return s === 'active'
+    ? '접수중'
+    : s === 'due'
+      ? '마감임박'
+      : s === 'upcoming'
+        ? '예정'
+        : '마감';
+}
+function stateColor(s) {
+  return s === 'active'
+    ? '#0EA5E9'
+    : s === 'due'
+      ? '#FFBC00'
+      : s === 'upcoming'
+        ? '#004DA9'
+        : '#4B5563';
 }
 </script>

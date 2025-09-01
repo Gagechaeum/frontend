@@ -6,7 +6,7 @@
       :month="month"
       @update:year="v => (year = v)"
       @update:month="v => (month = v)"
-      @open:filters="onSaveFilter"
+      @open:filters="showSaved = true"
     />
 
     <div class="grid grid-cols-12 gap-4">
@@ -78,12 +78,13 @@
         <div class="mt-4 flex items-center gap-2">
           <button
             class="h-8 rounded-[10px] bg-brand-blue-royal px-4 text-[12px] font-bold text-white"
+            @click="applyNow"
           >
             적용
           </button>
           <button
             class="h-8 rounded-[10px] bg-primary-alt px-4 text-[12px] font-black text-neutral-900"
-            @click="onSaveFilter"
+            @click="saveFilter"
           >
             필터 저장
           </button>
@@ -102,18 +103,12 @@
       >
         <div class="mb-2 flex items-center justify-between">
           <h4 class="text-h4">저장된 필터 · {{ saved.length }}</h4>
-          <button
-            class="h-8 rounded-[10px] bg-primary-alt px-3 text-[12px] font-black text-neutral-900"
-            @click="onSaveFilter"
-          >
-            새 필터
-          </button>
         </div>
 
         <ul class="divide-y divide-neutral-100">
           <li
-            v-for="(f, i) in saved"
-            :key="i"
+            v-for="f in saved"
+            :key="f.id"
             class="flex items-center justify-between py-3"
           >
             <div>
@@ -130,53 +125,57 @@
             <div class="flex items-center gap-2">
               <button
                 class="h-7 rounded-[10px] bg-brand-blue-royal px-3 text-[12px] font-bold text-white"
+                @click="setActive(f.id)"
               >
                 적용
               </button>
               <button
                 class="h-7 rounded-[10px] border border-neutral-300 bg-white px-3 text-[12px] font-semibold text-neutral-700"
+                @click="rename(f)"
               >
-                수정
+                이름변경
               </button>
               <button
-                class="h-7 rounded-[10px] border border-neutral-300 bg-white px-3 text-[12px] font-semibold text-neutral-700"
+                class="h-7 rounded-[10px] border border-neutral-300 bg-white px-3 text-[12px] font-semibold text-danger"
+                @click="remove(f.id)"
               >
-                공유
+                삭제
               </button>
             </div>
           </li>
         </ul>
       </section>
     </div>
+
+    <SavedFiltersModal :open="showSaved" @close="showSaved = false" />
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import ScheduleToolbar from '@/components/schedule/ScheduleToolbar.vue';
 import FilterSection from '@/components/schedule/FilterSection.vue';
+import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
+import { useScheduleFilters } from '@/stores/scheduleFilters';
 
-const status = ref('all');
+const status = ref('all'); // 상단 검색/동작은 변경하지 않음
 const year = ref(2025);
 const month = ref(8);
+const showSaved = ref(false);
+
+const filters = useScheduleFilters();
+const { saved } = storeToRefs(filters);
+onMounted(() => filters.load());
 
 const builder = reactive({
-  type: ['대출'],
-  region: ['서울'],
-  industry: ['음식업'],
-  target: ['청년'],
-  org: ['KB국민은행'],
-  state: ['접수중'],
+  type: [],
+  region: [],
+  industry: [],
+  target: [],
+  org: [],
+  state: [],
 });
-
-const saved = ref([
-  {
-    name: '서울 음식업 청년 대상',
-    tags: ['서울', '음식업', '청년', 'KB국민은행'],
-  },
-  { name: '전국 제조업 지원', tags: ['전국', '제조업', '중장년', '신한은행'] },
-  { name: '상시 접수 대출', tags: ['전국', '대출', '상시', '우리은행'] },
-]);
 
 function onReset() {
   builder.type = [];
@@ -186,17 +185,22 @@ function onReset() {
   builder.org = [];
   builder.state = [];
 }
-function onSaveFilter() {
-  saved.value.unshift({
-    name: '새 필터',
-    tags: [
-      ...builder.type,
-      ...builder.region,
-      ...builder.industry,
-      ...builder.target,
-      ...builder.org,
-      ...builder.state,
-    ].slice(0, 4),
-  });
+function saveFilter() {
+  const name = prompt('필터 이름', '새 필터');
+  if (!name) return;
+  filters.create(name, { ...builder });
+}
+function setActive(id) {
+  filters.setActive(id);
+}
+function applyNow() {
+  filters.setActiveCriteria({ ...builder });
+}
+function rename(f) {
+  const name = prompt('새 이름', f.name);
+  if (name && name !== f.name) filters.update(f.id, { name });
+}
+function remove(id) {
+  filters.remove(id);
 }
 </script>
