@@ -1,12 +1,39 @@
 <script setup>
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true,
-  },
-});
+import { ref, watch } from 'vue';
 
+const props = defineProps({
+  modelValue: { type: Object, required: true },
+});
 const emit = defineEmits(['update:modelValue', 'remove']);
+
+// 입력 버퍼
+const regInput = ref(props.modelValue.registrationNumber || '');
+
+watch(
+  () => props.modelValue.registrationNumber,
+  v => {
+    regInput.value = v || '';
+  }
+);
+
+// 000-00-00000 포맷
+const formatBiz = raw => {
+  const s = String(raw || '')
+    .replace(/\D/g, '')
+    .slice(0, 10);
+  if (s.length <= 3) return s;
+  if (s.length <= 5) return `${s.slice(0, 3)}-${s.slice(3)}`;
+  return `${s.slice(0, 3)}-${s.slice(3, 5)}-${s.slice(5)}`;
+};
+
+function onInputReg(e) {
+  const formatted = formatBiz(e.target.value);
+  regInput.value = formatted;
+  emit('update:modelValue', {
+    ...props.modelValue,
+    registrationNumber: formatted,
+  });
+}
 
 function update(key, val) {
   emit('update:modelValue', { ...props.modelValue, [key]: val });
@@ -14,10 +41,10 @@ function update(key, val) {
 </script>
 
 <template>
-  <div class="mb-6 rounded-lg bg-gray-50 p-4">
-    <div class="mb-4 flex items-center justify-between">
+  <div class="rounded-xl bg-gray-50 p-4">
+    <div class="mb-3 flex items-center justify-between">
       <h4 class="font-medium text-gray-700">사업자 정보</h4>
-      <button class="text-red-600 hover:text-red-700" @click="emit('remove')">
+      <button class="text-red-600 hover:text-red-700" @click="$emit('remove')">
         <i class="fas fa-trash" />
       </button>
     </div>
@@ -27,10 +54,13 @@ function update(key, val) {
         <label class="mb-1 block text-sm font-medium">사업자 등록번호</label>
         <input
           class="w-full rounded-lg border px-4 py-2"
-          :value="props.modelValue.registrationNumber"
-          @input="update('registrationNumber', $event.target.value)"
+          :value="regInput"
+          placeholder="123-45-67890"
+          inputmode="numeric"
+          @input="onInputReg"
         />
       </div>
+
       <div>
         <label class="mb-1 block text-sm font-medium">지역</label>
         <select
@@ -57,6 +87,7 @@ function update(key, val) {
           <option>제주특별자치도</option>
         </select>
       </div>
+
       <div>
         <label class="mb-1 block text-sm font-medium">업종</label>
         <select

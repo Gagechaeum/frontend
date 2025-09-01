@@ -1,98 +1,105 @@
 <script setup>
 import { ref } from 'vue';
-import AppHeader from '@/components/common/AppHeader.vue';
-import ProfileDisplay from '@/components/mypage/ProfileDisplay.vue';
-import EditProfileForm from '@/components/mypage/EditProfileForm.vue';
-import DeleteConfirmModal from '@/components/mypage/DeleteConfirmModal.vue';
-import ToastMessage from '@/components/mypage/ToastMessage.vue';
-// import { getMyProfile, saveMyProfile, deleteAccount } from '@/lib/api/auth' 등
+// import ToastMessage from '@/components/mypage/ToastMessage.vue'   // 그대로 주석
 
-const isEditing = ref(false);
-const showDeleteConfirm = ref(false);
-const toast = ref({ show: false, type: 'success', message: '' });
-
-const userProfile = ref({
-  name: '김가게',
-  phone: '010-1234-5678',
-  email: 'gagechaeum@example.com',
-  avatar: 'https://...',
-  businesses: [
-    {
-      id: 1,
-      registrationNumber: '123-45-67890',
-      region: '서울특별시',
-      type: '음식·외식업',
-    },
-    {
-      id: 2,
-      registrationNumber: '234-56-78901',
-      region: '경기도',
-      type: '도소매·유통',
-    },
-  ],
+const props = defineProps({
+  profile: { type: Object, required: true },
 });
 
-function openEdit() {
-  isEditing.value = true;
-}
-
-function cancelEdit() {
-  isEditing.value = false;
-}
-
-async function submitEdit(payload) {
-  // await saveMyProfile(payload)
-  userProfile.value = payload;
-  isEditing.value = false;
-  showToast('success', '저장되었습니다.');
-}
-
-function requestDelete() {
-  showDeleteConfirm.value = true;
-}
-
-async function confirmDelete() {
-  showDeleteConfirm.value = false;
-  // await deleteAccount()
-  showToast('success', '계정이 삭제되었습니다.');
-}
-
-function showToast(type, message) {
-  toast.value = { show: true, type, message };
-  setTimeout(() => (toast.value.show = false), 2500);
-}
+const emit = defineEmits(['edit']);
 </script>
 
 <template>
-  <div>
-    <!-- <AppHeader /> -->
-
-    <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-      <ProfileDisplay
-        v-if="!isEditing"
-        :profile="userProfile"
-        @edit="openEdit"
+  <div class="rounded-2xl border bg-white p-8 shadow-sm">
+    <!-- 상단: 아바타 + 이름 -->
+    <div class="flex flex-col items-center">
+      <img
+        :src="props.profile.avatar"
+        alt="프로필 사진"
+        class="mb-6 h-28 w-28 rounded-full object-cover ring-4 ring-blue-50"
       />
+      <h1 class="mb-6 text-2xl font-bold text-gray-900">
+        {{ props.profile.nickName }}
+      </h1>
 
-      <EditProfileForm
-        v-else
-        :model-value="userProfile"
-        @cancel="cancelEdit"
-        @submit="submitEdit"
-        @request-delete="requestDelete"
-      />
+      <!-- 본문 컨테이너: 폭 좁게 -->
+      <div class="w-full max-w-xl">
+        <!-- ✅ 기본 정보: 라벨 위, 값 아래, 세로 스택 -->
+        <div class="divide-y divide-gray-100 rounded-2xl bg-white">
+          <!-- 이름 -->
+          <div class="py-4">
+            <p class="text-sm text-gray-500">이름</p>
+            <p class="mt-1 text-base text-gray-900">
+              {{ props.profile.realName || props.profile.name }}
+            </p>
+          </div>
+          <!-- 연락처 -->
+          <div class="py-4">
+            <p class="text-sm text-gray-500">연락처</p>
+            <p class="mt-1 text-base text-gray-900">
+              {{ props.profile.phone }}
+            </p>
+          </div>
+          <!-- 이메일 -->
+          <div class="py-4">
+            <p class="text-sm text-gray-500">이메일</p>
+            <p class="mt-1 text-base text-gray-900">
+              {{ props.profile.email }}
+            </p>
+          </div>
+        </div>
+
+        <!-- 사업자 정보 -->
+        <div class="mt-8">
+          <h3 class="mb-3 text-sm font-medium text-gray-700">사업자 정보</h3>
+
+          <ul class="space-y-3">
+            <li
+              v-for="b in props.profile.businesses"
+              :key="b.id"
+              class="rounded-xl bg-gray-50 px-4 py-3"
+            >
+              <div class="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p class="text-xs text-gray-500">사업자 등록번호</p>
+                  <p class="mt-1 text-sm font-medium text-gray-900">
+                    {{ b.registrationNumber || '—' }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">지역</p>
+                  <p class="mt-1 text-sm font-medium text-gray-900">
+                    {{ b.region || '—' }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">업종</p>
+                  <p class="mt-1 text-sm font-medium text-gray-900">
+                    {{ b.type || '—' }}
+                  </p>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 수정 버튼 -->
+        <button
+          class="mx-auto mt-8 block w-40 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          @click="$emit('edit')"
+        >
+          정보 수정
+        </button>
+      </div>
     </div>
-
-    <DeleteConfirmModal
-      v-if="showDeleteConfirm"
-      @cancel="showDeleteConfirm = false"
-      @confirm="confirmDelete"
-    />
-
-    <ToastMessage
-      v-if="toast.show"
-      :type="toast.type"
-      :message="toast.message"
-    />
   </div>
+
+  <!-- ToastMessage는 그대로 주석 -->
+  <!--
+  <ToastMessage
+    v-if="toast.show"
+    :type="toast.type"
+    :message="toast.message"
+  />
+  -->
 </template>
