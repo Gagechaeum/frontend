@@ -4,20 +4,22 @@
       <div class="flex h-16 items-center justify-between">
         <!-- 로고 -->
         <div class="flex items-center">
-          <slot name="logo">
-            <i
-              class="fas fa-landmark mr-2 text-2xl text-primary"
-              aria-hidden="true"
-            ></i>
-            <span class="text-xl font-bold text-gray-900">가게채움</span>
-          </slot>
+          <RouterLink to="/">
+            <slot name="logo">
+              <i
+                class="fas fa-landmark mr-2 text-2xl text-primary"
+                aria-hidden="true"
+              ></i>
+              <span class="text-xl font-bold text-gray-900">가게채움</span>
+            </slot>
+          </RouterLink>
         </div>
 
         <!-- 네비게이션 -->
         <nav class="hidden items-center space-x-8 md:flex" aria-label="Primary">
           <slot name="nav">
             <a
-              href="/"
+              href="/onboarding"
               class="cursor-pointer font-medium text-gray-700 hover:text-primary"
               >전체 상품</a
             >
@@ -27,10 +29,16 @@
               >일정</a
             >
             <a
-              href="/mypage"
+              href="/docs"
               class="cursor-pointer font-medium text-gray-700 hover:text-primary"
               >내 서류함</a
             >
+            <a
+              href="/report"
+              class="cursor-pointer font-medium text-gray-700 hover:text-primary"
+            >
+              리포트
+            </a>
             <a
               href="/community"
               class="cursor-pointer font-medium text-gray-700 hover:text-primary"
@@ -59,14 +67,15 @@
           >
             <i class="fas fa-bell text-lg text-gray-600" aria-hidden="true"></i>
           </button>
-          <button
+          <RouterLink
+            to="/mypage"
             class="flex h-8 w-8 items-center justify-center rounded-full bg-primary"
             aria-label="프로필"
           >
             <slot name="avatar">
               <i class="fas fa-user text-sm text-white" aria-hidden="true"></i>
             </slot>
-          </button>
+          </RouterLink>
         </div>
       </div>
     </div>

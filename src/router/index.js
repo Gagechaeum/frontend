@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { h } from 'vue';
+import MypageView from '@/views/mypage/MyPageView.vue';
 import ScheduleLayout from '@/views/Schedule/ScheduleLayout.vue';
 import AllSchedule from '@/views/Schedule/AllSchedule.vue';
 import ListSchedule from '@/views/Schedule/ListSchedule.vue';
@@ -73,7 +74,13 @@ const routes = [
     path: '/onboarding',
     name: 'onboarding',
     component: Placeholder('온보딩'),
-    meta: { showHeader: false },
+    meta: { showHeader: true },
+  },
+  {
+    path: '/mypage',
+    name: 'mypage',
+    component: MypageView,
+    meta: { showHeader: true },
   },
   {
     path: '/:pathMatch(.*)*',
