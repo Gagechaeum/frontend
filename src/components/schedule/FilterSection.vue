@@ -21,23 +21,20 @@
 
 <script setup>
 import { computed } from 'vue';
-
 const props = defineProps({
-  title: { type: String, required: true },
+  title: String,
   options: { type: Array, default: () => [] },
-  modelValue: { type: Array, default: () => [] }, // 다중 선택
+  modelValue: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['update:modelValue']);
-
 const selected = computed({
   get: () => new Set(props.modelValue),
-  set: val => emit('update:modelValue', Array.from(val)),
+  set: v => emit('update:modelValue', Array.from(v)),
 });
-
 const isSelected = o => selected.value.has(o);
 function toggle(o) {
-  const next = new Set(selected.value);
-  next.has(o) ? next.delete(o) : next.add(o);
-  selected.value = next;
+  const n = new Set(selected.value);
+  n.has(o) ? n.delete(o) : n.add(o);
+  selected.value = n;
 }
 </script>

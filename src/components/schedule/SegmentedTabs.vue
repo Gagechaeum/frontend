@@ -14,19 +14,11 @@
           : 'text-neutral-600 hover:text-neutral-900'
       "
       role="tab"
+      >{{ t.label }}</RouterLink
     >
-      {{ t.label }}
-    </RouterLink>
   </nav>
 </template>
-
 <script setup>
 import { RouterLink } from 'vue-router';
-
-defineProps({
-  items: {
-    type: Array,
-    required: true, // [{label,to}]
-  },
-});
+defineProps({ items: { type: Array, required: true } });
 </script>
