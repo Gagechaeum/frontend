@@ -5,6 +5,9 @@
       <RouterView />
     </main>
     <AppFooter />
+
+    <!-- Toast 알림 컴포넌트 -->
+    <Toast />
   </div>
 </template>
 
@@ -12,4 +15,5 @@
 import { RouterView } from 'vue-router';
 import AppHeader from './components/common/AppHeader.vue';
 import AppFooter from './components/common/AppFooter.vue';
+import Toast from './components/common/Toast.vue';
 </script>

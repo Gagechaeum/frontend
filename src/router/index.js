@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { h } from 'vue';
-import MypageView from '@/views/mypage/MyPageView.vue';
+import HomeView from '@/views/Home/HomeView.vue';
+import MypageView from '@/views/Mypage/MyPageView.vue';
+import TestView from '@/views/TestView.vue';
 
 // 페이지 파일이 없어도 오류 안나게 하는 플레이스홀더
 const Placeholder = title => ({
@@ -16,7 +18,7 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    component: Placeholder('홈'),
+    component: HomeView,
     meta: { showHeader: true },
   },
   {
@@ -65,6 +67,12 @@ const routes = [
     path: '/mypage',
     name: 'mypage',
     component: MypageView,
+    meta: { showHeader: true },
+  },
+  {
+    path: '/test',
+    name: 'test',
+    component: TestView,
     meta: { showHeader: true },
   },
   {

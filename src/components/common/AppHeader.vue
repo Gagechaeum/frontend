@@ -1,5 +1,5 @@
 <template>
-  <header class="sticky top-0 z-50 border-b border-gray-200 bg-white">
+  <header class="sticky top-0 z-40 border-b border-gray-200 bg-white">
     <div class="mx-auto max-w-7xl px-4">
       <div class="flex h-16 items-center justify-between">
         <!-- 로고 -->
@@ -44,6 +44,11 @@
               class="cursor-pointer font-medium text-gray-700 hover:text-primary"
               >커뮤니티</a
             >
+            <a
+              href="/test"
+              class="cursor-pointer font-medium text-gray-700 hover:text-primary"
+              >컴포넌트 테스트</a
+            >
           </slot>
         </nav>
 
@@ -60,13 +65,35 @@
               >{{ chip }}</span
             >
           </div>
-          <button
-            v-if="showBell"
-            class="rounded-full p-2 hover:bg-gray-100"
-            aria-label="알림"
-          >
-            <i class="fas fa-bell text-lg text-gray-600" aria-hidden="true"></i>
-          </button>
+
+          <!-- 알림 아이콘 -->
+          <div class="relative inline-block">
+            <button
+              v-if="showBell"
+              class="relative rounded-full p-2 hover:bg-gray-100"
+              aria-label="알림"
+              @click="toggleNotifications"
+            >
+              <i
+                class="fas fa-bell text-lg text-gray-600"
+                aria-hidden="true"
+              ></i>
+              <!-- 읽지 않은 알림 개수 표시 -->
+              <span
+                v-if="unreadCount > 0"
+                class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white"
+              >
+                {{ unreadCount > 9 ? '9+' : unreadCount }}
+              </span>
+            </button>
+
+            <!-- 알림 드롭다운 -->
+            <NotificationDropdown
+              :is-open="isNotificationsOpen"
+              @close="closeNotifications"
+            />
+          </div>
+
           <RouterLink
             to="/mypage"
             class="flex h-8 w-8 items-center justify-center rounded-full bg-primary"
@@ -83,8 +110,26 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useNotificationStore } from '@/stores/notification';
+import NotificationDropdown from './NotificationDropdown.vue';
+
 const props = defineProps({
   chips: { type: Array, default: () => [] }, // 사용자 정보 목록 (태그)
   showBell: { type: Boolean, default: true }, // 알림 버튼 표시 여부
 });
+
+const notificationStore = useNotificationStore();
+const { unreadCount } = storeToRefs(notificationStore);
+
+const isNotificationsOpen = ref(false);
+
+const toggleNotifications = () => {
+  isNotificationsOpen.value = !isNotificationsOpen.value;
+};
+
+const closeNotifications = () => {
+  isNotificationsOpen.value = false;
+};
 </script>
