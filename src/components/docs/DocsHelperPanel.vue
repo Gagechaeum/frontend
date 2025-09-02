@@ -10,7 +10,7 @@
             <div v-if="isSelectionMode" class="flex items-center gap-2">
               <button
                 :disabled="selectedDocuments.length === 0"
-                class="inline-flex items-center rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-600 transition-colors hover:border-green-300 hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                 @click="openConfirmModal('download')"
               >
                 <i class="fas fa-download mr-1.5"></i>
@@ -85,10 +85,12 @@
                       </svg>
                       <!-- 툴팁 -->
                       <div
-                        class="pointer-events-none fixed bottom-auto left-auto right-auto top-auto z-50 mb-2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        style="transform: translateY(-100%); margin-top: -8px"
+                        class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
                       >
                         서류명을 클릭 시 다운로드 할 수 있습니다
+                        <div
+                          class="absolute left-3 top-full h-0 w-0 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
+                        ></div>
                       </div>
                     </div>
                   </div>
