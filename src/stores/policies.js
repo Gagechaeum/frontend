@@ -1,13 +1,28 @@
-// 목업 JSON 로딩 + 클라이언트 필터/검색
+// 목업 JSON 로딩 + 클라이언트 필터/검색 + 데이터 정규화
 import dayjs from 'dayjs';
 
-let _cache = null; // 최초 한 번만 로딩
+let _cache = null;
+
+const toArr = v => (Array.isArray(v) ? v : v ? [v] : []);
+
+function normalizePolicy(p) {
+  return {
+    ...p,
+    // 모두 배열 형태로 맞춤 (Copilot 지적 반영)
+    region: toArr(p.region),
+    industry: toArr(p.industry),
+    target: toArr(p.target),
+    type: toArr(p.type),
+    tags: toArr(p.tags),
+    orgArr: toArr(p.org), // org도 배열로 보조 필드 추가
+  };
+}
 
 async function loadAll() {
   if (_cache) return _cache;
   const res = await fetch('/mock/policies.json');
   const json = await res.json();
-  _cache = json.items || [];
+  _cache = (json.items || []).map(normalizePolicy);
   return _cache;
 }
 
@@ -52,7 +67,7 @@ function applyFilters(list, params) {
     target = [],
     org = [],
     type = [],
-    state = [], // state는 status와 중복될 수 있음
+    state = [],
     year,
     month,
   } = params || {};
@@ -67,15 +82,13 @@ function applyFilters(list, params) {
       if (!hay.includes(qLower)) return false;
     }
 
-    // 배열형 기준 일치(하나라도 포함되면 통과)
     if (!includesAny(it.region, region)) return false;
     if (!includesAny(it.industry, industry)) return false;
     if (!includesAny(it.target, target)) return false;
-    if (!includesAny([it.org], org)) return false; // org는 문자열 → 배열로 비교
+    if (!includesAny(it.orgArr, org)) return false; // ✅ org을 배열로 비교
     if (!includesAny(it.type, type)) return false;
-    if (!includesAny([it.status], state)) return false; // state가 status별칭이면 여기서도 허용
+    if (!includesAny([it.status], state)) return false;
 
-    // 연/월 필터(옵션)
     if (year || month) {
       const s = it.period?.start;
       if (!s) return false;
