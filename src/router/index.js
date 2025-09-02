@@ -10,6 +10,7 @@ import AllSchedule from '@/views/Schedule/AllSchedule.vue';
 import ListSchedule from '@/views/Schedule/ListSchedule.vue';
 import FilterSchedule from '@/views/Schedule/FilterSchedule.vue';
 import FavoritesSchedule from '@/views/Schedule/FavoritesSchedule.vue';
+import DocsView from '@/views/docs/DocsView.vue';
 
 // 페이지 파일이 없어도 오류 안나게 하는 플레이스홀더
 const Placeholder = title => ({
@@ -59,7 +60,7 @@ const routes = [
   {
     path: '/docs',
     name: 'docs',
-    component: Placeholder('서류'),
+    component: DocsView,
     meta: { showHeader: true },
   },
   {
