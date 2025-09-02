@@ -4,7 +4,10 @@
       <!-- 좌측: 내가 등록한 서류 -->
       <div class="rounded-2xl border border-[#e5e7eb] bg-white p-6">
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">내가 등록한 서류</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-file-alt mr-2 text-[#2563EB]"></i>
+            내가 등록한 서류
+          </h3>
           <div class="flex items-center gap-2">
             <!-- 선택 모드일 때 일괄 처리 버튼들 -->
             <div v-if="isSelectionMode" class="flex items-center gap-2">
@@ -204,9 +207,47 @@
 
       <!-- 우측: 상품에 필요한 서류 -->
       <div class="rounded-2xl border border-[#e5e7eb] bg-white p-6">
-        <h3 class="mb-4 text-lg font-semibold text-gray-900">
-          상품에 필요한 서류
-        </h3>
+        <div class="mb-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h3 class="text-lg font-semibold text-gray-900">
+              <i class="fas fa-star mr-2 text-yellow-500"></i>
+              즐겨찾기 상품에 필요한 서류
+            </h3>
+            <!-- 툴팁 아이콘 -->
+            <div class="group relative">
+              <svg
+                class="h-4 w-4 cursor-help text-gray-400 hover:text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+              <!-- 툴팁 -->
+              <div
+                class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                내가 즐겨찾기한 대출/정책 상품에서 요구하는 서류 목록입니다
+                <div
+                  class="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <!-- 즐겨찾기 관리 버튼 -->
+          <button
+            class="inline-flex items-center rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-1.5 text-xs font-medium text-yellow-600 transition-colors hover:border-yellow-300 hover:bg-yellow-100"
+            @click="goToFavorites"
+          >
+            <i class="fas fa-star mr-1.5"></i>
+            즐겨찾기 관리
+          </button>
+        </div>
         <div class="w-full overflow-hidden">
           <table class="w-full table-fixed">
             <thead>
@@ -435,9 +476,12 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import Tag from '@/components/common/Tag.vue';
 import Modal from '@/components/common/Modal.vue';
+
+const router = useRouter();
 
 const props = defineProps({
   showUploadModal: {
@@ -665,5 +709,9 @@ const getDocumentGuide = docName => {
       '건강보험공단 홈페이지에서 발급 가능합니다. 공동인증서 인증이 필요합니다.',
   };
   return guides[docName] || '해당 서류의 발급 방법을 확인해주세요.';
+};
+
+const goToFavorites = () => {
+  router.push('/schedule/favorites');
 };
 </script>
