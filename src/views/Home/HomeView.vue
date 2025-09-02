@@ -1,0 +1,415 @@
+<!-- The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work. -->
+<template>
+  <div class="min-h-screen bg-gray-50">
+    <!-- 전역 검색창 -->
+    <div class="border-b border-gray-200 bg-white pb-4">
+      <div class="mx-auto max-w-2xl px-4">
+        <SearchBar v-model="searchQuery" @submit="handleSearch" />
+      </div>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <main class="mx-auto max-w-6xl px-4 py-8">
+      <!-- 히어로 섹션 -->
+      <Section card>
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <h1 class="mb-4 text-3xl font-bold text-gray-900">
+              정부 지원·대출 상품 한눈에,<br />서류까지 한번에
+            </h1>
+            <p class="mb-6 text-lg text-gray-600">
+              업종/지역 기반 추천과 마감 알림 제공
+            </p>
+          </div>
+          <div class="flex space-x-4">
+            <UiButton variant="primary" size="lg"> 내 서류함 보기 </UiButton>
+            <UiButton variant="secondary" size="lg"> 내 리포트 보기 </UiButton>
+          </div>
+        </div>
+      </Section>
+
+      <!-- 추천 대출 섹션 -->
+      <Section title="추천 대출">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <CardLg
+            v-for="loan in loans"
+            :key="loan.id"
+            :title="loan.title"
+            badge="대출"
+            badge-tone="gray"
+            :details="[
+              { label: '금리', value: loan.rate },
+              { label: '한도', value: loan.limit },
+            ]"
+            action-label="자세히 보기"
+            @action="handleLoanDetail(loan)"
+          />
+        </div>
+      </Section>
+
+      <!-- 추천 정책 섹션 -->
+      <Section title="추천 정책">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <CardLg
+            v-for="policy in policies"
+            :key="policy.id"
+            :title="policy.title"
+            badge="정책"
+            badge-tone="gray"
+            :details="[
+              { label: '필요서류', value: policy.documents },
+              { label: '마감', value: policy.deadline, tone: 'danger' },
+            ]"
+            action-label="자세히 보기"
+            @action="handlePolicyDetail(policy)"
+          />
+        </div>
+      </Section>
+
+      <!-- 동종업 인기 상품 섹션 -->
+      <Section title="동종업 인기 상품">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <CardSm
+            v-for="popular in popularProducts"
+            :key="popular.id"
+            :title="popular.title"
+            :label="popular.industry"
+            label-tone="yellow"
+            :meta="popular.meta"
+            @click="handlePopularDetail(popular)"
+          />
+        </div>
+      </Section>
+
+      <!-- 마감 임박 섹션 -->
+      <Section title="마감 임박">
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
+          <CardSm
+            v-for="urgent in urgentProducts"
+            :key="urgent.id"
+            :title="urgent.title"
+            :label="urgent.dday"
+            label-tone="red"
+            :meta="urgent.meta"
+            @click="handleUrgentDetail(urgent)"
+          />
+        </div>
+      </Section>
+
+      <!-- 하단 분할 섹션 -->
+      <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <!-- 인기 채팅방 -->
+        <Section title="인기 채팅방">
+          <template #actions>
+            <button class="cursor-pointer text-sm font-medium text-blue-600">
+              더 보기
+            </button>
+          </template>
+          <div class="space-y-3">
+            <div
+              v-for="chat in chatRooms"
+              :key="chat.id"
+              class="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm"
+              @click="handleChatRoom(chat)"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <h3 class="mb-1 font-medium text-gray-900">
+                    {{ chat.name }}
+                  </h3>
+                  <div class="flex items-center text-sm text-gray-600">
+                    <i class="fas fa-users mr-1"></i>
+                    <span>{{ chat.members }}명</span>
+                    <span class="mx-2">·</span>
+                    <span>{{ chat.lastActive }}</span>
+                  </div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <!-- 인기 게시판 -->
+        <Section title="인기 게시판">
+          <template #actions>
+            <button class="cursor-pointer text-sm font-medium text-blue-600">
+              더 보기
+            </button>
+          </template>
+          <div class="space-y-3">
+            <div
+              v-for="post in boardPosts"
+              :key="post.id"
+              class="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm"
+              @click="handleBoardPost(post)"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <h3 class="mb-1 font-medium text-gray-900">
+                    {{ post.title }}
+                  </h3>
+                  <p class="line-clamp-1 text-sm text-gray-600">
+                    {{ post.summary }}
+                  </p>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+              </div>
+            </div>
+          </div>
+        </Section>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useNotificationStore } from '@/stores/notification';
+import SearchBar from '@/components/common/SearchBar.vue';
+import Section from '@/components/common/Section.vue';
+import CardLg from '@/components/common/cards/CardLg.vue';
+import CardSm from '@/components/common/cards/CardSm.vue';
+import UiButton from '@/components/common/UiButton.vue';
+
+const searchQuery = ref('');
+const notificationStore = useNotificationStore();
+
+// 컴포넌트 마운트 시 샘플 알림 추가 (테스트용)
+onMounted(() => {
+  // 샘플 알림 데이터 추가
+  notificationStore.addSampleNotifications();
+});
+
+const loans = ref([
+  {
+    id: 1,
+    title: '중소기업 운영자금 대출',
+    rate: '연 3.5%~5.2%',
+    limit: '최대 5억원',
+  },
+  {
+    id: 2,
+    title: '청년창업 지원 대출',
+    rate: '연 2.8%~4.5%',
+    limit: '최대 2억원',
+  },
+  {
+    id: 3,
+    title: '기술보증기금 대출',
+    rate: '연 3.2%~4.8%',
+    limit: '최대 10억원',
+  },
+  {
+    id: 4,
+    title: '소상공인 특별대출',
+    rate: '연 2.5%~3.9%',
+    limit: '최대 1억원',
+  },
+]);
+
+const policies = ref([
+  {
+    id: 1,
+    title: '청년 창업 지원사업',
+    documents: '3/5',
+    deadline: 'D-7',
+  },
+  {
+    id: 2,
+    title: '중소기업 R&D 지원',
+    documents: '2/4',
+    deadline: 'D-12',
+  },
+  {
+    id: 3,
+    title: '여성기업 육성사업',
+    documents: '4/6',
+    deadline: 'D-5',
+  },
+  {
+    id: 4,
+    title: '지역특화 산업육성',
+    documents: '1/3',
+    deadline: 'D-15',
+  },
+]);
+
+const popularProducts = ref([
+  {
+    id: 1,
+    title: 'IT 스타트업 지원금',
+    industry: 'IT업종',
+    meta: '최대 3천만원',
+  },
+  {
+    id: 2,
+    title: '소프트웨어 개발지원',
+    industry: 'IT업종',
+    meta: '연 2.5% 금리',
+  },
+  {
+    id: 3,
+    title: '디지털 전환지원',
+    industry: 'IT업종',
+    meta: '최대 1억원',
+  },
+  {
+    id: 4,
+    title: '기술창업 인큐베이팅',
+    industry: 'IT업종',
+    meta: '무이자 3년',
+  },
+  {
+    id: 5,
+    title: 'AI 기술개발 지원',
+    industry: 'IT업종',
+    meta: '최대 5천만원',
+  },
+]);
+
+const urgentProducts = ref([
+  {
+    id: 1,
+    title: '긴급 운영자금 지원',
+    dday: 'D-2',
+    meta: '최대 2억원',
+  },
+  {
+    id: 2,
+    title: '코로나19 피해지원',
+    dday: 'D-3',
+    meta: '무이자 대출',
+  },
+  {
+    id: 3,
+    title: '청년 취업지원금',
+    dday: 'D-1',
+    meta: '월 50만원',
+  },
+  {
+    id: 4,
+    title: '소상공인 임대료 지원',
+    dday: 'D-4',
+    meta: '월 100만원',
+  },
+  {
+    id: 5,
+    title: '농업인 재해지원',
+    dday: 'D-2',
+    meta: '최대 3천만원',
+  },
+  {
+    id: 6,
+    title: '문화예술인 지원',
+    dday: 'D-5',
+    meta: '월 80만원',
+  },
+]);
+
+const chatRooms = ref([
+  {
+    id: 1,
+    name: '창업 준비 모임',
+    members: 124,
+    lastActive: '3분 전',
+  },
+  {
+    id: 2,
+    name: '정부지원금 정보공유',
+    members: 89,
+    lastActive: '7분 전',
+  },
+  {
+    id: 3,
+    name: 'IT 스타트업 네트워킹',
+    members: 156,
+    lastActive: '12분 전',
+  },
+  {
+    id: 4,
+    name: '대출 상담 및 후기',
+    members: 203,
+    lastActive: '18분 전',
+  },
+  {
+    id: 5,
+    name: '소상공인 모임',
+    members: 67,
+    lastActive: '25분 전',
+  },
+]);
+
+const boardPosts = ref([
+  {
+    id: 1,
+    title: '청년창업지원금 신청 후기',
+    summary: '서류 준비부터 승인까지의 전 과정을 상세히 공유합니다.',
+  },
+  {
+    id: 2,
+    title: '정부지원 대출 금리 비교',
+    summary: '각 기관별 대출 상품의 금리와 조건을 정리했습니다.',
+  },
+  {
+    id: 3,
+    title: '사업자등록 전 알아야 할 것들',
+    summary: '창업 전 필수로 확인해야 할 세무 및 법적 사항들',
+  },
+  {
+    id: 4,
+    title: '코로나19 피해지원금 신청 가이드',
+    summary: '피해지원금 신청 자격과 필요서류를 정리했습니다.',
+  },
+  {
+    id: 5,
+    title: 'R&D 지원사업 선정 팁',
+    summary: '연구개발 지원사업 선정을 위한 실전 노하우 공유',
+  },
+]);
+
+// 이벤트 핸들러들
+const handleSearch = query => {
+  console.log('검색:', query);
+  // 검색 로직 구현
+};
+
+const handleLoanDetail = loan => {
+  console.log('대출 상세:', loan);
+  // 대출 상세 페이지로 이동
+};
+
+const handlePolicyDetail = policy => {
+  console.log('정책 상세:', policy);
+  // 정책 상세 페이지로 이동
+};
+
+const handlePopularDetail = popular => {
+  console.log('인기 상품 상세:', popular);
+  // 인기 상품 상세 페이지로 이동
+};
+
+const handleUrgentDetail = urgent => {
+  console.log('마감 임박 상세:', urgent);
+  // 마감 임박 상품 상세 페이지로 이동
+};
+
+const handleChatRoom = chat => {
+  console.log('채팅방 입장:', chat);
+  // 채팅방으로 이동
+};
+
+const handleBoardPost = post => {
+  console.log('게시글 상세:', post);
+  // 게시글 상세 페이지로 이동
+};
+</script>
+
+<style scoped>
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>
