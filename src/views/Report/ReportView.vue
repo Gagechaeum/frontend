@@ -197,7 +197,7 @@ const items = ref([
     totalAmount: 30_000_000,
     repaymentMethod: '만기일시',
     paidAmount: 30_000_000,
-    interestRate: 2.8,
+    interestRate: '2.8',
     status: 'expired',
   },
 ]);

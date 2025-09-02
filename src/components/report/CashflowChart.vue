@@ -3,8 +3,30 @@
 </template>
 
 <script setup>
-import * as echarts from 'echarts';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
+// ECharts core + 필요한 모듈만 import
+import * as echarts from 'echarts/core';
+import { BarChart } from 'echarts/charts';
+import {
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  TitleComponent,
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+// ECharts에 모듈 등록
+echarts.use([
+  BarChart,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  TitleComponent,
+  CanvasRenderer,
+]);
+
+// Props
 const props = defineProps({
   policySeries: Array,
   loanSeries: Array,
@@ -56,6 +78,11 @@ onMounted(() => {
   init();
   const onResize = () => chart?.resize();
   window.addEventListener('resize', onResize);
-  onBeforeUnmount(() => window.removeEventListener('resize', onResize));
+
+  // cleanup 등록
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', onResize);
+    chart?.dispose();
+  });
 });
 </script>
