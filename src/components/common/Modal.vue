@@ -53,8 +53,8 @@
             variant="secondary"
             size="sm"
             @click="emit('cancel')"
-            >{{ cancelText }}</UiButton
-          >
+            >{{ cancelText }}
+          </UiButton>
           <UiButton
             v-if="showConfirmButton"
             variant="primary"
