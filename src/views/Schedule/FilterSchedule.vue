@@ -1,3 +1,4 @@
+<!-- src/views/Schedule/FilterSchedule.vue -->
 <template>
   <div>
     <ScheduleToolbar
@@ -84,7 +85,7 @@
           </button>
           <button
             class="h-8 rounded-[10px] bg-primary-alt px-4 text-[12px] font-black text-neutral-900"
-            @click="saveFilter"
+            @click="openCreateModal"
           >
             필터 저장
           </button>
@@ -131,7 +132,7 @@
               </button>
               <button
                 class="h-7 rounded-[10px] border border-neutral-300 bg-white px-3 text-[12px] font-semibold text-neutral-700"
-                @click="rename(f)"
+                @click="openRenameModal(f)"
               >
                 이름변경
               </button>
@@ -148,6 +149,17 @@
     </div>
 
     <SavedFiltersModal :open="showSaved" @close="showSaved = false" />
+
+    <!-- 이름 입력 모달 -->
+    <InputModal
+      :open="showNameModal"
+      :title="renameTarget ? '필터 이름 변경' : '새 필터 저장'"
+      :placeholder="'필터 이름을 입력하세요'"
+      :default-value="nameDefault"
+      ok-text="확인"
+      @close="showNameModal = false"
+      @submit="onNameSubmit"
+    />
   </div>
 </template>
 
@@ -157,9 +169,10 @@ import { storeToRefs } from 'pinia';
 import ScheduleToolbar from '@/components/schedule/ScheduleToolbar.vue';
 import FilterSection from '@/components/schedule/FilterSection.vue';
 import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
+import InputModal from '@/components/schedule/InputModal.vue';
 import { useScheduleFilters } from '@/stores/scheduleFilters';
 
-const status = ref('all'); // 상단 검색/동작은 변경하지 않음
+const status = ref('all'); // 상단 검색은 유지(동작 변경 없음)
 const year = ref(2025);
 const month = ref(8);
 const showSaved = ref(false);
@@ -185,22 +198,38 @@ function onReset() {
   builder.org = [];
   builder.state = [];
 }
-function saveFilter() {
-  const name = prompt('필터 이름', '새 필터');
-  if (!name) return;
-  filters.create(name, { ...builder });
-}
 function setActive(id) {
   filters.setActive(id);
 }
 function applyNow() {
   filters.setActiveCriteria({ ...builder });
 }
-function rename(f) {
-  const name = prompt('새 이름', f.name);
-  if (name && name !== f.name) filters.update(f.id, { name });
-}
 function remove(id) {
   filters.remove(id);
+}
+
+// 모달 상태 (저장/이름변경 공용)
+const showNameModal = ref(false);
+const renameTarget = ref(null);
+const nameDefault = ref('');
+
+function openCreateModal() {
+  renameTarget.value = null;
+  nameDefault.value = '새 필터';
+  showNameModal.value = true;
+}
+function openRenameModal(f) {
+  renameTarget.value = f;
+  nameDefault.value = f.name;
+  showNameModal.value = true;
+}
+function onNameSubmit(name) {
+  if (!name) return;
+  if (renameTarget.value) {
+    filters.update(renameTarget.value.id, { name });
+  } else {
+    filters.create(name, { ...builder });
+  }
+  showNameModal.value = false;
 }
 </script>

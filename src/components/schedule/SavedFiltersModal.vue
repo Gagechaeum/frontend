@@ -1,3 +1,4 @@
+<!-- src/components/schedule/SavedFiltersModal.vue -->
 <template>
   <div v-if="open" class="fixed inset-0 z-[60]">
     <div class="absolute inset-0 bg-black/30" @click="$emit('close')"></div>
@@ -49,14 +50,29 @@
         </li>
       </ul>
     </div>
+
+    <!-- 이름 변경 모달 -->
+    <InputModal
+      :open="showRename"
+      title="필터 이름 변경"
+      :default-value="nameDefault"
+      placeholder="새 이름을 입력하세요"
+      ok-text="변경"
+      @close="showRename = false"
+      @submit="onRenameSubmit"
+    />
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useScheduleFilters } from '@/stores/scheduleFilters';
-defineProps({ open: Boolean });
+import InputModal from '@/components/schedule/InputModal.vue';
+
+const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
+
 const store = useScheduleFilters();
 const { saved } = storeToRefs(store);
 
@@ -67,8 +83,19 @@ function apply(id) {
 function remove(id) {
   store.remove(id);
 }
+
+const showRename = ref(false);
+const renameTarget = ref(null);
+const nameDefault = ref('');
 function rename(f) {
-  const name = prompt('새 이름', f.name);
-  if (name && name !== f.name) store.update(f.id, { name });
+  renameTarget.value = f;
+  nameDefault.value = f.name;
+  showRename.value = true;
+}
+function onRenameSubmit(name) {
+  if (name && renameTarget.value) {
+    store.update(renameTarget.value.id, { name });
+  }
+  showRename.value = false;
 }
 </script>
