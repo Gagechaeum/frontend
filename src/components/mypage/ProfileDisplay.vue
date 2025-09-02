@@ -30,7 +30,7 @@ const emit = defineEmits(['edit']);
           <div class="py-4">
             <p class="text-sm text-gray-500">이름</p>
             <p class="mt-1 text-base text-gray-900">
-              {{ props.profile.realName || props.profile.name }}
+              {{ props.profile.name }}
             </p>
           </div>
           <!-- 연락처 -->

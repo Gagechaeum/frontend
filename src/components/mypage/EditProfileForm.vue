@@ -142,7 +142,7 @@ function onSubmit() {
           />
         </label>
       </div>
-      <div class="mt-3 text-xl font-bold">{{ form.name || '닉네임' }}</div>
+      <div class="mt-3 text-xl font-bold">{{ form.nickName || '닉네임' }}</div>
     </div>
 
     <!-- 기본 정보 -->
