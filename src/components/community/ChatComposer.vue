@@ -143,8 +143,20 @@ const onPick = (type, e) => {
   e.target.value = ''; // 같은 파일 재선택 대비 초기화
   if (!files.length) return;
 
-  if (type === 'image') emit('send-image', files);
-  else if (type === 'video') emit('send-video', files);
-  else emit('send-file', files);
+  // File -> { url, name, file } 로 변환
+  const infos = files.map(file => ({
+    url: URL.createObjectURL(file),
+    name: file.name,
+    file, // 필요 시 원본 파일 유지
+  }));
+
+  // 부모는 fileInfo "하나"를 기대하므로, 파일 여러 개여도 하나씩 emit
+  const send = info => {
+    if (type === 'image') emit('send-image', info);
+    else if (type === 'video') emit('send-video', info);
+    else emit('send-file', info);
+  };
+
+  infos.forEach(send);
 };
 </script>

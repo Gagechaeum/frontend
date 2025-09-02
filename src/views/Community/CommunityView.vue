@@ -368,6 +368,10 @@ onMounted(() => {
   });
 });
 
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown);
+});
+
 /** 데모 핸들러 */
 const openRegion = () => {};
 const openBusinessCategory = () => {};
