@@ -9,7 +9,7 @@
     </button>
     <div
       v-if="open"
-      class="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg"
+      class="absolute left-0 z-50 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg"
     >
       <ul class="max-h-60 overflow-auto py-1" role="listbox">
         <li

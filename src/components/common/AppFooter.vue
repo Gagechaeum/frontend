@@ -13,7 +13,6 @@
         <h4 class="mb-2 font-medium text-gray-900">링크</h4>
         <ul class="space-y-1 text-sm">
           <slot name="links">
-            <li><a href="/" class="hover:text-primary">전체 상품</a></li>
             <li><a href="/schedule" class="hover:text-primary">일정</a></li>
             <li><a href="/mypage" class="hover:text-primary">내 서류함</a></li>
             <li>
