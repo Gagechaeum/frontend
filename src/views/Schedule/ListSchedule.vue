@@ -1,4 +1,4 @@
-<!-- src/views/Schedule/FavoritesSchedule.vue -->
+<!-- src/views/Schedule/ListSchedule.vue -->
 <template>
   <div>
     <ScheduleToolbar
@@ -14,11 +14,8 @@
 
     <section class="rounded-xl border border-neutral-100 bg-white">
       <div class="flex items-center justify-between px-4 py-3">
-        <p class="text-xs font-bold text-neutral-700">
-          즐겨찾기 · {{ rows.length }}
-        </p>
+        <p class="text-xs font-bold text-neutral-700">총 {{ rows.length }}건</p>
       </div>
-
       <ul class="divide-y divide-neutral-100">
         <li
           v-for="row in rows"
@@ -28,7 +25,7 @@
           <div class="col-span-12 md:col-span-6">
             <p class="text-sm font-bold">{{ row.title }}</p>
             <p class="text-xs text-neutral-600">
-              {{ row.org }} · {{ fmtPeriod(row.period) }}
+              {{ row.org }} · 접수기간 {{ fmtPeriod(row.period) }}
             </p>
           </div>
           <div class="col-span-6 md:col-span-3">
@@ -43,7 +40,10 @@
             </span>
           </div>
           <div class="col-span-6 flex items-center gap-2 md:col-span-2">
-            <StarToggle :active="true" @toggle="fav.remove(row.id)" />
+            <StarToggle
+              :active="fav.has(row.id)"
+              @toggle="fav.toggle(row.id)"
+            />
             <span
               v-for="t in row.tags"
               :key="t"
@@ -71,34 +71,31 @@ import { ref, onMounted, watch } from 'vue';
 import ScheduleToolbar from '@/components/schedule/ScheduleToolbar.vue';
 import StarToggle from '@/components/schedule/StarToggle.vue';
 import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
-import { useFavorites } from '@/stores/favorites';
 import { useScheduleFilters } from '@/stores/scheduleFilters';
-import { fetchPoliciesByIds } from '@/stores/policies';
+import { useFavorites } from '@/stores/favorites';
+import { fetchPolicies } from '@/stores/policies';
 import { fmtPeriod, stateText, stateColor } from '@/utils/schedule';
+
+const filters = useScheduleFilters();
+const fav = useFavorites();
 
 const status = ref('all');
 const year = ref(2025);
 const month = ref(8);
 const query = ref('');
 const showFilters = ref(false);
-
-const fav = useFavorites();
-const filters = useScheduleFilters();
-
 const rows = ref([]);
 
 onMounted(() => {
-  fav.load();
   filters.load();
+  fav.load();
 });
-watch(
-  [() => fav.ids.slice(), () => filters.activeCriteria, query, status],
-  loadFavs,
-  { immediate: true }
-);
+watch([() => filters.activeCriteria, query, status, year, month], loadList, {
+  immediate: true,
+});
 
-async function loadFavs() {
-  rows.value = await fetchPoliciesByIds(fav.ids, {
+async function loadList() {
+  rows.value = await fetchPolicies({
     q: query.value,
     status: status.value,
     year: year.value,
