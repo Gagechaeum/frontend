@@ -5,6 +5,11 @@ import MypageView from '@/views/Mypage/MyPageView.vue';
 import TestView from '@/views/TestView.vue';
 import Community from '@/views/Community/CommunityView.vue';
 import Report from '@/views/Report/ReportView.vue';
+import ScheduleLayout from '@/views/Schedule/ScheduleLayout.vue';
+import AllSchedule from '@/views/Schedule/AllSchedule.vue';
+import ListSchedule from '@/views/Schedule/ListSchedule.vue';
+import FilterSchedule from '@/views/Schedule/FilterSchedule.vue';
+import FavoritesSchedule from '@/views/Schedule/FavoritesSchedule.vue';
 
 // 페이지 파일이 없어도 오류 안나게 하는 플레이스홀더
 const Placeholder = title => ({
@@ -31,9 +36,19 @@ const routes = [
   },
   {
     path: '/schedule',
-    name: 'schedule',
-    component: Placeholder('일정'),
+    component: ScheduleLayout,
     meta: { showHeader: true },
+    children: [
+      { path: '', redirect: '/schedule/calendar' },
+      { path: 'calendar', name: 'schedule-calendar', component: AllSchedule },
+      { path: 'list', name: 'schedule-list', component: ListSchedule },
+      { path: 'filter', name: 'schedule-filter', component: FilterSchedule },
+      {
+        path: 'favorites',
+        name: 'schedule-favorites',
+        component: FavoritesSchedule,
+      },
+    ],
   },
   {
     path: '/community',
