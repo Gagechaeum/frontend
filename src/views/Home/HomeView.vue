@@ -1,18 +1,12 @@
 <!-- The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work. -->
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- 전역 검색창 -->
-    <div class="border-b border-gray-200 bg-white pb-4">
-      <div class="mx-auto max-w-2xl px-4">
-        <SearchBar v-model="searchQuery" @submit="handleSearch" />
-      </div>
-    </div>
-
-    <!-- 메인 컨테이너 -->
-    <main class="mx-auto max-w-6xl px-4 py-8">
-      <!-- 히어로 섹션 -->
-      <Section card>
-        <div class="flex items-center justify-between">
+    <!-- 히어로 배너: 헤더가 겹치는 레이아웃 -->
+    <section
+      class="relative overflow-hidden bg-gradient-to-b from-blue-50 to-transparent"
+    >
+      <div class="mx-auto max-w-6xl px-4">
+        <div class="flex h-[360px] items-center justify-between pt-16">
           <div class="flex-1">
             <h1 class="mb-4 text-3xl font-bold text-gray-900">
               정부 지원·대출 상품 한눈에,<br />서류까지 한번에
@@ -20,14 +14,35 @@
             <p class="mb-6 text-lg text-gray-600">
               업종/지역 기반 추천과 마감 알림 제공
             </p>
+            <div class="flex space-x-4">
+              <UiButton variant="primary" size="lg" @click="goDocs">
+                내 서류함 보기
+              </UiButton>
+              <UiButton variant="secondary" size="lg" @click="goReport">
+                내 리포트 보기
+              </UiButton>
+            </div>
           </div>
-          <div class="flex space-x-4">
-            <UiButton variant="primary" size="lg"> 내 서류함 보기 </UiButton>
-            <UiButton variant="secondary" size="lg"> 내 리포트 보기 </UiButton>
+          <div class="hidden flex-1 items-center justify-end md:flex">
+            <img
+              src="/vite.svg"
+              alt="illustration"
+              class="h-40 w-40 opacity-20"
+            />
           </div>
         </div>
-      </Section>
+      </div>
+    </section>
 
+    <!-- 전역 검색창: 배너 아래로 이동 -->
+    <div class="border-b border-gray-200 bg-white py-4">
+      <div class="mx-auto max-w-2xl px-4">
+        <SearchBar v-model="searchQuery" @submit="handleSearch" />
+      </div>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <main class="mx-auto max-w-6xl px-4 py-8">
       <!-- 추천 대출 섹션 -->
       <Section title="추천 대출">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -165,12 +180,18 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import SearchBar from '@/components/common/SearchBar.vue';
 import Section from '@/components/common/Section.vue';
 import CardLg from '@/components/common/cards/CardLg.vue';
 import CardSm from '@/components/common/cards/CardSm.vue';
 import UiButton from '@/components/common/UiButton.vue';
+
+const router = useRouter();
+
+const goDocs = () => router.push('/docs');
+const goReport = () => router.push('/report');
 
 const searchQuery = ref('');
 const notificationStore = useNotificationStore();
@@ -308,36 +329,11 @@ const urgentProducts = ref([
 ]);
 
 const chatRooms = ref([
-  {
-    id: 1,
-    name: '창업 준비 모임',
-    members: 124,
-    lastActive: '3분 전',
-  },
-  {
-    id: 2,
-    name: '정부지원금 정보공유',
-    members: 89,
-    lastActive: '7분 전',
-  },
-  {
-    id: 3,
-    name: 'IT 스타트업 네트워킹',
-    members: 156,
-    lastActive: '12분 전',
-  },
-  {
-    id: 4,
-    name: '대출 상담 및 후기',
-    members: 203,
-    lastActive: '18분 전',
-  },
-  {
-    id: 5,
-    name: '소상공인 모임',
-    members: 67,
-    lastActive: '25분 전',
-  },
+  { id: 1, name: '창업 준비 모임', members: 124, lastActive: '3분 전' },
+  { id: 2, name: '정부지원금 정보공유', members: 89, lastActive: '7분 전' },
+  { id: 3, name: 'IT 스타트업 네트워킹', members: 156, lastActive: '12분 전' },
+  { id: 4, name: '대출 상담 및 후기', members: 203, lastActive: '18분 전' },
+  { id: 5, name: '소상공인 모임', members: 67, lastActive: '25분 전' },
 ]);
 
 const boardPosts = ref([
@@ -371,37 +367,30 @@ const boardPosts = ref([
 // 이벤트 핸들러들
 const handleSearch = query => {
   console.log('검색:', query);
-  // 검색 로직 구현
 };
 
 const handleLoanDetail = loan => {
   console.log('대출 상세:', loan);
-  // 대출 상세 페이지로 이동
 };
 
 const handlePolicyDetail = policy => {
   console.log('정책 상세:', policy);
-  // 정책 상세 페이지로 이동
 };
 
 const handlePopularDetail = popular => {
   console.log('인기 상품 상세:', popular);
-  // 인기 상품 상세 페이지로 이동
 };
 
 const handleUrgentDetail = urgent => {
   console.log('마감 임박 상세:', urgent);
-  // 마감 임박 상품 상세 페이지로 이동
 };
 
 const handleChatRoom = chat => {
   console.log('채팅방 입장:', chat);
-  // 채팅방으로 이동
 };
 
 const handleBoardPost = post => {
   console.log('게시글 상세:', post);
-  // 게시글 상세 페이지로 이동
 };
 </script>
 

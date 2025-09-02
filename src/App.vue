@@ -1,6 +1,9 @@
 <template>
   <div class="flex min-h-screen flex-col bg-neutral-50 text-neutral-900">
-    <AppHeader v-if="$route.meta.showHeader !== false" />
+    <AppHeader
+      v-if="$route.meta.showHeader !== false"
+      :overlay="$route.meta.overlayHeader === true"
+    />
     <main class="flex-1">
       <RouterView />
     </main>

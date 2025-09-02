@@ -1,5 +1,11 @@
 <template>
-  <header class="sticky top-0 z-40 border-b border-gray-200 bg-white">
+  <header
+    :class="
+      overlay
+        ? 'absolute inset-x-0 top-0 z-40 border-b-0 bg-transparent'
+        : 'sticky top-0 z-40 border-b border-gray-200 bg-white'
+    "
+  >
     <div class="mx-auto max-w-7xl px-4">
       <div class="flex h-16 items-center justify-between">
         <!-- 로고 -->
@@ -116,8 +122,9 @@ import { useNotificationStore } from '@/stores/notification';
 import NotificationDropdown from './NotificationDropdown.vue';
 
 const props = defineProps({
-  chips: { type: Array, default: () => [] }, // 사용자 정보 목록 (태그)
-  showBell: { type: Boolean, default: true }, // 알림 버튼 표시 여부
+  chips: { type: Array, default: () => [] },
+  showBell: { type: Boolean, default: true },
+  overlay: { type: Boolean, default: false },
 });
 
 const notificationStore = useNotificationStore();

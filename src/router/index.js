@@ -27,7 +27,7 @@ const routes = [
     path: '/',
     name: 'home',
     component: HomeView,
-    meta: { showHeader: true },
+    meta: { showHeader: true, overlayHeader: true },
   },
   {
     path: '/report',
