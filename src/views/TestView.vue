@@ -785,12 +785,212 @@ notificationStore.remove(id);</code></pre>
           />
         </div>
       </Section>
+
+      <!-- Modal 사용법 가이드 -->
+      <Section title="📚 Modal 컴포넌트 사용법" class="mb-6" card>
+        <div class="space-y-4">
+          <div class="rounded-lg bg-gray-50 p-4">
+            <h4 class="mb-2 font-medium text-gray-800">기본 사용법:</h4>
+            <pre
+              class="overflow-x-auto rounded border bg-white p-3 text-sm"
+            ><code>&lt;Modal
+  :show="open"
+  title="모달 제목"
+  subtitle="서브타이틀"
+  @close="open = false"
+  @confirm="handleConfirm"
+  @cancel="open = false"
+&gt;
+  내용 영역
+&lt;/Modal&gt;</code></pre>
+          </div>
+
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">show:</span>
+              <span class="text-gray-600">Boolean - 표시 여부</span>
+              <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-700"
+                >필수</span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">title / subtitle:</span>
+              <span class="text-gray-600">String - 제목 / 서브타이틀</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700"
+                >cancelText / confirmText:</span
+              >
+              <span class="text-gray-600">String - 버튼 텍스트</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500">기본값: "취소" / "확인"</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">confirmDisabled:</span>
+              <span class="text-gray-600">Boolean - 확인 비활성화</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500">기본값: false</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700"
+                >showCloseButton / closeOnBackdrop:</span
+              >
+              <span class="text-gray-600"
+                >Boolean - 닫기 버튼 / 배경 클릭 닫기</span
+              >
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500">기본값: true / true</span>
+            </div>
+          </div>
+
+          <div class="rounded-lg bg-gray-50 p-4">
+            <h4 class="mb-2 font-medium text-gray-800">
+              커스텀 푸터 (footer 슬롯):
+            </h4>
+            <pre
+              class="overflow-x-auto rounded border bg-white p-3 text-sm"
+            ><code>&lt;Modal :show="open" title="제목" @close="open=false"&gt;
+  내용
+  &lt;template #footer&gt;
+    &lt;UiButton variant="ghost" size="sm" @click="open=false"&gt;닫기&lt;/UiButton&gt;
+    &lt;UiButton variant="primary" size="sm" @click="handleCustomConfirm"&gt;저장&lt;/UiButton&gt;
+  &lt;/template&gt;
+&lt;/Modal&gt;</code></pre>
+          </div>
+        </div>
+      </Section>
+
+      <!-- Modal 테스트 -->
+      <Section title="Modal 컴포넌트" class="mb-8">
+        <div class="space-y-4">
+          <!-- 1) 기본 모달 -->
+          <div class="space-y-2">
+            <h3 class="text-lg font-semibold">1. 기본 모달</h3>
+            <UiButton variant="primary" size="sm" @click="showBasicModal = true"
+              >기본 모달 열기</UiButton
+            >
+            <Modal
+              :show="showBasicModal"
+              title="기본 모달"
+              subtitle="간단한 설명 문구"
+              @close="showBasicModal = false"
+              @confirm="handleBasicConfirm"
+              @cancel="showBasicModal = false"
+            >
+              <p class="text-gray-700">모달 내용을 여기에 작성하세요.</p>
+            </Modal>
+          </div>
+
+          <!-- 2) 커스텀 푸터 모달 -->
+          <div class="space-y-2">
+            <h3 class="text-lg font-semibold">2. 커스텀 푸터 모달</h3>
+            <UiButton
+              variant="secondary"
+              size="sm"
+              @click="showCustomModal = true"
+              >커스텀 푸터 모달 열기</UiButton
+            >
+            <Modal
+              :show="showCustomModal"
+              title="커스텀 모달"
+              subtitle="footer 슬롯으로 버튼 교체"
+              @close="showCustomModal = false"
+            >
+              <div class="space-y-3">
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700"
+                    >이름</label
+                  >
+                  <input
+                    v-model="customForm.name"
+                    type="text"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="이름을 입력하세요"
+                  />
+                </div>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700"
+                    >이메일</label
+                  >
+                  <input
+                    v-model="customForm.email"
+                    type="email"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="이메일을 입력하세요"
+                  />
+                </div>
+              </div>
+              <template #footer>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  @click="showCustomModal = false"
+                  >닫기</UiButton
+                >
+                <UiButton
+                  variant="primary"
+                  size="sm"
+                  @click="handleCustomConfirm"
+                  >저장</UiButton
+                >
+              </template>
+            </Modal>
+          </div>
+
+          <!-- 3) 확인 비활성화 모달 -->
+          <div class="space-y-2">
+            <h3 class="text-lg font-semibold">3. 비활성화된 확인 버튼 모달</h3>
+            <UiButton
+              variant="secondary"
+              size="sm"
+              @click="showDisabledModal = true"
+              >검증 모달 열기</UiButton
+            >
+            <Modal
+              :show="showDisabledModal"
+              title="폼 검증 모달"
+              subtitle="모든 필드를 입력해야 합니다."
+              confirm-text="제출"
+              :confirm-disabled="!isFormValid"
+              @close="showDisabledModal = false"
+              @confirm="handleDisabledConfirm"
+              @cancel="showDisabledModal = false"
+            >
+              <div class="space-y-3">
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700"
+                    >이름</label
+                  >
+                  <input
+                    v-model="validationForm.name"
+                    type="text"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="이름을 입력하세요"
+                  />
+                </div>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700"
+                    >전화번호</label
+                  >
+                  <input
+                    v-model="validationForm.phone"
+                    type="tel"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="전화번호를 입력하세요"
+                  />
+                </div>
+              </div>
+            </Modal>
+          </div>
+        </div>
+      </Section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppHeader from '@/components/common/AppHeader.vue';
 import AppFooter from '@/components/common/AppFooter.vue';
 import SearchBar from '@/components/common/SearchBar.vue';
@@ -801,6 +1001,7 @@ import MoreButton from '@/components/common/MoreButton.vue';
 import CardLg from '@/components/common/cards/CardLg.vue';
 import CardSm from '@/components/common/cards/CardSm.vue';
 import Section from '@/components/common/Section.vue';
+import Modal from '@/components/common/Modal.vue';
 import { useNotificationStore } from '@/stores/notification';
 
 const notificationStore = useNotificationStore();
@@ -808,6 +1009,41 @@ const notificationStore = useNotificationStore();
 // 반응형 데이터
 const searchText = ref('');
 const selectedDropdownValue = ref('');
+
+// Modal 관련 상태
+const showBasicModal = ref(false);
+const showConfirmModal = ref(false);
+const showCustomModal = ref(false);
+const showNoButtonModal = ref(false);
+const showDisabledModal = ref(false);
+
+// 커스텀 모달 폼 상태
+const customForm = ref({
+  name: '',
+  email: '',
+});
+
+const validationForm = ref({
+  name: '',
+  phone: '',
+});
+
+// 폼 검증 computed
+const isFormValid = computed(() => {
+  return (
+    validationForm.value.name.trim() !== '' &&
+    validationForm.value.phone.trim() !== ''
+  );
+});
+
+// 폼 변경 감지
+watch(
+  [() => validationForm.value.name, () => validationForm.value.phone],
+  () => {
+    // 폼 상태가 변경될 때마다 자동으로 검증
+  },
+  { immediate: true }
+);
 
 // 드롭다운 옵션
 const dropdownOptions = [
@@ -846,6 +1082,35 @@ const handleCardAction = cardData => {
 const handleFavoriteUpdate = favorited => {
   console.log('즐겨찾기 상태 변경:', favorited);
   alert(`즐겨찾기 ${favorited ? '추가' : '제거'}되었습니다!`);
+};
+
+// Modal 이벤트 핸들러
+const handleBasicConfirm = () => {
+  alert('기본 모달 확인 버튼 클릭!');
+  showBasicModal.value = false;
+};
+
+const handleDeleteConfirm = () => {
+  alert('확인 모달 확인 버튼 클릭!');
+  showConfirmModal.value = false;
+};
+
+const handleCustomConfirm = () => {
+  alert('커스텀 버튼 모달 확인 버튼 클릭!');
+  showCustomModal.value = false;
+};
+
+const handleClose = () => {
+  alert('모달 닫기 버튼 클릭!');
+};
+
+const handleCancel = () => {
+  alert('모달 취소 버튼 클릭!');
+};
+
+const handleDisabledConfirm = () => {
+  alert('비활성화 모달 확인 버튼 클릭!');
+  showDisabledModal.value = false;
 };
 
 // 토스트 알림 테스트 함수들
