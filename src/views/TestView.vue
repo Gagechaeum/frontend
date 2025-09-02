@@ -366,35 +366,6 @@ notificationStore.remove(id);</code></pre>
         </div>
       </div>
 
-      <!-- AppHeader 사용법 가이드 -->
-      <Section title="📚 AppHeader 컴포넌트 사용법" class="mb-6" card>
-        <div class="space-y-4">
-          <div class="rounded-lg bg-gray-50 p-4">
-            <h4 class="mb-2 font-medium text-gray-800">사용 예시:</h4>
-            <pre
-              class="overflow-x-auto rounded border bg-white p-3 text-sm"
-            ><code>&lt;AppHeader
-  :chips="['사업자', '소상공인']"
-  :show-bell="true"
-/&gt;</code></pre>
-          </div>
-          <div class="space-y-2 text-sm">
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-700">chips:</span>
-              <span class="text-gray-600">Array - 사용자 정보 태그 목록</span>
-              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
-              <span class="text-gray-500">기본값: []</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-700">showBell:</span>
-              <span class="text-gray-600">Boolean - 알림 버튼 표시 여부</span>
-              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
-              <span class="text-gray-500">기본값: true</span>
-            </div>
-          </div>
-        </div>
-      </Section>
-
       <!-- SearchBar 테스트 -->
       <Section title="SearchBar 컴포넌트" class="mb-8">
         <div class="max-w-md">
@@ -404,6 +375,57 @@ notificationStore.remove(id);</code></pre>
             @submit="handleSearch"
           />
           <p class="mt-2 text-sm text-gray-600">검색어: {{ searchText }}</p>
+        </div>
+      </Section>
+
+      <!-- SearchBar 사용법 가이드 -->
+      <Section title="📚 SearchBar 컴포넌트 사용법" class="mb-6" card>
+        <div class="space-y-4">
+          <div class="rounded-lg bg-gray-50 p-4">
+            <h4 class="mb-2 font-medium text-gray-800">사용 예시:</h4>
+            <pre
+              class="overflow-x-auto rounded border bg-white p-3 text-sm"
+            ><code>&lt;SearchBar
+  v-model="searchText"
+  placeholder="검색어를 입력하세요..."
+  @submit="handleSearch"
+/&gt;</code></pre>
+          </div>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">modelValue:</span>
+              <span class="text-gray-600">String - 검색어 (v-model)</span>
+              <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-700"
+                >필수</span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">placeholder:</span>
+              <span class="text-gray-600">String - 플레이스홀더 텍스트</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500">기본값: "검색..."</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">@submit:</span>
+              <span class="text-gray-600">Event - 검색 제출 이벤트</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500"
+                >Enter 키 또는 검색 버튼 클릭 시 발생</span
+              >
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <!-- Tag 테스트 -->
+      <Section title="Tag 컴포넌트" class="mb-8">
+        <div class="flex flex-wrap gap-2">
+          <Tag label="사업자" tone="gray" size="sm" />
+          <Tag label="소상공인" tone="blue" size="sm" />
+          <Tag label="대출" tone="green" size="sm" />
+          <Tag label="보조금" tone="yellow" size="sm" />
+          <Tag label="중요" tone="red" size="sm" />
+          <Tag label="작은 태그" tone="blue" size="xs" rounded="full" />
         </div>
       </Section>
 
@@ -455,15 +477,14 @@ notificationStore.remove(id);</code></pre>
         </div>
       </Section>
 
-      <!-- Tag 테스트 -->
-      <Section title="Tag 컴포넌트" class="mb-8">
-        <div class="flex flex-wrap gap-2">
-          <Tag label="사업자" tone="gray" size="sm" />
-          <Tag label="소상공인" tone="blue" size="sm" />
-          <Tag label="대출" tone="green" size="sm" />
-          <Tag label="보조금" tone="yellow" size="sm" />
-          <Tag label="중요" tone="red" size="sm" />
-          <Tag label="작은 태그" tone="blue" size="xs" rounded="full" />
+      <!-- UiButton 테스트 -->
+      <Section title="UiButton 컴포넌트" class="mb-8">
+        <div class="flex flex-wrap gap-4">
+          <UiButton variant="primary" size="lg">Primary Large</UiButton>
+          <UiButton variant="secondary" size="md">Secondary Medium</UiButton>
+          <UiButton variant="ghost" size="sm">Ghost Small</UiButton>
+          <UiButton variant="secondary" block>Block Button</UiButton>
+          <UiButton variant="primary" disabled>Disabled Button</UiButton>
         </div>
       </Section>
 
@@ -515,14 +536,17 @@ notificationStore.remove(id);</code></pre>
         </div>
       </Section>
 
-      <!-- UiButton 테스트 -->
-      <Section title="UiButton 컴포넌트" class="mb-8">
-        <div class="flex flex-wrap gap-4">
-          <UiButton variant="primary" size="lg">Primary Large</UiButton>
-          <UiButton variant="secondary" size="md">Secondary Medium</UiButton>
-          <UiButton variant="ghost" size="sm">Ghost Small</UiButton>
-          <UiButton variant="secondary" block>Block Button</UiButton>
-          <UiButton variant="primary" disabled>Disabled Button</UiButton>
+      <!-- Dropdown 테스트 -->
+      <Section title="Dropdown 컴포넌트" class="mb-8">
+        <div class="max-w-xs">
+          <Dropdown
+            v-model="selectedDropdownValue"
+            :options="dropdownOptions"
+            @update:model-value="handleDropdownSelect"
+          />
+          <p class="mt-2 text-sm text-gray-600">
+            선택된 값: {{ selectedDropdownValue }}
+          </p>
         </div>
       </Section>
 
@@ -564,18 +588,9 @@ notificationStore.remove(id);</code></pre>
         </div>
       </Section>
 
-      <!-- Dropdown 테스트 -->
-      <Section title="Dropdown 컴포넌트" class="mb-8">
-        <div class="max-w-xs">
-          <Dropdown
-            v-model="selectedDropdownValue"
-            :options="dropdownOptions"
-            @update:model-value="handleDropdownSelect"
-          />
-          <p class="mt-2 text-sm text-gray-600">
-            선택된 값: {{ selectedDropdownValue }}
-          </p>
-        </div>
+      <!-- MoreButton 테스트 -->
+      <Section title="MoreButton 컴포넌트" class="mb-8">
+        <MoreButton @click="handleMoreClick">더 많은 내용 보기</MoreButton>
       </Section>
 
       <!-- MoreButton 사용법 가이드 -->
@@ -605,9 +620,38 @@ notificationStore.remove(id);</code></pre>
         </div>
       </Section>
 
-      <!-- MoreButton 테스트 -->
-      <Section title="MoreButton 컴포넌트" class="mb-8">
-        <MoreButton @click="handleMoreClick">더 많은 내용 보기</MoreButton>
+      <!-- CardLg 테스트 -->
+      <Section title="CardLg 컴포넌트" class="mb-8">
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <CardLg
+            title="대출 상품 A"
+            badge="신규"
+            badge-tone="green"
+            :details="[
+              { label: '대출 한도', value: '최대 5천만원' },
+              { label: '이자율', value: '연 3.5%', tone: 'danger' },
+              { label: '상환기간', value: '최대 10년' },
+            ]"
+            action-label="상세보기"
+            :favorited="false"
+            @action="handleCardAction"
+            @update:favorited="handleFavoriteUpdate"
+          />
+          <CardLg
+            title="보조금 지원 B"
+            badge="마감임박"
+            badge-tone="red"
+            :details="[
+              { label: '지원금액', value: '최대 3천만원' },
+              { label: '신청기간', value: '2024.12.31까지' },
+              { label: '지원대상', value: '소상공인' },
+            ]"
+            action-label="신청하기"
+            :favorited="true"
+            @action="handleCardAction"
+            @update:favorited="handleFavoriteUpdate"
+          />
+        </div>
       </Section>
 
       <!-- CardLg 사용법 가이드 -->
@@ -676,36 +720,32 @@ notificationStore.remove(id);</code></pre>
         </div>
       </Section>
 
-      <!-- CardLg 테스트 -->
-      <Section title="CardLg 컴포넌트" class="mb-8">
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <CardLg
-            title="대출 상품 A"
-            badge="신규"
-            badge-tone="green"
-            :details="[
-              { label: '대출 한도', value: '최대 5천만원' },
-              { label: '이자율', value: '연 3.5%', tone: 'danger' },
-              { label: '상환기간', value: '최대 10년' },
-            ]"
-            action-label="상세보기"
-            :favorited="false"
-            @action="handleCardAction"
-            @update:favorited="handleFavoriteUpdate"
+      <!-- CardSm 테스트 -->
+      <Section title="CardSm 컴포넌트" class="mb-8">
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <CardSm
+            title="상품 1"
+            label="신규"
+            label-tone="green"
+            meta="2024.12.01 등록"
           />
-          <CardLg
-            title="보조금 지원 B"
-            badge="마감임박"
-            badge-tone="red"
-            :details="[
-              { label: '지원금액', value: '최대 3천만원' },
-              { label: '신청기간', value: '2024.12.31까지' },
-              { label: '지원대상', value: '소상공인' },
-            ]"
-            action-label="신청하기"
-            :favorited="true"
-            @action="handleCardAction"
-            @update:favorited="handleFavoriteUpdate"
+          <CardSm
+            title="상품 2"
+            label="인기"
+            label-tone="red"
+            meta="조회수 1,234"
+          />
+          <CardSm
+            title="상품 3"
+            label="추천"
+            label-tone="blue"
+            meta="평점 4.8"
+          />
+          <CardSm
+            title="상품 4"
+            label="특가"
+            label-tone="yellow"
+            meta="할인 20%"
           />
         </div>
       </Section>
@@ -752,111 +792,6 @@ notificationStore.remove(id);</code></pre>
               <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
               <span class="text-gray-500">기본값: ""</span>
             </div>
-          </div>
-        </div>
-      </Section>
-
-      <!-- CardSm 테스트 -->
-      <Section title="CardSm 컴포넌트" class="mb-8">
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <CardSm
-            title="상품 1"
-            label="신규"
-            label-tone="green"
-            meta="2024.12.01 등록"
-          />
-          <CardSm
-            title="상품 2"
-            label="인기"
-            label-tone="red"
-            meta="조회수 1,234"
-          />
-          <CardSm
-            title="상품 3"
-            label="추천"
-            label-tone="blue"
-            meta="평점 4.8"
-          />
-          <CardSm
-            title="상품 4"
-            label="특가"
-            label-tone="yellow"
-            meta="할인 20%"
-          />
-        </div>
-      </Section>
-
-      <!-- Modal 사용법 가이드 -->
-      <Section title="📚 Modal 컴포넌트 사용법" class="mb-6" card>
-        <div class="space-y-4">
-          <div class="rounded-lg bg-gray-50 p-4">
-            <h4 class="mb-2 font-medium text-gray-800">기본 사용법:</h4>
-            <pre
-              class="overflow-x-auto rounded border bg-white p-3 text-sm"
-            ><code>&lt;Modal
-  :show="open"
-  title="모달 제목"
-  subtitle="서브타이틀"
-  @close="open = false"
-  @confirm="handleConfirm"
-  @cancel="open = false"
-&gt;
-  내용 영역
-&lt;/Modal&gt;</code></pre>
-          </div>
-
-          <div class="space-y-2 text-sm">
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-700">show:</span>
-              <span class="text-gray-600">Boolean - 표시 여부</span>
-              <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-700"
-                >필수</span
-              >
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-700">title / subtitle:</span>
-              <span class="text-gray-600">String - 제목 / 서브타이틀</span>
-              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-700"
-                >cancelText / confirmText:</span
-              >
-              <span class="text-gray-600">String - 버튼 텍스트</span>
-              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
-              <span class="text-gray-500">기본값: "취소" / "확인"</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-700">confirmDisabled:</span>
-              <span class="text-gray-600">Boolean - 확인 비활성화</span>
-              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
-              <span class="text-gray-500">기본값: false</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-700"
-                >showCloseButton / closeOnBackdrop:</span
-              >
-              <span class="text-gray-600"
-                >Boolean - 닫기 버튼 / 배경 클릭 닫기</span
-              >
-              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
-              <span class="text-gray-500">기본값: true / true</span>
-            </div>
-          </div>
-
-          <div class="rounded-lg bg-gray-50 p-4">
-            <h4 class="mb-2 font-medium text-gray-800">
-              커스텀 푸터 (footer 슬롯):
-            </h4>
-            <pre
-              class="overflow-x-auto rounded border bg-white p-3 text-sm"
-            ><code>&lt;Modal :show="open" title="제목" @close="open=false"&gt;
-  내용
-  &lt;template #footer&gt;
-    &lt;UiButton variant="ghost" size="sm" @click="open=false"&gt;닫기&lt;/UiButton&gt;
-    &lt;UiButton variant="primary" size="sm" @click="handleCustomConfirm"&gt;저장&lt;/UiButton&gt;
-  &lt;/template&gt;
-&lt;/Modal&gt;</code></pre>
           </div>
         </div>
       </Section>
@@ -916,7 +851,7 @@ notificationStore.remove(id);</code></pre>
                   <input
                     v-model="customForm.email"
                     type="email"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full rounded border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="이메일을 입력하세요"
                   />
                 </div>
@@ -985,6 +920,141 @@ notificationStore.remove(id);</code></pre>
           </div>
         </div>
       </Section>
+
+      <!-- Modal 사용법 가이드 -->
+      <Section title="📚 Modal 컴포넌트 사용법" class="mb-6" card>
+        <div class="space-y-4">
+          <div class="rounded-lg bg-gray-50 p-4">
+            <h4 class="mb-2 font-medium text-gray-800">기본 사용법:</h4>
+            <pre
+              class="overflow-x-auto rounded border bg-white p-3 text-sm"
+            ><code>&lt;Modal
+          :show="open"
+          title="모달 제목"
+          subtitle="서브타이틀"
+          @close="open = false"
+          @confirm="handleConfirm"
+          @cancel="open = false"
+          &gt;
+          내용 영역
+          &lt;/Modal&gt;</code></pre>
+          </div>
+
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">show:</span>
+              <span class="text-gray-600">Boolean - 표시 여부</span>
+              <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-700"
+                >필수</span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">title / subtitle:</span>
+              <span class="text-gray-600">String - 제목 / 서브타이틀</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700"
+                >cancelText / confirmText:</span
+              >
+              <span class="text-gray-600">String - 버튼 텍스트</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500">기본값: "취소" / "확인"</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">confirmDisabled:</span>
+              <span class="text-gray-600">Boolean - 확인 비활성화</span>
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500">기본값: false</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700"
+                >showCloseButton / closeOnBackdrop:</span
+              >
+              <span class="text-gray-600"
+                >Boolean - 닫기 버튼 / 배경 클릭 닫기</span
+              >
+              <span class="rounded bg-gray-100 px-2 py-1 text-xs">선택</span>
+              <span class="text-gray-500">기본값: true / true</span>
+            </div>
+          </div>
+
+          <div class="rounded-lg bg-gray-50 p-4">
+            <h4 class="mb-2 font-medium text-gray-800">
+              커스텀 푸터 (footer 슬롯):
+            </h4>
+            <pre
+              class="overflow-x-auto rounded border bg-white p-3 text-sm"
+            ><code>&lt;Modal :show="open" title="제목"
+          @close="open=false"&gt;
+          내용
+          &lt;template #footer&gt;
+          &lt;UiButton variant="ghost" size="sm" @click="open=false"&gt;닫기&lt;/UiButton&gt;
+          &lt;UiButton variant="primary" size="sm" @click="handleCustomConfirm"&gt;저장&lt;/UiButton&gt;
+          &lt;/template&gt;
+          &lt;/Modal&gt;</code></pre>
+          </div>
+        </div>
+      </Section>
+
+      <!-- ProgressBar 테스트 -->
+      <Section title="ProgressBar 컴포넌트" class="mb-8">
+        <div class="space-y-4">
+          <div class="flex items-center gap-4">
+            <span class="w-20 text-sm font-medium text-gray-700">0%</span>
+            <div class="flex-1">
+              <ProgressBar :progress="0" />
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="w-20 text-sm font-medium text-gray-700">25%</span>
+            <div class="flex-1">
+              <ProgressBar :progress="25" />
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="w-20 text-sm font-medium text-gray-700">50%</span>
+            <div class="flex-1">
+              <ProgressBar :progress="50" />
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="w-20 text-sm font-medium text-gray-700">75%</span>
+            <div class="flex-1">
+              <ProgressBar :progress="75" />
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="w-20 text-sm font-medium text-gray-700">100%</span>
+            <div class="flex-1">
+              <ProgressBar :progress="100" />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <!-- ProgressBar 사용법 가이드 -->
+      <Section title="📚 ProgressBar 컴포넌트 사용법" class="mb-6" card>
+        <div class="space-y-4">
+          <div class="rounded-lg bg-gray-50 p-4">
+            <h4 class="mb-2 font-medium text-gray-800">사용 예시:</h4>
+            <pre
+              class="overflow-x-auto rounded border bg-white p-3 text-sm"
+            ><code>&lt;ProgressBar :progress="75" /&gt;</code>
+      </pre>
+          </div>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-gray-700">progress:</span>
+              <span class="text-gray-600">Number - 진행률 (0-100)</span>
+              <span class="rounded bg-red-100 px-2 py-1 text-xs text-red-700"
+                >필수</span
+              >
+              <span class="text-gray-500">0-100 사이의 값만 허용</span>
+            </div>
+          </div>
+        </div>
+      </Section>
     </div>
   </div>
 </template>
@@ -1002,6 +1072,7 @@ import CardLg from '@/components/common/cards/CardLg.vue';
 import CardSm from '@/components/common/cards/CardSm.vue';
 import Section from '@/components/common/Section.vue';
 import Modal from '@/components/common/Modal.vue';
+import ProgressBar from '@/components/common/ProgressBar.vue';
 import { useNotificationStore } from '@/stores/notification';
 
 const notificationStore = useNotificationStore();
