@@ -62,7 +62,7 @@
       <DocsListView v-if="viewMode === 'list'" />
     </div>
 
-    <!-- ✅ 공통 서류 추가 모달 -->
+    <!-- 공통 서류 추가 모달 -->
     <Modal
       :show="showUploadModal"
       title="서류 추가"
