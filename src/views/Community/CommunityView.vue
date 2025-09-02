@@ -1,13 +1,13 @@
 <template>
   <div class="min-h-screen bg-[#F7F8FA] font-['Pretendard','Inter',sans-serif]">
     <div class="mx-auto max-w-7xl px-4 py-6 lg:px-6">
-      <!-- ✅ 추천 캐러셀: 채팅방이 없을 때만 보여줌 -->
+      <!-- 추천 캐러셀: 채팅방이 없을 때만 -->
       <section v-if="!selectedRoom" id="recommend" class="mb-6">
         <RecommendCarousel :rooms="recommendedRooms" @join="openJoinModal" />
       </section>
 
       <div class="flex flex-col gap-6">
-        <!-- 리스트 페이지 -->
+        <!-- 리스트 화면 -->
         <div v-if="!selectedRoom" class="space-y-8">
           <LiveBanner />
 
@@ -54,7 +54,7 @@
       </div>
     </div>
 
-    <!-- 모달들은 Teleport로 body에 부착 -->
+    <!-- 모달들 -->
     <teleport to="body">
       <JoinModal
         :show="showJoinModal"
@@ -214,13 +214,14 @@ const messagesByRoom = ref({
       time: '08:55',
       type: 'text',
     },
+    // 이미지 메시지 예시 (ChatMessage 템플릿이 imageUrl/fileName을 읽음)
     {
       id: 'm-702',
       user: '나',
       nickname: '나',
       avatarUrl: 'https://i.pravatar.cc/100?img=12',
-      imageUrl: 'https://picsum.photos/id/237/400/300', // 🖼 이미지 URL
-      fileName: 'welcome.jpg', // 파일 이름 (옵션)
+      imageUrl: 'https://picsum.photos/id/237/400/300',
+      fileName: 'welcome.jpg',
       time: '10:25',
       type: 'image',
     },
@@ -361,13 +362,15 @@ const scrollToBottom = () => {
   if (sc) sc.scrollTop = sc.scrollHeight;
 };
 
-onMounted(() => {
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && showImagePreview.value) closeImagePreview();
-    if (e.key === 'Escape' && showJoinModal.value) closeJoinModal();
-  });
-});
+/** 키보드 핸들러 (등록/해제 동일 참조 사용) */
+const handleKeydown = e => {
+  if (e.key === 'Escape' && showImagePreview.value) closeImagePreview();
+  if (e.key === 'Escape' && showJoinModal.value) closeJoinModal();
+};
 
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown);
+});
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown);
 });
