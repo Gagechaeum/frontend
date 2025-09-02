@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { h } from 'vue';
 import MypageView from '@/views/mypage/MyPageView.vue';
+import Community from '@/views/Community/CommunityView.vue';
+import Report from '@/views/Report/ReportView.vue';
 import ScheduleLayout from '@/views/Schedule/ScheduleLayout.vue';
 import AllSchedule from '@/views/Schedule/AllSchedule.vue';
 import ListSchedule from '@/views/Schedule/ListSchedule.vue';
@@ -27,7 +29,7 @@ const routes = [
   {
     path: '/report',
     name: 'report',
-    component: Placeholder('리포트'),
+    component: Report,
     meta: { showHeader: true },
   },
   {
@@ -49,7 +51,7 @@ const routes = [
   {
     path: '/community',
     name: 'community',
-    component: Placeholder('커뮤니티'),
+    component: Community,
     meta: { showHeader: true },
   },
   {
