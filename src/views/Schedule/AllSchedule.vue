@@ -1,3 +1,4 @@
+<!-- src/views/Schedule/AllSchedule.vue -->
 <template>
   <div>
     <ScheduleToolbar
@@ -75,7 +76,7 @@
             <div>
               <p class="text-sm font-bold">{{ item.title }}</p>
               <p class="text-xs text-neutral-600">
-                {{ item.org }} · {{ fmtPeriod(item) }}
+                {{ item.org }} · {{ fmtPeriod(item.period) }}
               </p>
             </div>
             <div class="flex items-center gap-2">
@@ -109,6 +110,7 @@ import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
 import { useScheduleFilters } from '@/stores/scheduleFilters';
 import { useFavorites } from '@/stores/favorites';
 import { fetchPoliciesByDay } from '@/stores/policies';
+import { fmtPeriod } from '@/utils/schedule';
 
 const filters = useScheduleFilters();
 const fav = useFavorites();
@@ -157,10 +159,5 @@ async function loadDaily() {
     month: month.value,
     ...filters.activeCriteria,
   });
-}
-function fmtPeriod(it) {
-  const s = it.period?.start?.slice(5).replace('-', '.');
-  const e = it.period?.end?.slice(5).replace('-', '.');
-  return s && e ? `${s} ~ ${e}` : '';
 }
 </script>
