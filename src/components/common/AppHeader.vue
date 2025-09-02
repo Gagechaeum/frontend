@@ -25,11 +25,6 @@
         <nav class="hidden items-center space-x-8 md:flex" aria-label="Primary">
           <slot name="nav">
             <a
-              href="/onboarding"
-              class="cursor-pointer font-medium text-gray-700 hover:text-primary"
-              >전체 상품</a
-            >
-            <a
               href="/schedule"
               class="cursor-pointer font-medium text-gray-700 hover:text-primary"
               >일정</a
