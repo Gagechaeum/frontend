@@ -214,6 +214,16 @@ const messagesByRoom = ref({
       time: '08:55',
       type: 'text',
     },
+    {
+      id: 'm-702',
+      user: '나',
+      nickname: '나',
+      avatarUrl: 'https://i.pravatar.cc/100?img=12',
+      imageUrl: 'https://picsum.photos/id/237/400/300', // 🖼 이미지 URL
+      fileName: 'welcome.jpg', // 파일 이름 (옵션)
+      time: '10:25',
+      type: 'image',
+    },
   ],
 });
 
