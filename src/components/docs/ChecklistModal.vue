@@ -127,7 +127,6 @@
 <script setup>
 import { computed, ref } from 'vue';
 import Modal from '@/components/common/Modal.vue';
-import UiButton from '@/components/common/UiButton.vue';
 
 const props = defineProps({
   item: {
