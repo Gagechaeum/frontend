@@ -78,7 +78,7 @@
             :user-info="userInfo"
             :avatar="avatar"
             @mypage="goMyPage"
-            @logout-click="$emit('logout')"
+            @logout-click="handleLogout"
           />
         </div>
       </div>
@@ -105,7 +105,8 @@ defineProps({
   avatar: { type: String, default: '' }, // 프로필 이미지 URL(없으면 아이콘)
 });
 
-defineEmits(['logout']); // 부모에서 로그아웃 처리(모달 등)
+const emit = defineEmits(['logout']);
+const handleLogout = () => emit('logout');
 
 const router = useRouter();
 const goMyPage = () => {
