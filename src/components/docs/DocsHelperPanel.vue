@@ -4,13 +4,16 @@
       <!-- 좌측: 내가 등록한 서류 -->
       <div class="rounded-2xl border border-[#e5e7eb] bg-white p-6">
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">내가 등록한 서류</h3>
+          <h3 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-file-alt mr-2 text-gray-400"></i>
+            내가 등록한 서류
+          </h3>
           <div class="flex items-center gap-2">
             <!-- 선택 모드일 때 일괄 처리 버튼들 -->
             <div v-if="isSelectionMode" class="flex items-center gap-2">
               <button
                 :disabled="selectedDocuments.length === 0"
-                class="inline-flex items-center rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-600 transition-colors hover:border-green-300 hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-50"
+                class="inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                 @click="openConfirmModal('download')"
               >
                 <i class="fas fa-download mr-1.5"></i>
@@ -85,10 +88,12 @@
                       </svg>
                       <!-- 툴팁 -->
                       <div
-                        class="pointer-events-none fixed bottom-auto left-auto right-auto top-auto z-50 mb-2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        style="transform: translateY(-100%); margin-top: -8px"
+                        class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
                       >
                         서류명을 클릭 시 다운로드 할 수 있습니다
+                        <div
+                          class="absolute left-3 top-full h-0 w-0 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
+                        ></div>
                       </div>
                     </div>
                   </div>
@@ -138,6 +143,30 @@
               </tr>
             </thead>
             <tbody>
+              <tr
+                v-if="myDocuments.length === 0"
+                class="border-b border-gray-50"
+              >
+                <td
+                  :colspan="isSelectionMode ? 5 : 4"
+                  class="px-2 py-8 text-center"
+                >
+                  <div class="flex flex-col items-center gap-3">
+                    <i class="fas fa-file-alt text-4xl text-gray-300"></i>
+                    <div class="text-gray-500">
+                      <p class="font-medium">등록된 서류가 없습니다</p>
+                      <p class="text-sm">첫 번째 서류를 등록해보세요</p>
+                    </div>
+                    <button
+                      class="inline-flex items-center rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1d4ed8]"
+                      @click="emit('showUploadModal')"
+                    >
+                      <i class="fas fa-plus mr-2"></i>
+                      서류 추가하기
+                    </button>
+                  </div>
+                </td>
+              </tr>
               <tr
                 v-for="doc in myDocuments"
                 :key="doc.id"
@@ -202,9 +231,59 @@
 
       <!-- 우측: 상품에 필요한 서류 -->
       <div class="rounded-2xl border border-[#e5e7eb] bg-white p-6">
-        <h3 class="mb-4 text-lg font-semibold text-gray-900">
-          상품에 필요한 서류
-        </h3>
+        <div class="mb-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h3 class="text-lg font-semibold text-gray-900">
+              <i class="fas fa-star mr-2 text-gray-400"></i>
+              즐겨찾기 상품에 필요한 서류
+            </h3>
+            <!-- 툴팁 아이콘 -->
+            <div class="group relative">
+              <svg
+                class="h-4 w-4 cursor-help text-gray-400 hover:text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
+              </svg>
+              <!-- 툴팁 -->
+              <div
+                class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                내가 즐겨찾기한 대출/정책 상품에서 요구하는 서류 목록입니다
+                <div
+                  class="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <!-- 즐겨찾기 관리 버튼 -->
+          <div class="flex items-center gap-2">
+            <span
+              class="cursor-pointer text-xs text-gray-500 hover:text-yellow-600"
+              @click="showFavoritesModal = true"
+            >
+              즐겨찾기
+              <span class="font-medium text-yellow-600">{{
+                favoriteCount
+              }}</span
+              >개
+            </span>
+            <button
+              class="inline-flex items-center rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-1.5 text-xs font-medium text-yellow-600 transition-colors hover:border-yellow-300 hover:bg-yellow-100"
+              @click="goToFavorites"
+            >
+              <i class="fas fa-star mr-1.5"></i>
+              즐겨찾기 관리
+            </button>
+          </div>
+        </div>
         <div class="w-full overflow-hidden">
           <table class="w-full table-fixed">
             <thead>
@@ -217,7 +296,7 @@
                 <th
                   class="w-1/4 px-2 py-3 text-left text-sm font-medium text-gray-600"
                 >
-                  요구 건수
+                  필요한 상품수
                 </th>
                 <th
                   class="w-1/5 px-2 py-3 text-left text-sm font-medium text-gray-600"
@@ -233,6 +312,27 @@
             </thead>
             <tbody>
               <tr
+                v-if="requiredDocuments.length === 0"
+                class="border-b border-gray-50"
+              >
+                <td colspan="4" class="px-2 py-8 text-center">
+                  <div class="flex flex-col items-center gap-3">
+                    <i class="fas fa-star text-4xl text-gray-300"></i>
+                    <div class="text-gray-500">
+                      <p class="font-medium">즐겨찾기한 상품이 없습니다</p>
+                      <p class="text-sm">관심 있는 상품을 찾아보세요</p>
+                    </div>
+                    <button
+                      class="inline-flex items-center rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-yellow-600"
+                      @click="goToScheduleList"
+                    >
+                      <i class="fas fa-search mr-2"></i>
+                      상품 살펴보기
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr
                 v-for="doc in requiredDocuments"
                 :key="doc.id"
                 class="border-b border-gray-50"
@@ -241,10 +341,18 @@
                   {{ doc.name }}
                 </td>
                 <td class="px-2 py-3 text-sm text-gray-600">
-                  {{ doc.count }}건
+                  <button
+                    class="cursor-pointer hover:text-[#2563EB] hover:underline"
+                    @click="
+                      showProductsModal = true;
+                      selectedRequiredDoc = doc;
+                    "
+                  >
+                    {{ doc.count }}개
+                  </button>
                 </td>
                 <td class="px-2 py-3">
-                  <Tag :variant="getOwnedVariant(doc.owned)" size="sm">
+                  <Tag :tone="getOwnedVariant(doc.owned)" size="sm">
                     {{ doc.owned }}
                   </Tag>
                 </td>
@@ -263,90 +371,6 @@
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
-
-    <!-- 서류 추가 모달 -->
-    <div
-      v-if="props.showUploadModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-    >
-      <div class="mx-4 w-full max-w-md rounded-2xl bg-white p-6">
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-900">서류 추가</h3>
-          <button
-            class="text-gray-400 hover:text-gray-600"
-            @click="emit('closeUploadModal')"
-          >
-            <svg
-              class="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
-        <form class="space-y-4" @submit.prevent="addDocument">
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
-              >서류명</label
-            >
-            <input
-              v-model="newDoc.name"
-              type="text"
-              required
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-            />
-          </div>
-
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
-              >발급일</label
-            >
-            <input
-              v-model="newDoc.issueDate"
-              type="date"
-              required
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-            />
-          </div>
-
-          <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700"
-              >서류 파일</label
-            >
-            <input
-              type="file"
-              required
-              class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-              @change="handleFileUpload"
-            />
-          </div>
-
-          <div class="flex gap-3 pt-4">
-            <button
-              type="button"
-              class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
-              @click="emit('closeUploadModal')"
-            >
-              취소
-            </button>
-            <button
-              type="submit"
-              class="flex-1 rounded-lg bg-[#2563EB] px-4 py-2 text-white transition-colors hover:bg-[#1d4ed8]"
-            >
-              추가
-            </button>
-          </div>
-        </form>
       </div>
     </div>
 
@@ -428,27 +452,163 @@
         >건
       </p>
     </Modal>
+
+    <!-- 상품 리스트 모달 -->
+    <Modal
+      :show="showProductsModal"
+      :title="`${selectedRequiredDoc?.name}이(가) 필요한 상품`"
+      subtitle="해당 서류를 요구하는 상품 목록입니다"
+      :show-cancel-button="false"
+      :show-confirm-button="false"
+      @close="showProductsModal = false"
+    >
+      <div class="space-y-3">
+        <div
+          v-for="product in getProductsForDocument(selectedRequiredDoc?.name)"
+          :key="product.id"
+          class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-[#2563EB] text-white"
+            >
+              <i
+                :class="
+                  product.type === '정책' ? 'fas fa-gift' : 'fas fa-building'
+                "
+              ></i>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">{{ product.name }}</p>
+              <p class="text-sm text-gray-600">
+                {{ product.type }} • {{ product.institution }}
+              </p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-medium text-[#2563EB]">
+              {{ product.deadline }}
+            </p>
+            <p class="text-xs text-gray-500">
+              {{ product.completedDocs }}/{{ product.totalDocs }} 서류
+            </p>
+          </div>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- 즐겨찾기 상품 목록 모달 -->
+    <Modal
+      :show="showFavoritesModal"
+      title="즐겨찾기한 상품"
+      subtitle="내가 즐겨찾기한 상품 목록입니다"
+      :show-cancel-button="false"
+      :show-confirm-button="false"
+      @close="showFavoritesModal = false"
+    >
+      <div class="space-y-3">
+        <div
+          v-for="product in docsStore.allItems"
+          :key="product.id"
+          class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-[#2563EB] text-white"
+            >
+              <i
+                :class="
+                  product.type === '정책' ? 'fas fa-gift' : 'fas fa-building'
+                "
+              ></i>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">{{ product.name }}</p>
+              <p class="text-sm text-gray-600">
+                {{ product.type }} • {{ product.institution }}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <p class="text-sm font-medium text-[#2563EB]">
+                {{ product.deadline }}
+              </p>
+              <p class="text-xs text-gray-500">
+                {{ product.completedDocs }}/{{ product.totalDocs }} 서류
+              </p>
+            </div>
+            <button
+              class="text-yellow-500 transition-colors hover:text-red-500"
+              @click="openRemoveFavoriteModal(product)"
+            >
+              <i class="fas fa-star text-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
+import { useDocsStore } from '@/stores/docs';
 import Tag from '@/components/common/Tag.vue';
 import Modal from '@/components/common/Modal.vue';
+
+const router = useRouter();
+const docsStore = useDocsStore();
 
 const props = defineProps({
   showUploadModal: {
     type: Boolean,
     default: false,
   },
+  uploadModalData: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['closeUploadModal', 'addDocument']);
 
+// 체크리스트에서 전달된 데이터가 있을 때 서류명 자동 설정
+watch(
+  () => props.uploadModalData,
+  newData => {
+    if (newData && newData.document) {
+      newDoc.value.name = newData.document.name;
+    }
+  },
+  { immediate: true }
+);
+
+// 서류 추가 모달이 닫힐 때 폼 초기화
+watch(
+  () => props.showUploadModal,
+  isOpen => {
+    if (!isOpen) {
+      newDoc.value = { name: '', issueDate: '', file: null };
+    }
+  }
+);
+
 const notification = useNotificationStore();
 const showGuideModal = ref(false);
 const selectedDoc = ref(null);
+
+// 상품 리스트 모달 상태
+const showProductsModal = ref(false);
+const selectedRequiredDoc = ref(null);
+
+// 즐겨찾기 관련 상태
+const showFavoritesModal = ref(false);
+
+// 즐겨찾기 상품 수 (실제로는 API에서 가져와야 함)
+const favoriteCount = ref(12);
 
 const newDoc = ref({
   name: '',
@@ -493,7 +653,7 @@ const myDocuments = ref([
 
 const requiredDocuments = ref([
   { id: 1, name: '주민등록등본', count: 3, owned: '보유' },
-  { id: 2, name: '소득금액증명원', count: 2, owned: '만료' },
+  { id: 2, name: '소득금액증명원', count: 2, owned: '미보유' },
   { id: 3, name: '재직증명서', count: 1, owned: '미보유' },
   { id: 4, name: '건강보험료 납부확인서', count: 2, owned: '보유' },
 ]);
@@ -663,5 +823,36 @@ const getDocumentGuide = docName => {
       '건강보험공단 홈페이지에서 발급 가능합니다. 공동인증서 인증이 필요합니다.',
   };
   return guides[docName] || '해당 서류의 발급 방법을 확인해주세요.';
+};
+
+const goToFavorites = () => {
+  router.push('/schedule/favorites');
+};
+
+const goToScheduleList = () => {
+  router.push('/schedule/list');
+};
+
+const getProductsForDocument = docName => {
+  // 실제 상품 데이터에서 해당 서류를 요구하는 상품들을 필터링
+  // 여기서는 간단히 모든 상품을 반환하지만, 실제로는 서류 요구사항에 따라 필터링해야 함
+  return docsStore.allItems;
+};
+
+const openRemoveFavoriteModal = product => {
+  // 바로 제거하고 토스트 표시
+  removeFromFavorites(product);
+};
+
+const removeFromFavorites = product => {
+  if (product) {
+    // 실제로는 API 호출로 즐겨찾기 제거
+    // 여기서는 간단히 favoriteCount만 감소
+    favoriteCount.value = Math.max(0, favoriteCount.value - 1);
+    notification.show(
+      'success',
+      `'${product.name}'이(가)\n즐겨찾기에서 제거되었습니다.`
+    );
+  }
 };
 </script>

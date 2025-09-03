@@ -7,11 +7,7 @@
     />
 
     <!-- 서류 패널 -->
-    <DocsHelperPanel
-      :show-upload-modal="showUploadModal"
-      @close-upload-modal="showUploadModal = false"
-      @add-document="handleAddDocument"
-    />
+    <DocsHelperPanel @show-upload-modal="showUploadModal = true" />
 
     <!-- 메인 컨텐츠 -->
     <div class="px-6 pb-6">
@@ -65,6 +61,55 @@
       <!-- 리스트 뷰 -->
       <DocsListView v-if="viewMode === 'list'" />
     </div>
+
+    <!-- 공통 서류 추가 모달 -->
+    <Modal
+      :show="showUploadModal"
+      title="서류 추가"
+      cancel-text="취소"
+      confirm-text="추가"
+      @close="closeUploadModal"
+      @cancel="closeUploadModal"
+      @confirm="handleAddDocument"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >서류명</label
+          >
+          <input
+            v-model="newDoc.name"
+            type="text"
+            required
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
+          />
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >발급일</label
+          >
+          <input
+            v-model="newDoc.issueDate"
+            type="date"
+            required
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
+          />
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >서류 파일</label
+          >
+          <input
+            type="file"
+            required
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
+            @change="handleFileUpload"
+          />
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 
@@ -76,9 +121,17 @@ import DocsHelperPanel from '@/components/docs/DocsHelperPanel.vue';
 import KanbanBoard from '@/components/docs/KanbanBoard.vue';
 import DocsListView from '@/components/docs/DocsListView.vue';
 import Dropdown from '@/components/common/Dropdown.vue';
+import Modal from '@/components/common/Modal.vue';
 
 const docsStore = useDocsStore();
 const showUploadModal = ref(false);
+
+// 새로운 서류 데이터
+const newDoc = ref({
+  name: '',
+  issueDate: '',
+  file: null,
+});
 
 const viewMode = computed(() => docsStore.viewMode);
 
@@ -88,13 +141,13 @@ const filters = ref({ ...docsStore.filters });
 
 // 드롭다운 옵션들
 const typeOptions = [
-  { value: 'all', label: '전체' },
+  { value: 'all', label: '정책/대출' },
   { value: 'policy', label: '정책' },
   { value: 'loan', label: '대출' },
 ];
 
 const statusOptions = [
-  { value: 'all', label: '전체' },
+  { value: 'all', label: '상태' },
   { value: 'requirements', label: '요건확인' },
   { value: 'collecting', label: '수집중' },
   { value: 'preparing', label: '제출준비' },
@@ -115,77 +168,60 @@ watch(
   { deep: true }
 );
 
-const handleAddDocument = documentData => {
-  console.log('새 서류 추가:', documentData);
+const handleFileUpload = event => {
+  newDoc.value.file = event.target.files[0];
+};
+
+const handleAddDocument = () => {
+  if (!newDoc.value.name || !newDoc.value.issueDate || !newDoc.value.file)
+    return;
+
+  console.log('새 서류 추가:', newDoc.value);
+
+  // TODO: 실제 store에 저장하는 로직 추가 가능
+  docsStore.addDocument?.(newDoc.value);
+
+  // 초기화 & 닫기
+  newDoc.value = { name: '', issueDate: '', file: null };
+  showUploadModal.value = false;
+};
+
+const closeUploadModal = () => {
+  showUploadModal.value = false;
+  newDoc.value = { name: '', issueDate: '', file: null };
 };
 
 // ZIP 다운로드 처리
 const handleDownloadZip = async () => {
   try {
-    // 현재 사용자의 서류 목록 가져오기 (필터링된 결과)
     const userDocuments = docsStore.filteredItems;
-
     if (userDocuments.length === 0) {
       alert('다운로드할 서류가 없습니다.');
       return;
     }
 
-    // JSZip 라이브러리 사용하여 ZIP 생성
     const JSZip = await import('jszip');
     const zip = new JSZip.default();
 
-    // 각 서류에 대한 가상 파일 생성
-    userDocuments.forEach((doc, index) => {
-      // 서류 정보를 텍스트 파일로 생성
+    userDocuments.forEach(doc => {
       const docInfo = `서류명: ${doc.name}
 기관: ${doc.institution}
 타입: ${doc.type}
 상태: ${doc.status}
 진행률: ${doc.progress}%
 완료된 서류: ${doc.completedDocs}/${doc.totalDocs}
-마감일: ${doc.deadline}
-
-첨부된 파일 목록:
-${doc.files ? doc.files.map(file => `- ${file.name} (${file.size})`).join('\n') : '첨부된 파일 없음'}
-
-생성일: ${new Date().toLocaleDateString('ko-KR')}`;
-
-      // 파일명 생성 (특수문자 제거)
+마감일: ${doc.deadline}`;
       const fileName = `${doc.name.replace(/[^a-zA-Z0-9가-힣]/g, '_')}_${doc.institution.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.txt`;
-
       zip.file(fileName, docInfo);
-
-      // 첨부된 파일들도 가상으로 생성 (실제 파일이 아닌 더미 파일)
-      if (doc.files && doc.files.length > 0) {
-        doc.files.forEach(file => {
-          const fileContent = `이 파일은 ${file.name}의 가상 복사본입니다.
-원본 파일 크기: ${file.size}
-파일 타입: ${file.type}
-서류명: ${doc.name}
-기관: ${doc.institution}
-생성일: ${new Date().toLocaleDateString('ko-KR')}`;
-
-          zip.file(
-            `${doc.name.replace(/[^a-zA-Z0-9가-힣]/g, '_')}/${file.name}`,
-            fileContent
-          );
-        });
-      }
     });
 
-    // 전체 서류 요약 정보 생성
     const summaryInfo = `서류 다운로드 요약
 ====================
 다운로드 일시: ${new Date().toLocaleString('ko-KR')}
-총 서류 수: ${userDocuments.length}개
-총 파일 수: ${userDocuments.reduce((total, doc) => total + (doc.files ? doc.files.length : 0), 0)}개
-
-서류 목록:
-${userDocuments.map((doc, index) => `${index + 1}. ${doc.name} (${doc.institution}) - ${doc.status}`).join('\n')}`;
+총 서류 수: ${userDocuments.length}개`;
 
     zip.file('서류_요약.txt', summaryInfo);
 
-    // ZIP 파일 생성 및 다운로드
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(zipBlob);
     const link = document.createElement('a');

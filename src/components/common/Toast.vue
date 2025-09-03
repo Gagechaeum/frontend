@@ -9,7 +9,7 @@
       aria-live="polite"
     >
       <i :class="iconClass(n.type)" aria-hidden="true"></i>
-      <span class="flex-1">{{ n.message }}</span>
+      <span class="flex-1 whitespace-pre-line">{{ n.message }}</span>
       <button
         class="opacity-80 hover:opacity-100"
         aria-label="닫기"

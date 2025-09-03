@@ -43,12 +43,20 @@
       </div>
 
       <!-- footer 슬롯이 제공되면 그대로 사용, 아니면 기본 버튼 렌더링 -->
-      <div class="flex justify-end gap-3">
+      <div
+        v-if="showCancelButton || showConfirmButton"
+        class="flex justify-end gap-3"
+      >
         <slot name="footer">
-          <UiButton variant="secondary" size="sm" @click="emit('cancel')">{{
-            cancelText
-          }}</UiButton>
           <UiButton
+            v-if="showCancelButton"
+            variant="secondary"
+            size="sm"
+            @click="emit('cancel')"
+            >{{ cancelText }}
+          </UiButton>
+          <UiButton
+            v-if="showConfirmButton"
             variant="primary"
             size="sm"
             :disabled="confirmDisabled"
