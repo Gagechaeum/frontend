@@ -37,7 +37,31 @@
     <!-- 전역 검색창: 배너 아래로 이동 -->
     <div class="border-b border-gray-200 bg-white py-4">
       <div class="mx-auto max-w-2xl px-4">
-        <SearchBar v-model="searchQuery" @submit="handleSearch" />
+        <div class="search-area relative flex items-center gap-1">
+          <div class="relative flex-1">
+            <SearchBar
+              ref="searchBarRef"
+              v-model="searchQuery"
+              @submit="handleSearch"
+            />
+            <SearchResults
+              :results="searchResults"
+              :search-query="searchQuery"
+              :has-searched="hasSearched"
+              @detail-click="handleSearchResultDetail"
+              @close="closeSearchResults"
+            />
+          </div>
+          <button
+            type="button"
+            class="relative z-50 shrink-0 rounded-2xl bg-primary px-4 py-3 text-sm text-white hover:bg-brand-blue-royal"
+            aria-label="검색 실행"
+            @mousedown.prevent
+            @click.stop="onSearchButtonClick"
+          >
+            검색
+          </button>
+        </div>
       </div>
     </div>
 
@@ -179,10 +203,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import SearchBar from '@/components/common/SearchBar.vue';
+import SearchResults from '@/components/common/SearchResults.vue';
 import Section from '@/components/common/Section.vue';
 import CardLg from '@/components/common/cards/CardLg.vue';
 import CardSm from '@/components/common/cards/CardSm.vue';
@@ -194,12 +219,37 @@ const goDocs = () => router.push('/docs');
 const goReport = () => router.push('/report');
 
 const searchQuery = ref('');
+const searchResults = ref([]);
+const hasSearched = ref(false);
+const searchBarRef = ref(null);
+const isSearchButtonBeingClicked = ref(false); // 새로운 플래그 추가
 const notificationStore = useNotificationStore();
 
 // 컴포넌트 마운트 시 샘플 알림 추가 (테스트용)
 onMounted(() => {
   // 샘플 알림 데이터 추가
   notificationStore.addSampleNotifications();
+
+  // 검색창 포커스 이벤트 감지
+  if (searchBarRef.value) {
+    const searchInput = searchBarRef.value.$el.querySelector('input');
+    if (searchInput) {
+      searchInput.addEventListener('blur', handleSearchFocusOut);
+    }
+  }
+});
+
+// 검색창 내용이 바뀔 때 검색 결과 닫기
+watch(searchQuery, (newQuery, oldQuery) => {
+  // 검색어가 비어있거나 이전 검색어와 다를 때 검색 결과 닫기
+  if (!newQuery || newQuery.trim() === '') {
+    searchResults.value = [];
+    hasSearched.value = false;
+  } else if (oldQuery && newQuery !== oldQuery) {
+    // 검색어가 변경되었을 때만 검색 결과 닫기 (초기 로드 시에는 제외)
+    searchResults.value = [];
+    hasSearched.value = false;
+  }
 });
 
 const loans = ref([
@@ -364,9 +414,147 @@ const boardPosts = ref([
   },
 ]);
 
+// 임시 검색 결과 함수 (API 연동 전까지 사용)
+const getMockSearchResults = query => {
+  const allProducts = [
+    {
+      id: 1,
+      name: '중소기업 운영자금 대출',
+      type: '대출',
+      typeLabel: '대출',
+      description: '중소기업의 운영자금 조달을 위한 대출 상품',
+      rate: '연 3.5%~5.2%',
+      limit: '최대 5억원',
+    },
+    {
+      id: 2,
+      name: '청년창업 지원 대출',
+      type: '대출',
+      typeLabel: '대출',
+      description: '청년 창업가를 위한 특별 대출 상품',
+      rate: '연 2.8%~4.5%',
+      limit: '최대 2억원',
+    },
+    {
+      id: 3,
+      name: '기술보증기금 대출',
+      type: '대출',
+      typeLabel: '대출',
+      description: '기술력을 보유한 기업을 위한 대출',
+      rate: '연 3.2%~4.8%',
+      limit: '최대 10억원',
+    },
+    {
+      id: 4,
+      name: '소상공인 특별대출 1',
+      type: '대출',
+      typeLabel: '대출',
+      description: '소상공인을 위한 특별 대출 상품',
+      rate: '연 2.5%~3.9%',
+      limit: '최대 1억원',
+    },
+    {
+      id: 5,
+      name: '소상공인 특별대출 2',
+      type: '대출',
+      typeLabel: '대출',
+      description: '소상공인 특별 대출 상품 2차',
+      rate: '연 2.8%~4.2%',
+      limit: '최대 1.5억원',
+    },
+    {
+      id: 6,
+      name: '청년 창업 지원사업',
+      type: '정책',
+      typeLabel: '정책',
+      description: '청년 창업가를 위한 정부 지원 사업',
+      documents: '3/5',
+      deadline: 'D-7',
+    },
+    {
+      id: 7,
+      name: '중소기업 R&D 지원',
+      type: '정책',
+      typeLabel: '정책',
+      description: '중소기업 연구개발 지원 정책',
+      documents: '2/4',
+      deadline: 'D-12',
+    },
+    {
+      id: 8,
+      name: '여성기업 육성사업',
+      type: '정책',
+      typeLabel: '정책',
+      description: '여성 기업가 육성을 위한 지원 사업',
+      documents: '4/6',
+      deadline: 'D-5',
+    },
+  ];
+
+  if (!query || query.trim() === '') {
+    return [];
+  }
+
+  const searchTerm = query.toLowerCase();
+  return allProducts.filter(
+    product =>
+      product.name.toLowerCase().includes(searchTerm) ||
+      product.description.toLowerCase().includes(searchTerm)
+  );
+};
+
 // 이벤트 핸들러들
-const handleSearch = query => {
-  console.log('검색:', query);
+const handleSearch = async query => {
+  if (!query || query.trim() === '') {
+    searchResults.value = [];
+    hasSearched.value = false;
+    return;
+  }
+
+  try {
+    hasSearched.value = true;
+    // 실제 API 연동 시에는 searchProducts(query) 사용
+    const results = getMockSearchResults(query);
+    searchResults.value = results;
+  } catch (error) {
+    console.error('검색 실패:', error);
+    searchResults.value = [];
+  }
+};
+
+const onSearchButtonClick = () => {
+  isSearchButtonBeingClicked.value = true; // 플래그 설정
+  handleSearch(searchQuery.value);
+  // 짧은 지연 후 플래그 초기화하여 일반적인 blur 동작 허용
+  setTimeout(() => {
+    isSearchButtonBeingClicked.value = false;
+  }, 200);
+};
+
+const handleSearchResultDetail = result => {
+  if (result.type === '대출') {
+    router.push(`/loan/${result.id}`);
+  } else if (result.type === '정책') {
+    router.push(`/policy/${result.id}`);
+  }
+};
+
+const closeSearchResults = () => {
+  searchResults.value = [];
+  hasSearched.value = false;
+};
+
+const handleSearchFocusOut = () => {
+  // 검색창에서 포커스가 벗어났을 때 검색 결과 닫기
+  // 검색 버튼 클릭 중이 아니라면 닫기
+  setTimeout(() => {
+    if (isSearchButtonBeingClicked.value) {
+      return; // 검색 버튼 클릭 중이면 닫지 않음
+    }
+    if (!document.activeElement?.closest('.search-results')) {
+      closeSearchResults();
+    }
+  }, 150);
 };
 
 const handleLoanDetail = loan => {
