@@ -21,7 +21,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="상품/기관 검색"
+              placeholder="대출/정책/기관 검색"
               class="w-64 rounded-lg border border-[#e5e7eb] bg-white py-2 pl-10 pr-4 text-sm"
             />
             <i
