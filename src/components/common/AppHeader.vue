@@ -20,11 +20,6 @@
         <nav class="hidden items-center space-x-8 md:flex" aria-label="Primary">
           <slot name="nav">
             <a
-              href="/onboarding"
-              class="cursor-pointer font-medium text-gray-700 hover:text-primary"
-              >전체 상품</a
-            >
-            <a
               href="/schedule"
               class="cursor-pointer font-medium text-gray-700 hover:text-primary"
               >일정</a
@@ -63,14 +58,33 @@
             </span>
           </div>
 
-          <!-- 알림 -->
-          <button
-            v-if="showBell"
-            class="rounded-full p-2 hover:bg-gray-100"
-            aria-label="알림"
-          >
-            <i class="fas fa-bell text-lg text-gray-600" aria-hidden="true"></i>
-          </button>
+          <!-- 알림 아이콘 -->
+          <div class="relative inline-block">
+            <button
+              v-if="showBell"
+              class="relative rounded-full p-2 hover:bg-gray-100"
+              aria-label="알림"
+              @click="toggleNotifications"
+            >
+              <i
+                class="fas fa-bell text-lg text-gray-600"
+                aria-hidden="true"
+              ></i>
+              <!-- 읽지 않은 알림 개수 표시 -->
+              <span
+                v-if="unreadCount > 0"
+                class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white"
+              >
+                {{ unreadCount > 9 ? '9+' : unreadCount }}
+              </span>
+            </button>
+
+            <!-- 알림 드롭다운 -->
+            <NotificationDropdown
+              :is-open="isNotificationsOpen"
+              @close="closeNotifications"
+            />
+          </div>
 
           <!-- 프로필: 아바타 클릭 시 드롭다운 -->
           <!-- RouterLink 대신 ProfileDropdown 사용 -->
@@ -87,10 +101,14 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useNotificationStore } from '@/stores/notification';
 import ProfileDropdown from '../mypage/ProfileDropdown.vue';
+import NotificationDropdown from './NotificationDropdown.vue';
 
-defineProps({
+const props = defineProps({
   chips: { type: Array, default: () => [] }, // 우측 칩(태그) 리스트
   showBell: { type: Boolean, default: true }, // 알림 버튼 보이기
   userInfo: {
@@ -111,5 +129,18 @@ const handleLogout = () => emit('logout');
 const router = useRouter();
 const goMyPage = () => {
   router.push('/mypage');
+};
+
+const notificationStore = useNotificationStore();
+const { unreadCount } = storeToRefs(notificationStore);
+
+const isNotificationsOpen = ref(false);
+
+const toggleNotifications = () => {
+  isNotificationsOpen.value = !isNotificationsOpen.value;
+};
+
+const closeNotifications = () => {
+  isNotificationsOpen.value = false;
 };
 </script>
