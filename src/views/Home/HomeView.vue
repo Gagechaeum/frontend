@@ -206,7 +206,7 @@
       <!-- 추천 대출 섹션 -->
       <div v-inview.once style="margin-bottom: 6rem" class="-mx-6 px-6 py-8">
         <Section
-          :title="'정부·지자체 대출을 한눈에 비교하고, 내 조건에 맞는 상품을 확인하세요'"
+          :title="'대출을 한눈에 비교하고, 내 조건에 맞는 상품을 확인하세요'"
         >
           <template #description>
             <div class="reveal-item">
