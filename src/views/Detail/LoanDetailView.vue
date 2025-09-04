@@ -460,13 +460,13 @@
     <div class="space-y-4">
       <div>
         <label class="mb-2 block text-sm font-medium text-gray-700"
-          >서류명</label
+          >서류 유형</label
         >
         <input
-          v-model="newDoc.name"
+          :value="newDoc.name"
           type="text"
-          required
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
+          readonly
+          class="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
         />
       </div>
 
@@ -488,6 +488,7 @@
         >
         <input
           type="file"
+          accept=".pdf"
           required
           class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
           @change="handleFileUpload"
@@ -500,6 +501,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useNotificationStore } from '@/stores/notification';
 import HeroSection from '@/components/detail/HeroSection.vue';
 import TabNavigation from '@/components/detail/TabNavigation.vue';
 
@@ -511,6 +513,7 @@ import Modal from '@/components/common/Modal.vue';
 
 const route = useRoute();
 const router = useRouter();
+const notification = useNotificationStore();
 const activeTab = ref(0);
 const tabs = ['주요내용', '신청방법', '커뮤니티'];
 
@@ -703,7 +706,16 @@ const closeUploadModal = () => {
 
 // 파일 업로드 처리
 const handleFileUpload = event => {
-  newDoc.value.file = event.target.files[0];
+  const file = event.target.files[0];
+
+  // PDF 파일만 허용
+  if (file && file.type !== 'application/pdf') {
+    notification.show('error', 'PDF 파일만\n업로드 가능합니다.');
+    event.target.value = ''; // 파일 선택 초기화
+    return;
+  }
+
+  newDoc.value.file = file;
 };
 
 // 서류 추가
