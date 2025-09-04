@@ -86,13 +86,13 @@
       <div class="space-y-4">
         <div>
           <label class="mb-2 block text-sm font-medium text-gray-700"
-            >서류명</label
+            >서류 유형</label
           >
           <input
-            v-model="newDoc.name"
+            :value="newDoc.name"
             type="text"
-            required
-            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
+            readonly
+            class="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
           />
         </div>
 
@@ -114,6 +114,7 @@
           >
           <input
             type="file"
+            accept=".pdf"
             required
             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
             @change="handleFileUpload"
@@ -126,6 +127,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import { useNotificationStore } from '@/stores/notification';
 import Modal from '@/components/common/Modal.vue';
 
 const props = defineProps({
@@ -140,6 +142,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const notification = useNotificationStore();
 
 // 서류 추가 모달 상태
 const showUploadModal = ref(false);
@@ -194,7 +197,16 @@ const closeUploadModal = () => {
 
 // 파일 업로드 처리
 const handleFileUpload = event => {
-  newDoc.value.file = event.target.files[0];
+  const file = event.target.files[0];
+
+  // PDF 파일만 허용
+  if (file && file.type !== 'application/pdf') {
+    notification.show('error', 'PDF 파일만\n업로드 가능합니다.');
+    event.target.value = ''; // 파일 선택 초기화
+    return;
+  }
+
+  newDoc.value.file = file;
 };
 
 // 서류 추가
