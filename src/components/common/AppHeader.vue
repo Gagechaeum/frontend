@@ -1,6 +1,13 @@
 <!-- src/components/common/AppHeader.vue -->
 <template>
-  <header class="sticky top-0 z-50 border-b border-gray-200 bg-white">
+  <header
+    :class="[
+      'left-0 right-0 z-50 transition-all duration-700 ease-in-out',
+      overlayActive
+        ? 'fixed top-0 border-transparent bg-transparent'
+        : 'sticky top-0 border-b border-gray-200 bg-white/90 backdrop-blur-sm',
+    ]"
+  >
     <div class="mx-auto max-w-7xl px-4">
       <div class="flex h-16 items-center justify-between">
         <!-- 로고 -->
@@ -191,6 +198,7 @@ import { useNotificationStore } from '@/stores/notification';
 import ProfileDropdown from '../mypage/ProfileDropdown.vue';
 
 const props = defineProps({
+  overlay: { type: Boolean, default: false },
   chips: { type: Array, default: () => [] }, // 우측 칩(태그) 리스트
   showBell: { type: Boolean, default: true }, // 알림 버튼 보이기
   userInfo: {
@@ -204,6 +212,21 @@ const props = defineProps({
   },
   avatar: { type: String, default: '' }, // 프로필 이미지 URL(없으면 아이콘)
 });
+
+// ===== 헤더 투명/불투명 전환 =====
+const scrolled = ref(false);
+const onScroll = () => {
+  scrolled.value = window.scrollY > 12; // 12px 넘으면 불투명 전환
+};
+
+onMounted(() => {
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll(); // 첫 렌더 상태 반영
+});
+onBeforeUnmount(() => window.removeEventListener('scroll', onScroll));
+
+// 홈에서 overlay=true 이고, 아직 스크롤 안했을 때만 '완전 투명'
+const overlayActive = computed(() => props.overlay && !scrolled.value);
 
 const emit = defineEmits(['logout']);
 const handleLogout = () => emit('logout');
