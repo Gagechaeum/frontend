@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { h } from 'vue';
 import HomeView from '@/views/Home/HomeView.vue';
+import LoanDetailView from '@/views/Detail/LoanDetailView.vue';
+import PolicyDetailView from '@/views/Detail/PolicyDetailView.vue';
 import MypageView from '@/views/Mypage/MyPageView.vue';
 import TestView from '@/views/TestView.vue';
 import Community from '@/views/Community/CommunityView.vue';
@@ -28,6 +30,18 @@ const routes = [
     name: 'home',
     component: HomeView,
     meta: { showHeader: true, overlayHeader: true },
+  },
+  {
+    path: '/product/loan/:id',
+    name: 'loan-detail',
+    component: LoanDetailView,
+    meta: { showHeader: true },
+  },
+  {
+    path: '/product/policy/:id',
+    name: 'policy-detail',
+    component: PolicyDetailView,
+    meta: { showHeader: true },
   },
   {
     path: '/report',
