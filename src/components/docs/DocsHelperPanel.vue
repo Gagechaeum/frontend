@@ -1,7 +1,7 @@
 <template>
   <div class="px-6 py-6">
     <div class="mb-6 grid grid-cols-2 gap-6">
-      <!-- 좌측: 내가 등록한 서류 -->
+      <!-- 내가 등록한 서류 -->
       <div class="rounded-2xl border border-[#e5e7eb] bg-white p-6">
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-lg font-semibold text-gray-900">
@@ -99,6 +99,11 @@
                   </div>
                 </th>
                 <th
+                  class="w-1/5 px-2 py-3 text-left text-sm font-medium text-gray-600"
+                >
+                  서류 유형
+                </th>
+                <th
                   class="w-1/4 px-2 py-3 text-left text-sm font-medium text-gray-600"
                 >
                   발급일
@@ -107,38 +112,6 @@
                   class="w-1/5 px-2 py-3 text-left text-sm font-medium text-gray-600"
                 >
                   경과일
-                </th>
-                <th
-                  class="w-1/6 px-2 py-3 text-left text-sm font-medium text-gray-600"
-                >
-                  <div class="flex items-center gap-2">
-                    <span>알림</span>
-                    <!-- 툴팁 아이콘 -->
-                    <div class="group relative">
-                      <svg
-                        class="h-4 w-4 cursor-help text-gray-400 hover:text-gray-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                      </svg>
-                      <!-- 툴팁 -->
-                      <div
-                        class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        발급일로부터 1개월 혹은 3개월 경과 시 알려드립니다
-                        <div
-                          class="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
                 </th>
               </tr>
             </thead>
@@ -192,36 +165,13 @@
                   </button>
                 </td>
                 <td class="px-2 py-3 text-sm text-gray-600">
+                  {{ doc.type || '기타' }}
+                </td>
+                <td class="px-2 py-3 text-sm text-gray-600">
                   {{ doc.issueDate }}
                 </td>
                 <td class="px-2 py-3 text-sm text-gray-600">
                   {{ doc.daysSinceIssue }}
-                </td>
-                <td class="px-2 py-3">
-                  <div class="flex items-center gap-2">
-                    <label
-                      class="relative inline-flex cursor-pointer items-center"
-                    >
-                      <input
-                        v-model="doc.notification"
-                        type="checkbox"
-                        class="sr-only"
-                      />
-                      <div
-                        :class="
-                          doc.notification ? 'bg-[#2563EB]' : 'bg-gray-200'
-                        "
-                        class="relative h-6 w-11 rounded-full transition-colors"
-                      >
-                        <div
-                          :class="
-                            doc.notification ? 'translate-x-6' : 'translate-x-1'
-                          "
-                          class="absolute left-0 top-1 h-4 w-4 rounded-full bg-white transition-transform"
-                        ></div>
-                      </div>
-                    </label>
-                  </div>
                 </td>
               </tr>
             </tbody>
@@ -591,7 +541,7 @@ watch(
   () => props.showUploadModal,
   isOpen => {
     if (!isOpen) {
-      newDoc.value = { name: '', issueDate: '', file: null };
+      newDoc.value = { name: '', type: '', issueDate: '', file: null };
     }
   }
 );
@@ -612,6 +562,7 @@ const favoriteCount = ref(12);
 
 const newDoc = ref({
   name: '',
+  type: '',
   issueDate: '',
   file: null,
 });
@@ -620,6 +571,7 @@ const myDocuments = ref([
   {
     id: 1,
     name: '주민등록등본',
+    type: '신분증명',
     issueDate: '2024-01-15',
     daysSinceIssue: 'D+45',
     notification: true,
@@ -628,6 +580,7 @@ const myDocuments = ref([
   {
     id: 2,
     name: '소득금액증명원',
+    type: '소득증명',
     issueDate: '2024-02-01',
     daysSinceIssue: 'D+12',
     notification: true,
@@ -636,6 +589,7 @@ const myDocuments = ref([
   {
     id: 3,
     name: '건강보험료 납부확인서',
+    type: '보험증명',
     issueDate: '2024-03-01',
     daysSinceIssue: 'D+5',
     notification: false,
@@ -644,6 +598,7 @@ const myDocuments = ref([
   {
     id: 4,
     name: '재직증명서',
+    type: '재직증명',
     issueDate: '2024-01-20',
     daysSinceIssue: 'D+40',
     notification: true,
@@ -776,6 +731,7 @@ const addDocument = () => {
     myDocuments.value.push({
       id: newId,
       name: newDoc.value.name,
+      type: newDoc.value.type || '기타',
       issueDate: newDoc.value.issueDate,
       daysSinceIssue: `D+${diffDays}`,
       notification: true,
@@ -783,11 +739,12 @@ const addDocument = () => {
     });
 
     // 폼 초기화
-    newDoc.value = { name: '', issueDate: '', file: null };
+    newDoc.value = { name: '', type: '', issueDate: '', file: null };
     emit('closeUploadModal');
     emit('addDocument', {
       id: newId,
       name: newDoc.value.name,
+      type: newDoc.value.type || '기타',
       issueDate: newDoc.value.issueDate,
       daysSinceIssue: `D+${diffDays}`,
       notification: true,

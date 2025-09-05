@@ -1,16 +1,22 @@
 <template>
   <div class="min-h-screen bg-[#f7f8fa]">
     <!-- 상단 툴바 -->
-    <DocsToolbar
-      @show-upload-modal="showUploadModal = true"
-      @download-zip="handleDownloadZip"
-    />
+    <div class="border-b border-gray-200 bg-white">
+      <div class="mx-auto max-w-7xl px-6">
+        <DocsToolbar
+          @show-upload-modal="showUploadModal = true"
+          @download-zip="handleDownloadZip"
+        />
+      </div>
+    </div>
 
     <!-- 서류 패널 -->
-    <DocsHelperPanel @show-upload-modal="showUploadModal = true" />
+    <div class="mx-auto max-w-7xl">
+      <DocsHelperPanel @show-upload-modal="showUploadModal = true" />
+    </div>
 
     <!-- 메인 컨텐츠 -->
-    <div class="px-6 pb-6">
+    <div class="mx-auto max-w-7xl px-6 pb-6">
       <!-- 필터링 및 검색 + 뷰 모드 전환 -->
       <div class="mb-6 flex items-center justify-between">
         <!-- 좌측: 필터링 및 검색 -->
@@ -21,7 +27,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="상품/기관 검색"
+              placeholder="대출/정책/기관 검색"
               class="w-64 rounded-lg border border-[#e5e7eb] bg-white py-2 pl-10 pr-4 text-sm"
             />
             <i
@@ -73,14 +79,37 @@
       @confirm="handleAddDocument"
     >
       <div class="space-y-4">
+        <!-- 서류 유형 선택 -->
         <div>
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >서류 유형</label
+          >
+          <select
+            v-model="newDoc.type"
+            required
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
+          >
+            <option value="">서류 유형을 선택하세요</option>
+            <option
+              v-for="docType in documentTypes"
+              :key="docType.value"
+              :value="docType.value"
+            >
+              {{ docType.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- 서류명 입력 (기타 선택 시에만 표시) -->
+        <div v-if="newDoc.type === '기타'">
           <label class="mb-2 block text-sm font-medium text-gray-700"
             >서류명</label
           >
           <input
             v-model="newDoc.name"
             type="text"
-            required
+            :required="newDoc.type === '기타'"
+            placeholder="서류명을 입력하세요"
             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
@@ -103,6 +132,7 @@
           >
           <input
             type="file"
+            accept=".pdf"
             required
             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
             @change="handleFileUpload"
@@ -116,6 +146,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useDocsStore } from '@/stores/docs';
+import { useNotificationStore } from '@/stores/notification';
 import DocsToolbar from '@/components/docs/DocsToolbar.vue';
 import DocsHelperPanel from '@/components/docs/DocsHelperPanel.vue';
 import KanbanBoard from '@/components/docs/KanbanBoard.vue';
@@ -125,13 +156,28 @@ import Modal from '@/components/common/Modal.vue';
 
 const docsStore = useDocsStore();
 const showUploadModal = ref(false);
+const notification = useNotificationStore();
 
 // 새로운 서류 데이터
 const newDoc = ref({
   name: '',
+  type: '',
   issueDate: '',
   file: null,
 });
+
+// 서류 유형 변경 시 서류명 자동 설정
+watch(
+  newDoc,
+  newValue => {
+    if (newValue.type && newValue.type !== '기타') {
+      newValue.name = newValue.type;
+    } else if (newValue.type === '기타') {
+      newValue.name = '';
+    }
+  },
+  { deep: true }
+);
 
 const viewMode = computed(() => docsStore.viewMode);
 
@@ -154,6 +200,19 @@ const statusOptions = [
   { value: 'completed', label: '완료' },
 ];
 
+// 문서 유형 옵션
+const documentTypes = [
+  { value: '신분증명', label: '신분증명' },
+  { value: '소득증명', label: '소득증명' },
+  { value: '재직증명', label: '재직증명' },
+  { value: '보험증명', label: '보험증명' },
+  { value: '세금증명', label: '세금증명' },
+  { value: '자산증명', label: '자산증명' },
+  { value: '의료증명', label: '의료증명' },
+  { value: '교육증명', label: '교육증명' },
+  { value: '기타', label: '기타' },
+];
+
 // 검색어 변경 시 store에 반영
 watch(searchQuery, newQuery => {
   docsStore.setSearchQuery(newQuery);
@@ -169,12 +228,26 @@ watch(
 );
 
 const handleFileUpload = event => {
-  newDoc.value.file = event.target.files[0];
+  const file = event.target.files[0];
+
+  // PDF 파일만 허용
+  if (file && file.type !== 'application/pdf') {
+    notification.show('error', 'PDF 파일만\n업로드 가능합니다.');
+    event.target.value = ''; // 파일 선택 초기화
+    return;
+  }
+
+  newDoc.value.file = file;
 };
 
 const handleAddDocument = () => {
-  if (!newDoc.value.name || !newDoc.value.issueDate || !newDoc.value.file)
+  if (!newDoc.value.type || !newDoc.value.issueDate || !newDoc.value.file)
     return;
+
+  // 기타가 아닌 경우 서류명을 서류 유형으로 설정
+  if (newDoc.value.type !== '기타') {
+    newDoc.value.name = newDoc.value.type;
+  }
 
   console.log('새 서류 추가:', newDoc.value);
 
@@ -182,13 +255,13 @@ const handleAddDocument = () => {
   docsStore.addDocument?.(newDoc.value);
 
   // 초기화 & 닫기
-  newDoc.value = { name: '', issueDate: '', file: null };
+  newDoc.value = { name: '', type: '', issueDate: '', file: null };
   showUploadModal.value = false;
 };
 
 const closeUploadModal = () => {
   showUploadModal.value = false;
-  newDoc.value = { name: '', issueDate: '', file: null };
+  newDoc.value = { name: '', type: '', issueDate: '', file: null };
 };
 
 // ZIP 다운로드 처리
