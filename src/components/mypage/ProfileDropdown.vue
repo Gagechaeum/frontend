@@ -59,6 +59,8 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
+import { logout as apiLogout } from '@/lib/api/auth'; // ← 로그아웃 API 연결
 
 /* ✅ TS 타입 제거하고 런타임 props로 전환 (ESLint 파싱 에러 해결) */
 defineProps({
@@ -70,6 +72,7 @@ const emit = defineEmits(['mypage', 'logout-click']);
 
 const open = ref(false);
 const rootEl = ref(null);
+const router = useRouter();
 
 const toggle = () => (open.value = !open.value);
 const close = () => (open.value = false);
@@ -84,9 +87,17 @@ const goMyPage = () => {
   close();
 };
 
-const logoutClick = () => {
-  emit('logout-click');
-  close();
+/** 로그아웃: 서버에 로그아웃 요청 → 토큰 정리 → 로그인 화면으로 이동 */
+const logoutClick = async () => {
+  try {
+    await apiLogout(); // /auth/logout 호출 + access_token 삭제
+  } catch (_) {
+    // 네트워크/401이어도 그냥 넘어가서 클라이언트 상태만 정리
+  } finally {
+    emit('logout-click'); // (선택) 부모가 추가 정리를 하고 싶다면 받도록 유지
+    close();
+    router.replace('/login'); // 라우팅 경로가 다르면 '/signin' 등으로 바꿔줘
+  }
 };
 
 onMounted(() => document.addEventListener('click', onDocClick));

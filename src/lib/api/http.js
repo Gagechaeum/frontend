@@ -1,11 +1,3 @@
-import axios from 'axios';
-// import { useAuthStore } from '@/stores/auth';
-
-// axios 인스턴스 생성
-const api = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
-});
-
 // 요청 인터셉터
 // - 토큰을 자동으로 첨부합니다.
 // - 추후 활성화 예정
@@ -35,5 +27,14 @@ const api = axios.create({
 //     return Promise.reject(error);
 //   }
 // );
+
+// File: src/lib/http.js
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
+  withCredentials: true, // refreshToken 쿠키 주고받기
+  timeout: 15000,
+});
 
 export default api;
