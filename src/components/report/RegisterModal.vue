@@ -41,14 +41,14 @@
                 placeholder="정책명을 검색하세요"
                 class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm"
                 @keyup.enter="
-                  /* 엔터로 즉시 검색하고 싶으면 */ (async () => {
+                  (async () => {
                     loading = true;
-                    results = await searchPolicies(
-                      { query: q, limit: 10 },
-                      localStorage.getItem('token')
-                    );
-                    loading = false;
-                    hasSearched = true;
+                    try {
+                      results = await searchPolicies({ query: q, limit: 10 });
+                    } finally {
+                      loading = false;
+                      hasSearched = true;
+                    }
                   })()
                 "
               />
@@ -195,12 +195,15 @@
 </template>
 
 <script setup>
+/* eslint-env browser */
+/* global setTimeout, clearTimeout */
+
 import { ref, computed, watch } from 'vue';
-import { searchPolicies } from '@/lib/api/reports.js'; // ✅ 정책 검색 API(catch 내장)
+import { searchPolicies } from '@/lib/api/reports.js'; // 토큰은 API 내부에서 자동 첨부
 
 const props = defineProps({
   show: { type: Boolean, default: false },
-  favoriteItems: { type: Array, default: () => [] }, // 즐겨찾기는 하단 섹션에서 그대로 사용
+  favoriteItems: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['close', 'register']);
 
@@ -217,26 +220,27 @@ const form = ref({
   totalAmount: null,
 });
 
-// ✅ 즐겨찾기는 그대로 유지(하단 섹션용)
+// 즐겨찾기 섹션
 const policyFavorites = computed(() =>
   props.favoriteItems.filter(it => it.type === 'policy')
 );
 
-// ✅ DB 검색 결과/상태
-const results = ref([]); // ← API 응답이 들어옴
+// 검색 결과/상태
+const results = ref([]);
 const loading = ref(false);
 const hasSearched = ref(false);
 
-// ✅ 디바운스 + API 호출
-let t;
+// 디바운스 + API 호출
+let debounceId;
 watch(q, () => {
-  clearTimeout(t);
-  t = setTimeout(doSearch, 300);
+  clearTimeout(debounceId);
+  debounceId = setTimeout(doSearch, 300);
 });
 
 async function doSearch() {
   hasSearched.value = false;
   results.value = [];
+
   const query = q.value?.trim();
   if (!query) {
     loading.value = false;
@@ -245,13 +249,16 @@ async function doSearch() {
   }
 
   loading.value = true;
-  const token = localStorage.getItem('token'); // 필요 시 교체
-  results.value = await searchPolicies(
-    { query, limit: 10 /*, userId*/ },
-    token
-  );
-  loading.value = false;
-  hasSearched.value = true;
+  try {
+    results.value = await searchPolicies({ query, limit: 10 /*, userId*/ });
+  } catch (e) {
+     
+    globalThis.console?.error('[RegisterModal] 정책 검색 실패:', e);
+    results.value = [];
+  } finally {
+    loading.value = false;
+    hasSearched.value = true;
+  }
 }
 
 watch(

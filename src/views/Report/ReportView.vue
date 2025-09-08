@@ -37,8 +37,9 @@
             월별 현금 흐름 추이
           </h2>
           <CashflowChart
-            :policy-series="policySeries"
-            :loan-series="loanSeries"
+            :labels="trendLabels"
+            :policy="policySeries"
+            :loan="loanSeries"
           />
         </div>
       </div>
@@ -86,8 +87,10 @@
 </template>
 
 <script setup>
-/* ===== Imports ===== */
-import { ref, computed, onMounted, nextTick } from 'vue';
+/* eslint-env browser */
+
+import { ref, computed, onMounted } from 'vue';
+import { me } from '@/lib/api/auth';
 import ReportHeader from '@/components/report/ReportHeader.vue';
 import TwoWeekCalendar from '@/components/report/TwoWeekCalendar.vue';
 import MonthlySummary from '@/components/report/MonthlySummary.vue';
@@ -95,40 +98,37 @@ import CashflowChart from '@/components/report/CashflowChart.vue';
 import ReportList from '@/components/report/ReportList.vue';
 import RegisterModal from '@/components/report/RegisterModal.vue';
 import { useReportStore } from '@/stores/reports';
-import {
-  getTwoWeekSchedule,
-  getMonthlySummary,
-  getIncomeExpenseTrend,
-  getDashboard,
-} from '@/lib/api/reports.js';
+import { getDashboard } from '@/lib/api/reports.js';
 
 /* ===== Stores ===== */
 const reportStore = useReportStore();
 
 /* ===== UI State ===== */
 const showPolicyModal = ref(false);
-const onClickLoan = () => console.log('대출 등록 버튼 클릭');
+const onClickLoan = () => {
+  // TODO: implement loan add flow
+};
 const activeTab = ref('all');
 const sortBy = ref('name');
 const expandedItems = ref([]);
 
 /* ===== Summary / Chart State ===== */
-const monthlyBenefit = ref(0); // 이번달 혜택금액
-const monthlyPayment = ref(0); // 이번달 납부예정금액
-const policySeries = ref([]); // 그래프: 정책 수입 (월별)
-const loanSeries = ref([]); // 그래프: 대출 상환 (월별)
-const trendLabels = ref([]); // 그래프: x축 라벨 (예: ['3월','4월',...])
+const monthlyBenefit = ref(0);
+const monthlyPayment = ref(0);
+const policySeries = ref([]);
+const loanSeries = ref([]);
+const trendLabels = ref([]);
 
 /* ===== Calendar (2주) ===== */
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 const todayISO = ref(toISO(today));
-const calendarDays = ref([]); // [{date, day, dayName, events:[]}] 14일
+const calendarDays = ref([]);
 
-/* ===== List (대시보드 아이템) ===== */
-const items = ref([]); // 정책/대출 리스트(스토어→매핑)
+/* ===== List ===== */
+const items = ref([]);
 
-/* ===== Favorites (그대로 유지 가능) ===== */
+/* ===== Favorites ===== */
 const policyFavorites = ref([
   { id: 'pf-1', type: 'policy', name: '중소기업 성장지원금' },
   { id: 'pf-2', type: 'policy', name: '청년 창업 지원금' },
@@ -172,34 +172,24 @@ const toggleDetail = id => {
   if (i > -1) expandedItems.value.splice(i, 1);
   else expandedItems.value.push(id);
 };
-const openLoanDetail = item => console.log('대출 상세보기', item);
-const openPolicyDetail = item => console.log('정책 상세보기', item);
-
-/* ===== Policy Register (예시 유지) ===== */
-const handlePolicyRegister = async ({ selected, form }) => {
-  const newId = Date.now();
-  const newPolicy = {
-    id: newId,
-    type: 'policy',
-    name: selected?.name || '정책',
-    startDate: form?.periodStart || todayISO.value,
-    endDate: form?.periodEnd || todayISO.value,
-    totalAmount: toNumber(form?.totalAmount) || 0,
-    monthlyAmount: toNumber(form?.monthlyAmount) || 0,
-    status: 'active',
-  };
-  items.value.unshift(newPolicy);
-  if (form?.paymentDate) {
-    addCalendarEvent(calendarDays.value, {
-      date: form.paymentDate,
-      title: '지급일',
-      type: 'payment_due',
-    });
-  }
-  showPolicyModal.value = false;
-  await nextTick();
-  activeTab.value = 'policy';
+const openLoanDetail = item => {
+  // TODO: implement loan detail
+  void item;
 };
+const openPolicyDetail = item => {
+  // TODO: implement policy detail
+  void item;
+};
+
+/* ===== RegisterModal → ReportView 핸들러 ===== */
+function handlePolicyRegister(newItem) {
+  items.value.unshift({
+    ...newItem,
+    id: Date.now(),
+    status: 'active',
+  });
+  showPolicyModal.value = false;
+}
 
 /* ===== Utils ===== */
 function toISO(d) {
@@ -212,9 +202,6 @@ function toNumber(v) {
   if (typeof v === 'number') return v;
   return Number(String(v).replaceAll(',', '')) || 0;
 }
-function monthStr(d) {
-  return toISO(d).slice(0, 7);
-} // 'YYYY-MM'
 function cryptoRandom() {
   return 'id-' + Math.random().toString(36).slice(2, 10);
 }
@@ -238,46 +225,13 @@ function generateTwoWeeksAlignedToSunday(baseDate) {
   }
   return out;
 }
-function addCalendarEvent(days, { date, title, type }) {
-  const idx = days.findIndex(d => d.date === date);
-  if (idx !== -1) {
-    days[idx].events.push({ id: cryptoRandom(), title, type });
-  }
-}
-function mapEvent(e) {
-  const type = e.type || e.kind || 'other';
-  const title =
-    e.title ||
-    (type === 'repayment'
-      ? '상환일'
-      : type === 'payment_due'
-        ? '지급일'
-        : type === 'expiry'
-          ? '만기일'
-          : '일정');
-  return {
-    id: e.id ?? cryptoRandom(),
-    date: e.date || e.dueDate,
-    type,
-    title,
-    amount: Number(e.amount ?? e.monthlyAmount ?? 0),
-    detail: e.detail ?? {},
-  };
-}
-function safeRate(done, total) {
-  if (!total) return 0;
-  const r = Number(done || 0) / Number(total);
-  return isFinite(r) ? Math.max(0, Math.min(1, r)) : 0;
-}
 
-/* ===== Store -> View Sync (리스트/차트 보조) ===== */
+/* ===== Store -> View Sync ===== */
 function syncFromStore() {
-  // Summary
   const s = reportStore.summary || {};
   monthlyBenefit.value = Number(s.supportTotal ?? 0);
   monthlyPayment.value = Number(s.repayTotal ?? 0);
 
-  // Lists
   const policies = Array.isArray(reportStore.policy) ? reportStore.policy : [];
   const loans = Array.isArray(reportStore.loan) ? reportStore.loan : [];
 
@@ -285,10 +239,10 @@ function syncFromStore() {
     id: p.id ?? cryptoRandom(),
     type: 'policy',
     name: p.name ?? p.title ?? '정책',
-    startDate: p.startDate ?? p.periodStart ?? p.beginDate ?? todayISO.value,
-    endDate: p.endDate ?? p.periodEnd ?? p.finishDate ?? todayISO.value,
-    totalAmount: toNumber(p.totalAmount ?? p.amountTotal ?? 0),
-    monthlyAmount: toNumber(p.monthlyAmount ?? p.amountMonthly ?? 0),
+    startDate: p.startDate ?? todayISO.value,
+    endDate: p.endDate ?? todayISO.value,
+    totalAmount: toNumber(p.totalAmount ?? 0),
+    monthlyAmount: toNumber(p.monthlyAmount ?? 0),
     status: p.status ?? 'active',
   }));
 
@@ -296,110 +250,72 @@ function syncFromStore() {
     id: l.id ?? cryptoRandom(),
     type: 'loan',
     name: l.name ?? l.title ?? '대출',
-    startDate: l.startDate ?? l.beginDate ?? todayISO.value,
-    endDate: l.endDate ?? l.finishDate ?? todayISO.value,
-    totalAmount: toNumber(l.totalAmount ?? l.principal ?? 0),
-    repaymentMethod: l.repaymentMethod ?? l.method ?? '—',
-    totalPayments: Number(l.totalPayments ?? l.termCount ?? 0),
-    completedPayments: Number(l.completedPayments ?? l.paidCount ?? 0),
+    startDate: l.startDate ?? todayISO.value,
+    endDate: l.endDate ?? todayISO.value,
+    totalAmount: toNumber(l.totalAmount ?? 0),
+    repaymentMethod: l.repaymentMethod ?? '—',
+    totalPayments: Number(l.totalPayments ?? 0),
+    completedPayments: Number(l.completedPayments ?? 0),
     paidAmount: toNumber(l.paidAmount ?? 0),
-    interestRate: String(l.interestRate ?? l.rate ?? '—'),
+    interestRate: String(l.interestRate ?? '—'),
     status: l.status ?? 'active',
   }));
 
-  if (mappedPolicies.length || mappedLoans.length) {
-    items.value = [...mappedPolicies, ...mappedLoans];
-  }
-
-  // Chart (series) — 대시보드 기반 보조 (trend는 별도 API에서 메인으로 채움)
-  if (mappedPolicies.length && policySeries.value.length === 0) {
-    policySeries.value = mappedPolicies
-      .slice(0, 5)
-      .map(p => p.monthlyAmount || 0);
-  }
-  if (mappedLoans.length && loanSeries.value.length === 0) {
-    loanSeries.value = mappedLoans.slice(0, 5).map(l => {
-      const per = l.totalPayments
-        ? Math.round(l.totalAmount / l.totalPayments)
-        : 0;
-      return per || 0;
-    });
-  }
+  // 목록 구성
+  items.value = [...mappedPolicies, ...mappedLoans];
 }
 
-/* ===== Paging (옵션) ===== */
-async function loadNextPage() {
-  const token = localStorage.getItem('token');
-  await reportStore.fetchNextPage(token);
-  syncFromStore();
-}
-
-/* ===== Mounted: 모든 데이터 로드 ===== */
+/* ===== onMounted: 존재하는 API만 호출 ===== */
 onMounted(async () => {
-  const token = localStorage.getItem('token');
-  const userId = undefined; // 필요 시 연결
+  // 로그인 사용자 확인
+  let userId = null;
+  try {
+    const u = await me();
+    userId = u?.id ?? u?.userId ?? u?.data?.id ?? null;
+  } catch (e) {
+     
+    globalThis.console?.warn('[ReportView] 사용자 정보 확인 실패', e);
+  }
+  if (!userId) {
+     
+    globalThis.console?.error('[ReportView] 로그인 필요');
+    return;
+  }
 
-  // 1) 캘린더 2주 생성
+  // 캘린더 스켈레톤
   calendarDays.value = generateTwoWeeksAlignedToSunday(today);
 
-  // 2) 2주 일정 로드 (지급/상환/만기)
-  {
-    const start = calendarDays.value[0].date;
-    const end = calendarDays.value.at(-1).date;
-    const rows = await getTwoWeekSchedule({ start, end, userId }, token); // catch 내장: 실패 시 []
-    const byDate = rows.reduce((acc, r) => {
-      const ev = mapEvent(r);
-      if (!ev.date) return acc;
-      (acc[ev.date] ||= []).push(ev);
-      return acc;
-    }, {});
-    calendarDays.value = calendarDays.value.map(d => ({
-      ...d,
-      events: byDate[d.date] || [],
-    }));
-  }
+  // 대시보드만 호출
+  const data = await getDashboard({ page: 0, size: 200, userId });
 
-  // 3) 이번달 요약
-  {
-    const month = monthStr(today);
-    const s = await getMonthlySummary({ month, userId }, token); // {supportTotal, repayTotal}
-    monthlyBenefit.value = Number(s.supportTotal || 0);
-    monthlyPayment.value = Number(s.repayTotal || 0);
-    reportStore.summary = s; // 스토어에도 반영(선택)
-  }
+  // 스토어 반영
+  reportStore.summary = data?.summary || {};
+  reportStore.policy = Array.isArray(data?.policy) ? data.policy : [];
+  reportStore.loan = Array.isArray(data?.loan) ? data.loan : [];
+  reportStore.page = 0;
+  reportStore.size = 200;
+  reportStore.hasNext = !!data?.hasNext;
 
-  // 4) 그래프(최근 6개월)
-  {
-    const endM = monthStr(today);
-    const startD = new Date(today);
-    startD.setMonth(startD.getMonth() - 5);
-    const startM = monthStr(startD);
-    const trend = await getIncomeExpenseTrend(
-      { from: startM, to: endM, userId },
-      token
-    ); // [] fallback
-    reportStore.trend = trend;
+  // 요약 수치
+  monthlyBenefit.value = Number(data?.summary?.supportTotal ?? 0);
+  monthlyPayment.value = Number(data?.summary?.repayTotal ?? 0);
 
-    // 라벨/시리즈 세팅
-    trendLabels.value = trend.map(r => {
-      const m = (r.month || '').split('-')[1];
-      return (m ? Number(m) : '').toString() + '월';
-    });
-    policySeries.value = trend.map(r => Number(r.policyIncome || 0));
-    loanSeries.value = trend.map(r => Number(r.loanRepay || 0));
-  }
+  // 리스트 동기화
+  syncFromStore();
 
-  // 5) 대시보드(정책/대출 리스트 등)
-  {
-    const data = await getDashboard({ page: 0, size: 20 }, token);
-    reportStore.summary = data.summary;
-    reportStore.policy = data.policy;
-    reportStore.loan = data.loan;
-    reportStore.page = 0;
-    reportStore.size = 20;
-    reportStore.hasNext = !!data.hasNext;
-
-    syncFromStore(); // 리스트/보조 시리즈 반영
+  // 차트 기본 6개월(0값) — 데이터 없어도 틀 유지
+  if (!trendLabels.value.length) {
+    const end = new Date(today);
+    const labels = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(end);
+      d.setMonth(end.getMonth() - i);
+      const ym = d.toISOString().slice(0, 7);
+      labels.push(`${Number(ym.split('-')[1])}월`);
+    }
+    trendLabels.value = labels;
+    policySeries.value = new Array(6).fill(0);
+    loanSeries.value = new Array(6).fill(0);
   }
 });
 </script>

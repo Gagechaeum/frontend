@@ -1,5 +1,3 @@
-import api from './http.js';
-
 // api 작성 예시
 
 /**
@@ -82,25 +80,50 @@ import api from './http.js';
 //     throw error;
 //   }
 // };
+/* eslint-env browser */
 
-// 공통 에러 핸들러: 콘솔에만 찍고 안전한 기본값 반환
+import api from './http.js';
+import { getAccessToken } from './auth'; // 토큰은 여기서만 꺼냄
+
+// 공통 에러 핸들러: 콘솔에만 찍고 안전한 기본값 반환 (새 유틸 생성 X)
 function handleApiError(where, err, fallback) {
   const status = err?.response?.status;
   const msg = err?.response?.data?.message || err?.message || String(err);
-  console.warn(`[API:${where}] status=${status} msg=${msg}`);
+   
+  globalThis.console?.warn(`[API:${where}] status=${status} msg=${msg}`);
   return fallback;
 }
 
-/** ① 정책 전용 검색 */
-export async function searchPolicies({ query, limit = 10, userId }, token) {
+// ✅ 내부에서 토큰을 읽어 헤더에 자동 첨부
+function authHeaders() {
+  const at = getAccessToken();
+  return at ? { Authorization: `Bearer ${at}` } : {};
+}
+
+/** ① 정책 전용 검색
+ *  @param {Object} args
+ *  @param {string} args.query
+ *  @param {number} [args.limit=10]
+ *  @param {number} [args.userId]  // 백엔드가 필요하면 전달
+ */
+export async function searchPolicies({ query, limit = 10, userId }) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const { data } = await api.get('/reports/search/policies', {
-      headers,
-      params: { q: query, limit, userId },
+    const { data } = await api.get('/reports/search', {
+      headers: authHeaders(), // <-- 토큰 자동 첨부
+      params: {
+        keyword: query, // 백엔드 요구 파라미터 호환
+        q: query, // (양쪽 다 전송해 호환)
+        limit,
+        userId,
+      },
     });
-    // 프론트 표준 형태로 정규화
-    return (Array.isArray(data) ? data : []).map(r => ({
+    // 표준화
+    const rows = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.items)
+        ? data.items
+        : [];
+    return rows.map(r => ({
       id: r.id,
       name: r.name ?? r.title ?? '',
       type: '정책',
@@ -108,16 +131,27 @@ export async function searchPolicies({ query, limit = 10, userId }, token) {
       subtitle: r.provider ?? r.department ?? '',
     }));
   } catch (err) {
-    return handleApiError('searchPolicies', err, []);
+     
+    globalThis.console?.warn(
+      '[API:searchPolicies]',
+      err?.response?.status,
+      err?.message
+    );
+    return []; // 404 등일 때 조용히 빈 배열
   }
 }
 
-/** ② 2주 일정 (지급/상환/만기 등) */
-export async function getTwoWeekSchedule({ start, end, userId }, token) {
+/** ② 2주 일정 (지급/상환/만기 등)
+ *  @param {Object} args
+ *  @param {string} args.start  // YYYY-MM-DD
+ *  @param {string} args.end    // YYYY-MM-DD
+ *  @param {number} [args.userId]
+ *  ⚠️ 백엔드에 /reports/schedules/two-weeks가 실제로 있을 때만 사용
+ */
+export async function getTwoWeekSchedule({ start, end, userId }) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.get('/reports/schedules/two-weeks', {
-      headers,
+      headers: authHeaders(),
       params: { start, end, userId },
     });
     return Array.isArray(data) ? data : [];
@@ -126,13 +160,17 @@ export async function getTwoWeekSchedule({ start, end, userId }, token) {
   }
 }
 
-/** ③ 이번달 요약 (혜택/납부 예정) */
-export async function getMonthlySummary({ month, userId }, token) {
+/** ③ 이번달 요약 (혜택/납부 예정)
+ *  @param {Object} args
+ *  @param {string} args.month   // 'YYYY-MM'
+ *  @param {number} [args.userId]
+ *  ⚠️ 백엔드에 /reports/summary가 실제로 있을 때만 사용
+ */
+export async function getMonthlySummary({ month, userId }) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.get('/reports/summary', {
-      headers,
-      params: { month, userId }, // 'YYYY-MM'
+      headers: authHeaders(),
+      params: { month, userId },
     });
     return {
       supportTotal: Number(data?.supportTotal ?? 0),
@@ -143,13 +181,18 @@ export async function getMonthlySummary({ month, userId }, token) {
   }
 }
 
-/** ④ 월별 현금 흐름 (정책 수입/대출 상환) */
-export async function getIncomeExpenseTrend({ from, to, userId }, token) {
+/** ④ 월별 현금 흐름 (정책 수입/대출 상환)
+ *  @param {Object} args
+ *  @param {string} args.from   // 'YYYY-MM'
+ *  @param {string} args.to     // 'YYYY-MM'
+ *  @param {number} [args.userId]
+ *  ⚠️ 백엔드에 /reports/income-expense가 실제로 있을 때만 사용
+ */
+export async function getIncomeExpenseTrend({ from, to, userId }) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.get('/reports/income-expense', {
-      headers,
-      params: { from, to, granularity: 'MONTHLY', userId }, // 'YYYY-MM' ~ 'YYYY-MM'
+      headers: authHeaders(),
+      params: { from, to, granularity: 'MONTHLY', userId },
     });
     return Array.isArray(data)
       ? data.map(r => ({
@@ -163,13 +206,17 @@ export async function getIncomeExpenseTrend({ from, to, userId }, token) {
   }
 }
 
-/** ⑤ 대시보드 묶음 */
-export async function getDashboard({ page = 0, size = 20 }, token) {
+/** ⑤ 대시보드 묶음
+ *  @param {Object} args
+ *  @param {number} [args.page=0]
+ *  @param {number} [args.size=20]
+ *  @param {number} [args.userId]
+ */
+export async function getDashboard({ page = 0, size = 20, userId } = {}) {
   try {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const { data } = await api.get('/reports/dashboard', {
-      headers,
-      params: { page, size },
+      headers: authHeaders(),
+      params: { page, size, userId },
     });
     return {
       summary: {
