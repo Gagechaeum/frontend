@@ -33,19 +33,37 @@
           <!-- 검색 (상단) -->
           <div class="mb-6 rounded-lg border border-gray-200 p-3">
             <h4 class="mb-2 font-medium text-gray-900">검색</h4>
+
             <div class="relative">
               <input
                 v-model="q"
                 type="text"
                 placeholder="정책명을 검색하세요"
                 class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm"
+                @keyup.enter="
+                  /* 엔터로 즉시 검색하고 싶으면 */ (async () => {
+                    loading = true;
+                    results = await searchPolicies(
+                      { query: q, limit: 10 },
+                      localStorage.getItem('token')
+                    );
+                    loading = false;
+                    hasSearched = true;
+                  })()
+                "
               />
               <i
                 class="fas fa-search absolute left-3 top-3 text-sm text-gray-400"
               ></i>
             </div>
 
-            <div v-if="results.length" class="mt-2 space-y-2">
+            <!-- 로딩 -->
+            <div v-if="loading" class="mt-2 text-sm text-gray-400">
+              검색 중…
+            </div>
+
+            <!-- 결과 있음 -->
+            <div v-else-if="results.length" class="mt-2 space-y-2">
               <div
                 v-for="it in results"
                 :key="it.id"
@@ -56,7 +74,12 @@
                 <div class="text-sm text-gray-600">정책</div>
               </div>
             </div>
-            <div v-else-if="q" class="mt-2 text-sm text-gray-500">
+
+            <!-- 결과 없음 -->
+            <div
+              v-else-if="hasSearched && q"
+              class="mt-2 text-sm text-gray-500"
+            >
               검색 결과가 없습니다
             </div>
           </div>
@@ -173,10 +196,11 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { searchPolicies } from '@/lib/api/reports.js'; // ✅ 정책 검색 API(catch 내장)
 
 const props = defineProps({
   show: { type: Boolean, default: false },
-  favoriteItems: { type: Array, default: () => [] }, // 다양한 타입이 와도 모달 내에서 정책만 사용
+  favoriteItems: { type: Array, default: () => [] }, // 즐겨찾기는 하단 섹션에서 그대로 사용
 });
 const emit = defineEmits(['close', 'register']);
 
@@ -184,7 +208,7 @@ const step = ref(1);
 const q = ref('');
 const selected = ref(null);
 
-// 정책 전용 폼
+// 폼(정책 전용)
 const form = ref({
   startDate: '',
   endDate: '',
@@ -193,16 +217,42 @@ const form = ref({
   totalAmount: null,
 });
 
-// 정책만 필터링
+// ✅ 즐겨찾기는 그대로 유지(하단 섹션용)
 const policyFavorites = computed(() =>
   props.favoriteItems.filter(it => it.type === 'policy')
 );
-const results = computed(() => {
-  if (!q.value) return [];
-  return policyFavorites.value.filter(it =>
-    it.name.toLowerCase().includes(q.value.toLowerCase())
-  );
+
+// ✅ DB 검색 결과/상태
+const results = ref([]); // ← API 응답이 들어옴
+const loading = ref(false);
+const hasSearched = ref(false);
+
+// ✅ 디바운스 + API 호출
+let t;
+watch(q, () => {
+  clearTimeout(t);
+  t = setTimeout(doSearch, 300);
 });
+
+async function doSearch() {
+  hasSearched.value = false;
+  results.value = [];
+  const query = q.value?.trim();
+  if (!query) {
+    loading.value = false;
+    hasSearched.value = false;
+    return;
+  }
+
+  loading.value = true;
+  const token = localStorage.getItem('token'); // 필요 시 교체
+  results.value = await searchPolicies(
+    { query, limit: 10 /*, userId*/ },
+    token
+  );
+  loading.value = false;
+  hasSearched.value = true;
+}
 
 watch(
   () => props.show,
@@ -211,6 +261,9 @@ watch(
       step.value = 1;
       q.value = '';
       selected.value = null;
+      results.value = [];
+      loading.value = false;
+      hasSearched.value = false;
       form.value = {
         startDate: '',
         endDate: '',
@@ -228,7 +281,6 @@ const selectItem = it => {
 };
 
 const emitRegister = () => {
-  // 유효성은 간단 체크만
   emit('register', {
     type: 'policy',
     name: selected.value?.name ?? '정책',
@@ -242,9 +294,3 @@ const emitRegister = () => {
 
 const emitClose = () => emit('close');
 </script>
-
-<style scoped>
-.\!rounded-button {
-  border-radius: 8px;
-}
-</style>
