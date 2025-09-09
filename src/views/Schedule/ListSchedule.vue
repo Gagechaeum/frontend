@@ -1,4 +1,3 @@
-<!-- src/views/Schedule/ListSchedule.vue -->
 <template>
   <div>
     <ScheduleToolbar
@@ -67,35 +66,38 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import dayjs from 'dayjs';
 import ScheduleToolbar from '@/components/schedule/ScheduleToolbar.vue';
 import StarToggle from '@/components/schedule/StarToggle.vue';
 import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
 import { useScheduleFilters } from '@/stores/scheduleFilters';
 import { useFavorites } from '@/stores/favorites';
-import { fetchPolicies } from '@/stores/policies';
+import { fetchSchedule } from '@/stores/scheduleData';
 import { fmtPeriod, stateText, stateColor } from '@/utils/schedule';
 
 const filters = useScheduleFilters();
 const fav = useFavorites();
 
 const status = ref('all');
-const year = ref(2025);
-const month = ref(8);
+const year = ref(Number(dayjs().format('YYYY')));
+const month = ref(Number(dayjs().format('MM')));
 const query = ref('');
 const showFilters = ref(false);
+
 const rows = ref([]);
 
 onMounted(() => {
-  filters.load();
-  fav.load();
+  fav.load?.();
+  filters.load?.();
 });
+
 watch([() => filters.activeCriteria, query, status, year, month], loadList, {
   immediate: true,
 });
 
 async function loadList() {
-  rows.value = await fetchPolicies({
+  rows.value = await fetchSchedule({
     q: query.value,
     status: status.value,
     year: year.value,
