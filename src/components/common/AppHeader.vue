@@ -73,11 +73,11 @@
         <div class="flex items-center space-x-4">
           <!-- 칩 -->
           <div
-            v-if="chips && chips.length"
+            v-if="displayChips && displayChips.length"
             class="hidden items-center space-x-2 sm:flex"
           >
             <span
-              v-for="chip in chips"
+              v-for="chip in displayChips"
               :key="chip"
               class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700"
             >
@@ -177,9 +177,8 @@
           </div>
 
           <!-- 프로필: 아바타 클릭 시 드롭다운 -->
-          <!-- RouterLink 대신 ProfileDropdown 사용 -->
           <ProfileDropdown
-            :user-info="userInfo"
+            :user-info="displayUserInfo"
             :avatar="avatar"
             @mypage="goMyPage"
             @logout-click="handleLogout"
@@ -195,20 +194,16 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useNotificationStore } from '@/stores/notification';
+import { useAuthStore } from '@/stores/auth';
 import ProfileDropdown from '../mypage/ProfileDropdown.vue';
 
 const props = defineProps({
   overlay: { type: Boolean, default: false },
-  chips: { type: Array, default: () => [] }, // 우측 칩(태그) 리스트
+  chips: { type: Array, default: null },
   showBell: { type: Boolean, default: true }, // 알림 버튼 보이기
   userInfo: {
-    // 드롭다운 상단 표시 정보
     type: Object,
-    default: () => ({
-      name: '사용자',
-      region: '서울',
-      business: '카페/디저트',
-    }),
+    default: null,
   },
   avatar: { type: String, default: '' }, // 프로필 이미지 URL(없으면 아이콘)
 });
@@ -238,6 +233,12 @@ const goMyPage = () => {
 
 const notificationStore = useNotificationStore();
 const { notifications } = storeToRefs(notificationStore);
+
+const authStore = useAuthStore();
+const { chips: authChips, userInfo: authUserInfo } = storeToRefs(authStore);
+
+const displayChips = computed(() => props.chips || authChips.value);
+const displayUserInfo = computed(() => props.userInfo || authUserInfo.value);
 
 const unreadCount = computed(
   () => notifications.value.filter(n => !n.read).length

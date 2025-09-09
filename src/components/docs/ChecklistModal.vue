@@ -88,11 +88,27 @@
           <label class="mb-2 block text-sm font-medium text-gray-700"
             >서류 유형</label
           >
+          <select
+            v-model="newDoc.typeId"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
+            @change="handleTypeChange"
+          >
+            <option value="" disabled>유형을 선택하세요</option>
+            <option v-for="t in documentTypes" :key="t.id" :value="t.id">
+              {{ t.name }}
+            </option>
+          </select>
+        </div>
+
+        <div v-if="isOtherType" class="mt-2">
+          <label class="mb-2 block text-sm font-medium text-gray-700"
+            >기타 서류명</label
+          >
           <input
-            :value="newDoc.name"
+            v-model="newDoc.customName"
             type="text"
-            readonly
-            class="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
+            placeholder="서류명을 입력하세요"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
 
@@ -126,8 +142,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useNotificationStore } from '@/stores/notification';
+import { uploadUserDocument, getDocumentTypes } from '@/lib/api/documents.js';
 import Modal from '@/components/common/Modal.vue';
 
 const props = defineProps({
@@ -150,10 +167,23 @@ const selectedDocument = ref(null);
 
 // 새로운 서류 데이터
 const newDoc = ref({
-  name: '',
+  typeId: '',
+  typeName: '',
+  customName: '',
   issueDate: '',
   file: null,
 });
+
+const documentTypes = ref([]);
+const isOtherType = computed(() => {
+  const sel = documentTypes.value.find(t => t.id === newDoc.value.typeId);
+  return sel ? sel.name === '기타' : false;
+});
+
+const handleTypeChange = () => {
+  const sel = documentTypes.value.find(t => t.id === newDoc.value.typeId);
+  newDoc.value.typeName = sel ? sel.name : '';
+};
 
 // 필요한 서류 목록 (실제로는 item에서 가져오거나 별도로 정의)
 const requiredDocuments = computed(() => [
@@ -182,17 +212,32 @@ const closeModal = () => {
 };
 
 // 서류 등록 모달 열기
-const openUploadModal = file => {
+const openUploadModal = async file => {
   selectedDocument.value = file;
-  newDoc.value.name = file.name;
   showUploadModal.value = true;
+  try {
+    const res = await getDocumentTypes();
+    documentTypes.value = (res && res.data && res.data.list) || [];
+  } catch (e) {
+    notification.show('error', '서류 유형을 불러오지 못했습니다.');
+  }
+  // 초기화
+  newDoc.value.typeId = '';
+  newDoc.value.typeName = '';
+  newDoc.value.customName = '';
 };
 
 // 서류 등록 모달 닫기
 const closeUploadModal = () => {
   showUploadModal.value = false;
   selectedDocument.value = null;
-  newDoc.value = { name: '', issueDate: '', file: null };
+  newDoc.value = {
+    typeId: '',
+    typeName: '',
+    customName: '',
+    issueDate: '',
+    file: null,
+  };
 };
 
 // 파일 업로드 처리
@@ -210,17 +255,47 @@ const handleFileUpload = event => {
 };
 
 // 서류 추가
-const addDocument = () => {
-  if (newDoc.value.name && newDoc.value.issueDate && newDoc.value.file) {
-    // TODO: 실제 서류 추가 로직 구현
-    console.log('서류 추가:', newDoc.value);
+const addDocument = async () => {
+  const selected = documentTypes.value.find(t => t.id === newDoc.value.typeId);
+  const documentName =
+    selected && selected.name === '기타'
+      ? newDoc.value.customName
+      : selected
+        ? selected.name
+        : '';
+  if (
+    newDoc.value.typeId &&
+    documentName &&
+    newDoc.value.issueDate &&
+    newDoc.value.file
+  ) {
+    try {
+      const formData = new FormData();
+      formData.append('documentId', newDoc.value.typeId);
+      formData.append('documentName', documentName);
+      formData.append('issuedAt', newDoc.value.issueDate);
+      formData.append('file', newDoc.value.file);
 
-    // 폼 초기화 및 모달 닫기
-    newDoc.value = { name: '', issueDate: '', file: null };
-    showUploadModal.value = false;
+      await uploadUserDocument(formData);
 
-    // 체크리스트 모달도 닫기
-    emit('close');
+      notification.show('success', '서류가 성공적으로 추가되었습니다.');
+
+      // 폼 초기화 및 모달 닫기
+      newDoc.value = {
+        typeId: '',
+        typeName: '',
+        customName: '',
+        issueDate: '',
+        file: null,
+      };
+      showUploadModal.value = false;
+
+      // 체크리스트 모달도 닫기
+      emit('close');
+    } catch (error) {
+      console.error('서류 추가 실패:', error);
+      notification.show('error', '서류 추가에 실패했습니다.');
+    }
   }
 };
 </script>
