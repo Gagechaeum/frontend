@@ -293,10 +293,20 @@
 
       <!-- 동종업 인기 상품 -->
       <div v-inview.once style="margin-bottom: 6rem" class="-mx-6 px-6 py-8">
-        <Section :title="'내 업종 사람들이 많이 보는 상품'">
+        <Section
+          :title="
+            isLoggedIn
+              ? '내 업종 사람들이 많이 보는 상품'
+              : '사람들이 많이 보는 상품'
+          "
+        >
           <template #description>
             <p class="reveal-item text-lg text-gray-600">
-              나와 같은 업종에 종사하는 사용자가 많이 보는 상품을 추천해드립니다
+              {{
+                isLoggedIn
+                  ? '나와 같은 업종에 종사하는 사용자가 많이 보는 상품을 추천해드립니다'
+                  : '다양한 사용자가 많이 보는 상품을 추천해드립니다'
+              }}
             </p>
           </template>
           <div
@@ -338,6 +348,7 @@
               </p>
             </template>
             <div
+              v-if="urgentProducts.length > 0"
               class="reveal-item reveal-stagger grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6"
             >
               <div
@@ -354,11 +365,17 @@
                 />
               </div>
             </div>
+            <div v-else class="reveal-item py-12 text-center">
+              <div class="text-lg text-gray-500">
+                <i class="fas fa-calendar-times mb-4 block text-4xl"></i>
+                <p>현재 마감이 임박한 상품이 없습니다.</p>
+              </div>
+            </div>
           </Section>
         </div>
       </div>
 
-      <!-- 하단 분할 섹션 -->
+      <!-- 채팅방 추천 섹션 -->
       <div v-inview.once class="-mx-6 px-6 py-8">
         <Section title="인기 채팅방">
           <template #description>
@@ -384,16 +401,16 @@
               >
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
-                    <div class="mb-2 flex items-center gap-2">
+                    <div class="flex items-center gap-2">
+                      <h3 class="mb-1 font-medium text-gray-900">
+                        {{ chat.name }}
+                      </h3>
                       <Tag
-                        :label="chat.roomType"
+                        :label="getChatRoomType(chat.roomType)"
                         :tone="getChatRoomTone(chat.roomType)"
                         size="xs"
                       />
                     </div>
-                    <h3 class="mb-1 font-medium text-gray-900">
-                      {{ chat.name }}
-                    </h3>
                     <div class="flex items-center text-sm text-gray-600">
                       <i class="fas fa-users mr-1"></i>
                       <span>{{ chat.participantCount }}명</span>
@@ -405,23 +422,23 @@
             </div>
             <div class="space-y-3">
               <div
-                v-for="chat in chatRooms.slice(5, 10)"
+                v-for="chat in chatRooms.slice(5)"
                 :key="chat.roomId"
                 class="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm"
                 @click="handleChatRoom(chat)"
               >
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
-                    <div class="mb-2 flex items-center gap-2">
+                    <div class="flex items-center gap-2">
+                      <h3 class="mb-1 font-medium text-gray-900">
+                        {{ chat.name }}
+                      </h3>
                       <Tag
-                        :label="chat.roomType"
+                        :label="getChatRoomType(chat.roomType)"
                         :tone="getChatRoomTone(chat.roomType)"
                         size="xs"
                       />
                     </div>
-                    <h3 class="mb-1 font-medium text-gray-900">
-                      {{ chat.name }}
-                    </h3>
                     <div class="flex items-center text-sm text-gray-600">
                       <i class="fas fa-users mr-1"></i>
                       <span>{{ chat.participantCount }}명</span>
@@ -439,10 +456,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
+import { useAuthStore } from '@/stores/auth';
 import { vInview } from '@/utils/inview.js';
+import {
+  getRecommendedLoans,
+  getRecommendedPolicies,
+  searchProducts,
+  getLoanList,
+  getPolicyList,
+} from '@/lib/api/products.js';
+import { getChatRooms } from '@/lib/api/community.js';
 import SearchBar from '@/components/common/SearchBar.vue';
 import SearchResults from '@/components/common/SearchResults.vue';
 import Section from '@/components/common/Section.vue';
@@ -452,10 +478,14 @@ import UiButton from '@/components/common/UiButton.vue';
 import Tag from '@/components/common/Tag.vue';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
 const goDocs = () => router.push('/docs');
 const goReport = () => router.push('/report');
 const goCommunity = () => router.push('/community');
+
+// 로그인 상태 확인
+const isLoggedIn = computed(() => !!authStore.user);
 
 const searchQuery = ref('');
 const searchResults = ref([]);
@@ -464,10 +494,236 @@ const searchBarRef = ref(null);
 const isSearchButtonBeingClicked = ref(false); // 새로운 플래그 추가
 const notificationStore = useNotificationStore();
 
-// 컴포넌트 마운트 시 샘플 알림 추가 (테스트용)
+// 로딩 상태
+const isLoading = ref(false);
+const error = ref(null);
+
+// 사용자 ID
+const userId = computed(() => authStore.user?.userId || null);
+
+// API 호출 함수들
+const fetchRecommendedLoans = async () => {
+  if (!userId.value) {
+    return;
+  }
+
+  try {
+    const response = await getRecommendedLoans(userId.value);
+    loans.value = response.data.loans.map(loan => ({
+      id: loan.loanId,
+      title: loan.productName,
+      rate: `연 ${loan.basicRate}%`,
+      limit: `최대 ${formatCurrency(loan.maxLimit)}`,
+    }));
+  } catch (error) {
+    console.error('추천 대출 조회 실패:', error);
+  }
+};
+
+const fetchRecommendedPolicies = async () => {
+  if (!userId.value) {
+    return;
+  }
+
+  try {
+    const response = await getRecommendedPolicies(userId.value);
+    policies.value = response.data.policies.map(policy => ({
+      id: policy.policyId,
+      title: policy.policyName,
+      documents: `${policy.requiredDocumentsCount || 0}/${policy.totalDocumentsCount || 0}`,
+      deadline: policy.deadline || 'D-7',
+    }));
+  } catch (error) {
+    console.error('추천 정책 조회 실패:', error);
+  }
+};
+
+const fetchChatRooms = async () => {
+  try {
+    const response = await getChatRooms('all');
+    const allRooms = response.data.chatRooms.map(room => ({
+      roomId: room.roomId,
+      roomType: room.roomType,
+      name: room.name,
+      participantCount: room.participantCount,
+    }));
+
+    // participantCount 내림차순 10개
+    chatRooms.value = allRooms
+      .sort((a, b) => b.participantCount - a.participantCount)
+      .slice(0, 10);
+  } catch (error) {
+    console.error('채팅방 목록 조회 실패:', error);
+  }
+};
+
+const fetchUrgentProducts = async () => {
+  try {
+    // 대출과 정책 데이터를 병렬로 가져오기
+    const [loansResponse, policiesResponse] = await Promise.all([
+      getLoanList(),
+      getPolicyList(),
+    ]);
+
+    const allProducts = [];
+
+    // 대출 데이터 처리
+    if (loansResponse.data?.loans) {
+      loansResponse.data.loans.forEach(loan => {
+        if (loan.endDate) {
+          const dday = calculateDDay(loan.endDate);
+          if (dday) {
+            allProducts.push({
+              id: loan.loanId,
+              title: loan.productName,
+              dday: dday,
+              meta: loan.maxLimit
+                ? `최대 ${formatCurrency(loan.maxLimit)}`
+                : '대출 상품',
+              type: 'loan',
+              endDate: loan.endDate,
+            });
+          }
+        }
+      });
+    }
+
+    // 정책 데이터 처리
+    if (policiesResponse.data?.policies) {
+      policiesResponse.data.policies.forEach(policy => {
+        if (policy.endDate) {
+          const dday = calculateDDay(policy.endDate);
+          if (dday) {
+            allProducts.push({
+              id: policy.policyId,
+              title: policy.policyName,
+              dday: dday,
+              meta: policy.supportAmount
+                ? `최대 ${formatCurrency(policy.supportAmount)}`
+                : '정책 상품',
+              type: 'policy',
+              endDate: policy.endDate,
+            });
+          }
+        }
+      });
+    }
+
+    // endDate 기준으로 오름차순 정렬 (가장 임박한 순서)
+    allProducts.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+
+    // 상위 6개만 선택
+    urgentProducts.value = allProducts.slice(0, 6);
+  } catch (error) {
+    console.error('마감임박 상품 조회 실패:', error);
+    // 에러 발생 시 빈 배열로 설정하여 '상품이 없습니다' UI 표시
+    urgentProducts.value = [];
+  }
+};
+
+// 비로그인 상태에서 인기 상품 조회 (bookmarkCount 기준)
+const fetchPopularProducts = async () => {
+  if (isLoggedIn.value) {
+    // 로그인 상태에서는 기존 mock 데이터 유지
+    return;
+  }
+
+  try {
+    // 대출과 정책 데이터를 병렬로 가져오기
+    const [loansResponse, policiesResponse] = await Promise.all([
+      getLoanList({ size: 50 }), // 더 많은 데이터 가져오기
+      getPolicyList({ size: 50 }),
+    ]);
+
+    const allProducts = [];
+
+    // 대출 데이터 처리
+    if (loansResponse.data?.loans) {
+      loansResponse.data.loans.forEach(loan => {
+        allProducts.push({
+          id: loan.loanId,
+          title: loan.productName,
+          industry: loan.industryName || '대출',
+          meta: loan.maxLimit
+            ? `최대 ${formatCurrency(loan.maxLimit)}`
+            : '대출 상품',
+          type: 'loan',
+          bookmarkCount: loan.bookmarkCount || 0,
+        });
+      });
+    }
+
+    // 정책 데이터 처리
+    if (policiesResponse.data?.policies) {
+      policiesResponse.data.policies.forEach(policy => {
+        allProducts.push({
+          id: policy.policyId,
+          title: policy.policyName,
+          industry: policy.industryName || '정책',
+          meta: policy.supportAmount
+            ? `최대 ${formatCurrency(policy.supportAmount)}`
+            : '정책 상품',
+          type: 'policy',
+          bookmarkCount: policy.bookmarkCount || 0,
+        });
+      });
+    }
+
+    // bookmarkCount 기준으로 내림차순 정렬
+    allProducts.sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0));
+
+    // 상위 5개만 선택
+    popularProducts.value = allProducts.slice(0, 5);
+  } catch (error) {
+    console.error('인기 상품 조회 실패:', error);
+    // 에러 발생 시 기존 mock 데이터 유지
+  }
+};
+
+// 통화 포맷 함수
+const formatCurrency = amount => {
+  if (amount >= 100000000) {
+    return `${Math.floor(amount / 100000000)}억원`;
+  } else if (amount >= 10000) {
+    return `${Math.floor(amount / 10000)}만원`;
+  } else {
+    return `${amount.toLocaleString()}원`;
+  }
+};
+
+// D-day 계산 함수
+const calculateDDay = endDate => {
+  if (!endDate) return null;
+
+  const today = new Date();
+  const deadline = new Date(endDate);
+
+  // 시간을 00:00:00으로 설정하여 날짜만 비교
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+
+  const diffTime = deadline.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return 'D-day';
+  } else if (diffDays === 1) {
+    return 'D-1';
+  } else if (diffDays > 1) {
+    return `D-${diffDays}`;
+  } else {
+    return null; // 이미 마감된 경우
+  }
+};
+
+// 컴포넌트 마운트 시 API 데이터 로드
 onMounted(() => {
-  // 샘플 알림 데이터 추가
-  notificationStore.addSampleNotifications();
+  // API 데이터 로드
+  fetchRecommendedLoans();
+  fetchRecommendedPolicies();
+  fetchChatRooms();
+  fetchUrgentProducts();
+  fetchPopularProducts(); // 인기 상품 조회 추가
 
   // 검색창 포커스 이벤트 감지
   if (searchBarRef.value) {
@@ -489,6 +745,13 @@ watch(searchQuery, (newQuery, oldQuery) => {
     searchResults.value = [];
     hasSearched.value = false;
   }
+});
+
+// 로그인 상태 변경 시 추천 데이터 다시 조회
+watch(isLoggedIn, () => {
+  fetchRecommendedLoans();
+  fetchRecommendedPolicies();
+  fetchPopularProducts();
 });
 
 const loanTags = ref([
@@ -561,30 +824,35 @@ const popularProducts = ref([
     title: 'IT 스타트업 지원금',
     industry: 'IT업종',
     meta: '최대 3천만원',
+    type: 'policy',
   },
   {
     id: 2,
     title: '소프트웨어 개발지원',
     industry: 'IT업종',
     meta: '연 2.5% 금리',
+    type: 'loan',
   },
   {
     id: 3,
     title: '디지털 전환지원',
     industry: 'IT업종',
     meta: '최대 1억원',
+    type: 'policy',
   },
   {
     id: 4,
     title: '기술창업 인큐베이팅',
     industry: 'IT업종',
     meta: '무이자 3년',
+    type: 'loan',
   },
   {
     id: 5,
     title: 'AI 기술개발 지원',
     industry: 'IT업종',
     meta: '최대 5천만원',
+    type: 'policy',
   },
 ]);
 
@@ -812,12 +1080,33 @@ const handleSearch = async query => {
 
   try {
     hasSearched.value = true;
-    // 실제 API 연동 시에는 searchProducts(query) 사용
-    const results = getMockSearchResults(query);
-    searchResults.value = results;
+    isLoading.value = true;
+
+    // API 검색 호출
+    const response = await searchProducts(query, 0, 20);
+
+    // API 응답 데이터를 컴포넌트 데이터 구조에 맞게 변환
+    searchResults.value = response.data.results.map(result => ({
+      id: result.id,
+      name: result.name,
+      type: result.type === 'LOAN' ? '대출' : '정책',
+      typeLabel: result.type === 'LOAN' ? '대출' : '정책',
+      description: result.industryName
+        ? `${result.industryName} 관련 상품`
+        : '정부 지원 상품',
+      rate: result.type === 'LOAN' ? '금리 정보' : '지원 정보',
+      limit: result.type === 'LOAN' ? '대출 한도' : '지원 한도',
+    }));
+
+    isLoading.value = false;
   } catch (error) {
     console.error('검색 실패:', error);
     searchResults.value = [];
+    isLoading.value = false;
+
+    // 에러 발생 시 기본 검색 결과 사용
+    const results = getMockSearchResults(query);
+    searchResults.value = results;
   }
 };
 
@@ -865,20 +1154,34 @@ const handlePolicyDetail = policy => {
 };
 
 const handlePopularDetail = popular => {
-  // 인기 상품은 대출 또는 정책으로 분류하여 처리
-  if (popular.title.includes('지원금') || popular.title.includes('지원')) {
+  // type 정보를 사용하여 라우팅
+  if (popular.type === 'policy') {
     router.push(`/product/policy/${popular.id}`);
-  } else {
+  } else if (popular.type === 'loan') {
     router.push(`/product/loan/${popular.id}`);
+  } else {
+    // fallback: 제목으로 판단
+    if (popular.title.includes('지원금') || popular.title.includes('지원')) {
+      router.push(`/product/policy/${popular.id}`);
+    } else {
+      router.push(`/product/loan/${popular.id}`);
+    }
   }
 };
 
 const handleUrgentDetail = urgent => {
-  // 마감 임박 상품도 대출 또는 정책으로 분류하여 처리
-  if (urgent.title.includes('지원') || urgent.title.includes('지원금')) {
+  // type 정보를 사용하여 라우팅
+  if (urgent.type === 'policy') {
     router.push(`/product/policy/${urgent.id}`);
-  } else {
+  } else if (urgent.type === 'loan') {
     router.push(`/product/loan/${urgent.id}`);
+  } else {
+    // fallback: 제목으로 판단
+    if (urgent.title.includes('지원') || urgent.title.includes('지원금')) {
+      router.push(`/product/policy/${urgent.id}`);
+    } else {
+      router.push(`/product/loan/${urgent.id}`);
+    }
   }
 };
 
@@ -891,11 +1194,19 @@ const handleBoardPost = post => {
 };
 
 const getChatRoomTone = roomType => {
-  if (roomType === '업종') return 'gray';
-  if (roomType === '정책') return 'yellow';
-  if (roomType === '대출') return 'blue';
-  if (roomType === '지역') return 'gray';
-  return 'gray'; // 기본값
+  if (roomType === 'industry') return 'gray';
+  if (roomType === 'policy') return 'yellow';
+  if (roomType === 'loan') return 'blue';
+  if (roomType === 'region') return 'gray';
+  return 'gray';
+};
+
+const getChatRoomType = roomType => {
+  if (roomType === 'industry') return '업종';
+  if (roomType === 'policy') return '정책';
+  if (roomType === 'loan') return '대출';
+  if (roomType === 'region') return '지역';
+  return '기타';
 };
 </script>
 
