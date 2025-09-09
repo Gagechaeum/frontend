@@ -1,4 +1,3 @@
-<!-- src/views/Schedule/FavoritesSchedule.vue -->
 <template>
   <div>
     <ScheduleToolbar
@@ -14,24 +13,25 @@
 
     <section class="rounded-xl border border-neutral-100 bg-white">
       <div class="flex items-center justify-between px-4 py-3">
-        <p class="text-xs font-bold text-neutral-700">
-          즐겨찾기 · {{ rows.length }}
-        </p>
+        <p class="text-xs font-bold text-neutral-700">총 {{ rows.length }}건</p>
       </div>
 
       <ul class="divide-y divide-neutral-100">
         <li
           v-for="row in rows"
           :key="row.id"
-          class="grid grid-cols-12 items-center gap-3 px-4 py-3"
+          class="grid grid-cols-12 items-center gap-x-4 gap-y-2 px-4 py-3"
         >
-          <div class="col-span-12 md:col-span-6">
-            <p class="text-sm font-bold">{{ row.title }}</p>
-            <p class="text-xs text-neutral-600">
+          <!-- 제목/기관 -->
+          <div class="col-span-12 min-w-0 md:col-span-6">
+            <p class="truncate text-sm font-bold">{{ row.title }}</p>
+            <p class="truncate text-xs text-neutral-600">
               {{ row.org }} · {{ fmtPeriod(row.period) }}
             </p>
           </div>
-          <div class="col-span-6 md:col-span-3">
+
+          <!-- 진행 상태 -->
+          <div class="col-span-12 md:col-span-2">
             <span
               class="inline-flex items-center gap-2 text-xs font-bold text-neutral-700"
             >
@@ -42,18 +42,32 @@
               {{ stateText(row.status) }}
             </span>
           </div>
-          <div class="col-span-6 flex items-center gap-2 md:col-span-2">
-            <StarToggle :active="true" @toggle="fav.remove(row.id)" />
-            <span
-              v-for="t in row.tags"
-              :key="t"
-              class="rounded-full border border-neutral-200 px-3 py-1 text-xs font-semibold text-neutral-700"
-              >{{ t }}</span
-            >
+
+          <!-- 태그 -->
+          <div class="col-span-12 min-w-0 md:col-span-3">
+            <div class="flex flex-wrap gap-1">
+              <span
+                v-for="t in tagsOf(row)"
+                :key="t"
+                class="rounded-full border border-neutral-200 px-2 py-0.5 text-xs font-semibold text-neutral-700"
+              >
+                {{ t }}
+              </span>
+            </div>
           </div>
-          <div class="col-span-12 flex justify-end md:col-span-1">
+
+          <!-- 액션(⭐ + 자세히) : 우측 끝, 고정 폭/줄바꿈 방지 -->
+          <div
+            class="col-span-12 flex items-center justify-end gap-2 md:col-span-1"
+          >
+            <StarToggle
+              class="shrink-0"
+              :active="fav.has(row.id)"
+              @toggle="onToggleFav(row)"
+            />
             <button
-              class="h-7 rounded-[10px] bg-primary-alt px-3 text-[12px] font-black text-neutral-900"
+              class="h-8 shrink-0 whitespace-nowrap rounded-[10px] bg-primary-alt px-3 text-xs font-black leading-none text-neutral-900"
+              aria-label="자세히"
             >
               자세히
             </button>
@@ -67,43 +81,61 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import dayjs from 'dayjs';
 import ScheduleToolbar from '@/components/schedule/ScheduleToolbar.vue';
 import StarToggle from '@/components/schedule/StarToggle.vue';
 import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
 import { useFavorites } from '@/stores/favorites';
 import { useScheduleFilters } from '@/stores/scheduleFilters';
-import { fetchPoliciesByIds } from '@/stores/policies';
+import { fetchSchedule } from '@/stores/scheduleData';
 import { fmtPeriod, stateText, stateColor } from '@/utils/schedule';
 
 const status = ref('all');
-const year = ref(2025);
-const month = ref(8);
+const year = ref(Number(dayjs().format('YYYY')));
+const month = ref(Number(dayjs().format('MM')));
 const query = ref('');
 const showFilters = ref(false);
+
+const rows = ref([]);
 
 const fav = useFavorites();
 const filters = useScheduleFilters();
 
-const rows = ref([]);
-
 onMounted(() => {
-  fav.load();
-  filters.load();
+  fav.load?.();
+  filters.load?.();
 });
+
 watch(
-  [() => fav.ids.slice(), () => filters.activeCriteria, query, status],
+  [
+    () => filters.activeCriteria,
+    query,
+    status,
+    year,
+    month,
+    () => fav.ids.value,
+  ],
   loadFavs,
   { immediate: true }
 );
 
+function tagsOf(row) {
+  return Array.isArray(row?.tags) ? row.tags : [];
+}
+
+function onToggleFav(row) {
+  fav.toggle(row.id, { title: row.title, org: row.org });
+}
+
 async function loadFavs() {
-  rows.value = await fetchPoliciesByIds(fav.ids, {
+  const all = await fetchSchedule({
     q: query.value,
     status: status.value,
     year: year.value,
     month: month.value,
     ...filters.activeCriteria,
   });
+  rows.value = all.filter(it => fav.has(it.id));
 }
 </script>
