@@ -6,6 +6,7 @@ import './style.css';
 import App from './App.vue';
 import '@/lib/api/attachAuthInterceptors';
 import { useAuthStore } from '@/stores/auth';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const app = createApp(App);
 
