@@ -1,4 +1,3 @@
-<!-- src/views/Schedule/AllSchedule.vue -->
 <template>
   <div>
     <ScheduleToolbar
@@ -18,7 +17,7 @@
         class="col-span-12 rounded-xl border border-neutral-100 bg-white p-3 lg:col-span-8"
       >
         <div
-          class="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-neutral-600"
+          class="grid grid-cols-7 text-center text-xs font-bold text-neutral-500"
         >
           <div v-for="d in daysKo" :key="d" class="py-2">{{ d }}</div>
         </div>
@@ -28,9 +27,12 @@
             :key="cell.key"
             class="min-h-[88px] rounded-lg border border-neutral-200 p-2 text-left"
             :class="
-              selectedDate === cell.date ? 'ring-2 ring-brand-blue-royal' : ''
+              cell.date && selectedDate === cell.date
+                ? 'ring-2 ring-blue-600'
+                : ''
             "
-            @click="selectDate(cell.date)"
+            :disabled="!cell.date"
+            @click="cell.date && selectDate(cell.date)"
           >
             <div class="flex items-center justify-between text-xs">
               <span class="font-semibold text-neutral-600">{{
@@ -38,7 +40,7 @@
               }}</span>
               <span
                 v-if="today === cell.date"
-                class="h-1 w-6 rounded-full bg-brand-blue-royal"
+                class="h-1 w-6 rounded-full bg-blue-600"
               />
             </div>
             <ul class="mt-1 space-y-1">
@@ -47,20 +49,20 @@
                 :key="idx"
                 class="flex items-center gap-2"
               >
-                <span
-                  class="inline-block size-1.5 rounded-full"
-                  :style="{ background: e.color }"
-                />
-                <span class="truncate text-xs font-semibold text-neutral-900">{{
+                <span class="inline-block size-1.5 rounded-full" />
+                <span class="truncate text-[11px] text-neutral-700">{{
                   e.title
                 }}</span>
               </li>
             </ul>
+            <p v-if="cell.more > 0" class="mt-1 text-[11px] text-neutral-400">
+              +{{ cell.more }}개 더
+            </p>
           </button>
         </div>
       </section>
 
-      <!-- 우측: 선택한 날짜 항목 -->
+      <!-- 우측: 선택 날짜 항목 -->
       <aside
         class="col-span-12 rounded-xl border border-neutral-100 bg-white p-3 lg:col-span-4"
       >
@@ -85,16 +87,16 @@
                 @toggle="fav.toggle(item.id)"
               />
               <button
-                class="h-7 rounded-[10px] bg-brand-blue-royal px-3 text-[12px] font-bold text-white"
+                class="h-7 rounded-[10px] bg-primary-alt px-3 text-[12px] font-black text-neutral-900"
               >
                 자세히
               </button>
             </div>
           </li>
         </ul>
-        <p v-else class="text-sm text-neutral-500">
-          선택한 날짜의 항목이 없습니다.
-        </p>
+        <div v-else class="py-10 text-center text-sm text-neutral-500">
+          선택한 날짜의 항목이 없어요
+        </div>
       </aside>
     </div>
 
@@ -103,56 +105,86 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import dayjs from 'dayjs';
 import ScheduleToolbar from '@/components/schedule/ScheduleToolbar.vue';
 import StarToggle from '@/components/schedule/StarToggle.vue';
 import SavedFiltersModal from '@/components/schedule/SavedFiltersModal.vue';
 import { useScheduleFilters } from '@/stores/scheduleFilters';
 import { useFavorites } from '@/stores/favorites';
-import { fetchPoliciesByDay } from '@/stores/policies';
+import { fetchSchedule, fetchScheduleByDay } from '@/stores/scheduleData';
 import { fmtPeriod } from '@/utils/schedule';
 
 const filters = useScheduleFilters();
 const fav = useFavorites();
 
 const daysKo = ['일', '월', '화', '수', '목', '금', '토'];
+const today = dayjs().format('YYYY-MM-DD');
+
 const status = ref('all');
-const year = ref(2025);
-const month = ref(8);
+const year = ref(Number(dayjs().format('YYYY')));
+const month = ref(Number(dayjs().format('MM')));
 const query = ref('');
-const selectedDate = ref('');
 const showFilters = ref(false);
 
-onMounted(() => {
-  filters.load();
-  fav.load();
+// 월 전체 데이터
+const monthItems = ref([]);
+
+const firstDay = computed(() =>
+  dayjs(`${year.value}-${String(month.value).padStart(2, '0')}-01`).day()
+);
+const daysInMonth = computed(() =>
+  dayjs(
+    `${year.value}-${String(month.value).padStart(2, '0')}-01`
+  ).daysInMonth()
+);
+
+const cells = computed(() => {
+  const total = 42; // 6주
+  const res = [];
+  for (let i = 0; i < total; i++) {
+    const inMonth =
+      i >= firstDay.value && i < firstDay.value + daysInMonth.value;
+    if (!inMonth) {
+      res.push({
+        key: `empty-${i}`,
+        day: null,
+        date: null,
+        events: [],
+        more: 0,
+      });
+      continue;
+    }
+    const dayNum = i - firstDay.value + 1;
+    const date = `${year.value}-${String(month.value).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    const matches = monthItems.value.filter(it => {
+      const s = dayjs(it.period?.start);
+      const e = dayjs(it.period?.end).endOf('day');
+      const cur = dayjs(date);
+      return (
+        cur.isValid() &&
+        s.isValid() &&
+        e.isValid() &&
+        (cur.isAfter(s) || cur.isSame(s, 'day')) &&
+        (cur.isBefore(e) || cur.isSame(e, 'day'))
+      );
+    });
+    const shown = matches.slice(0, 3).map(it => ({ title: it.title }));
+    const more = Math.max(0, matches.length - shown.length);
+    res.push({ key: `${date}-${i}`, day: dayNum, date, events: shown, more });
+  }
+  return res;
 });
 
-const today = '2025-08-15'; // 데모
-const cells = computed(() => {
-  const length = 42; // 6주 그리드
-  return Array.from({ length }, (_, i) => {
-    const d = i + 1 <= 31 ? i + 1 : null;
-    const date = d ? `2025-08-${String(d).padStart(2, '0')}` : null;
-    const events =
-      d && [1, 5, 12, 19, 24].includes(d)
-        ? [{ title: '항목', color: '#0EA5E9' }]
-        : [];
-    return { key: i, day: d, date, events };
-  });
-});
+const selectedDate = ref(null);
+const dailyItems = ref([]);
 
 function selectDate(date) {
   selectedDate.value = date;
 }
-const dailyItems = ref([]);
-watch([selectedDate, () => filters.activeCriteria, query, status], loadDaily);
-async function loadDaily() {
-  if (!selectedDate.value) {
-    dailyItems.value = [];
-    return;
-  }
-  dailyItems.value = await fetchPoliciesByDay(selectedDate.value, {
+
+async function loadMonth() {
+  monthItems.value = await fetchSchedule({
     q: query.value,
     status: status.value,
     year: year.value,
@@ -160,4 +192,38 @@ async function loadDaily() {
     ...filters.activeCriteria,
   });
 }
+
+async function loadDaily() {
+  if (!selectedDate.value) {
+    dailyItems.value = [];
+    return;
+  }
+  dailyItems.value = await fetchScheduleByDay(selectedDate.value, {
+    q: query.value,
+    status: status.value,
+    year: year.value,
+    month: month.value,
+    ...filters.activeCriteria,
+  });
+}
+
+onMounted(() => {
+  filters.load?.();
+  fav.load?.();
+  // 현재 달이면 오늘 날짜 기본 선택
+  const t = dayjs();
+  const sameMonth = t.year() === year.value && t.month() + 1 === month.value;
+  if (sameMonth) selectedDate.value = t.format('YYYY-MM-DD');
+});
+
+watch(
+  [() => filters.activeCriteria, query, status, year, month],
+  async () => {
+    await loadMonth();
+    if (selectedDate.value) await loadDaily();
+  },
+  { immediate: true }
+);
+
+watch(selectedDate, loadDaily);
 </script>
