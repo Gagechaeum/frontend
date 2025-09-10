@@ -300,6 +300,7 @@ const handleDownloadZip = async () => {
 // 컴포넌트 마운트 시 서류 목록 로드
 onMounted(async () => {
   await docsStore.fetchUserDocuments();
+  await docsStore.fetchBookmarksProgress();
   await loadDocumentTypes();
 });
 </script>

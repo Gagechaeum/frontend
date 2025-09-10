@@ -59,7 +59,7 @@
             @dragend="handleDragEnd"
           >
             <div class="mb-2 flex items-center gap-2">
-              <Tag :variant="item.type === '정책' ? 'blue' : 'green'" size="sm">
+              <Tag :tone="item.type === '정책' ? 'yellow' : 'blue'" size="sm">
                 {{ item.type }}
               </Tag>
             </div>
@@ -77,29 +77,7 @@
               <ProgressBar :progress="item.progress" />
             </div>
 
-            <div class="flex items-center justify-between">
-              <!-- 신청 마감 D-day -->
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-medium text-gray-500">신청 마감</span>
-                <span
-                  :class="{
-                    'font-semibold text-red-600':
-                      item.deadline.includes('D-') &&
-                      parseInt(item.deadline.replace('D-', '')) <= 7,
-                    'font-semibold text-orange-600':
-                      item.deadline.includes('D-') &&
-                      parseInt(item.deadline.replace('D-', '')) <= 14,
-                    'font-semibold text-blue-600':
-                      item.deadline.includes('D-') &&
-                      parseInt(item.deadline.replace('D-', '')) > 14,
-                    'font-semibold text-green-600': item.deadline === '완료',
-                  }"
-                  class="text-xs font-bold"
-                >
-                  {{ item.deadline }}
-                </span>
-              </div>
-
+            <div class="flex items-center justify-end">
               <button
                 class="!rounded-button flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600"
                 @click="openChecklistModal(item)"
@@ -141,7 +119,10 @@ const kanbanColumns = computed(() => [
 ]);
 
 const getColumnItems = columnId => {
-  return docsStore.filteredItems.filter(item => item.status === columnId);
+  const items = docsStore.filteredItems.filter(
+    item => item.status === columnId
+  );
+  return items;
 };
 
 const getEmptyColumnMessage = columnId => {
@@ -168,18 +149,20 @@ const handleDragEnd = event => {
 };
 
 // 드롭 처리
-const handleDrop = (event, targetStatus) => {
+const handleDrop = async (event, targetStatus) => {
   event.preventDefault();
 
   if (draggedItem.value && draggedItem.value.status !== targetStatus) {
-    // 아이템 상태 업데이트
-    const updatedItem = { ...draggedItem.value, status: targetStatus };
+    const success = await docsStore.updateItemStatusWithAPI(
+      draggedItem.value.id,
+      targetStatus
+    );
 
-    // 스토어에서 아이템 업데이트
-    docsStore.updateItemStatus(draggedItem.value.id, targetStatus);
-
-    // 드래그된 아이템 초기화
-    draggedItem.value = null;
+    if (success) {
+      draggedItem.value = null;
+    } else {
+      console.error('상태 업데이트 실패');
+    }
   }
 };
 
