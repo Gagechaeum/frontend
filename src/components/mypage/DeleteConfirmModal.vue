@@ -7,7 +7,7 @@ const emit = defineEmits(['confirm', 'cancel']);
     <div class="mx-4 w-full max-w-md rounded-lg bg-white p-6">
       <h3 class="mb-3 text-lg font-medium">계정 탈퇴 확인</h3>
       <p class="mb-6 text-sm text-gray-600">
-        정말로 계정을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.
+        정말로 계정을 삭제하시겠습니까? <br />이 작업은 취소할 수 없습니다.
       </p>
       <div class="flex justify-end gap-3">
         <button
