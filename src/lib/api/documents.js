@@ -113,3 +113,22 @@ export const getPolicyDocuments = async policyId => {
     throw error;
   }
 };
+
+/**
+ * 상품별 서류 체크리스트 조회
+ * @param {string} productId - 상품 ID
+ * @param {string} type - 상품 타입 ('policy' 또는 'loan')
+ * @returns {Promise} 서류 체크리스트 데이터
+ */
+export const getDocumentChecklist = async (productId, type) => {
+  try {
+    // TODO: 추후 productId 대신 policyId 또는 loanId로 변경
+    const response = await api.get(`/products/${productId}/documents`, {
+      params: { type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('서류 체크리스트 조회 실패:', error);
+    throw error;
+  }
+};
