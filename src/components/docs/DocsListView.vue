@@ -61,7 +61,7 @@
                   }"
                   class="rounded-full px-2 py-1 text-xs font-medium"
                 >
-                  {{ getStatusText(item.status) }}
+                  {{ item.processStage || getStatusText(item.status) }}
                 </span>
               </td>
               <td class="px-6 py-4 text-sm text-gray-600">

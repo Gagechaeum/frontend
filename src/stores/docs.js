@@ -96,6 +96,7 @@ export const useDocsStore = defineStore('docs', () => {
     const index = allItems.value.findIndex(item => item.id === id);
     if (index !== -1) {
       allItems.value[index].status = newStatus;
+      allItems.value[index].processStage = mapStatusToProcessStage(newStatus);
     }
   };
 
@@ -128,6 +129,7 @@ export const useDocsStore = defineStore('docs', () => {
           institution: item.providerName,
           type: item.productType,
           status: mapProcessStageToStatus(item.processStage),
+          processStage: item.processStage, // 원본 processStage 값 보존
           completedDocs: item.completedDocsCount || 0,
           totalDocs: item.totalDocsCount || 0,
           progress: item.progressPercentage || 0,
@@ -148,13 +150,13 @@ export const useDocsStore = defineStore('docs', () => {
   };
 
   const mapProcessStageToStatus = processStage => {
-    const validStages = [
-      'requirements',
-      'collecting',
-      'preparing',
-      'completed',
-    ];
-    return validStages.includes(processStage) ? processStage : 'requirements';
+    const stageMap = {
+      요건확인: 'requirements',
+      '서류 수집/업로드': 'collecting',
+      '제출 준비': 'preparing',
+      '제출 완료/결과': 'completed',
+    };
+    return stageMap[processStage] || 'requirements';
   };
 
   const mapStatusToProcessStage = status => {
@@ -178,17 +180,11 @@ export const useDocsStore = defineStore('docs', () => {
       const koreanStatus = mapStatusToProcessStage(newStatus);
 
       if (type === 'policy') {
-        // policyId 사용
-        if (!item.policyId) {
-          throw new Error('정책 ID가 없습니다.');
-        }
-        await updatePolicyStatus(item.policyId, item.processStage);
+        const bookmarkPolicyId = parseInt(idParts[1]);
+        await updatePolicyStatus(bookmarkPolicyId, koreanStatus);
       } else if (type === 'loan') {
-        // loanId 사용
-        if (!item.loanId) {
-          throw new Error('대출 ID가 없습니다.');
-        }
-        await updateLoanStatus(item.loanId, koreanStatus);
+        const bookmarkLoanId = parseInt(idParts[1]);
+        await updateLoanStatus(bookmarkLoanId, koreanStatus);
       } else {
         throw new Error(`알 수 없는 타입: ${type}`);
       }
