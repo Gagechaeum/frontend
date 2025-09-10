@@ -79,11 +79,8 @@ class HttpClient {
             return this.api(original);
           } catch (e) {
             this.runQueue(e, null);
-            // 토큰 재발급 실패 → 로컬 토큰 제거 및 로그인 페이지로 리다이렉트
+            // 토큰 재발급 실패 → 로컬 토큰 제거
             localStorage.removeItem('access_token');
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
-            }
             throw e;
           } finally {
             this.isRefreshing = false;
