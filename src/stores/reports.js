@@ -1,68 +1,73 @@
 import { defineStore } from 'pinia';
-import {
-  getDashboard,
-  getMonthlySummary,
-  getIncomeExpenseTrend,
-} from '@/lib/api/reports';
+import { getDashboard, getItems, saveUserPolicy } from '@/lib/api/reports';
 
 export const useReportStore = defineStore('report', {
   state: () => ({
     summary: null,
-    policy: [],
-    loan: [],
-    trend: [],
+    schedule: [],
+    cashFlow: [],
+    items: [],
     loading: false,
     error: null,
     page: 0,
-    size: 20,
+    size: 5,
     hasNext: true,
   }),
   actions: {
-    async fetchDashboard(token, { page = 0, size = 20 } = {}) {
+    async fetchDashboard() {
       this.loading = true;
       this.error = null;
       try {
-        const data = await getDashboard({ page, size }, token);
-        this.summary = data.summary ?? this.summary;
-        this.policy = Array.isArray(data.policy) ? data.policy : this.policy;
-        this.loan = Array.isArray(data.loan) ? data.loan : this.loan;
-        this.page = page;
-        this.size = size;
-        if (typeof data.hasNext === 'boolean') this.hasNext = data.hasNext;
+        const data = await getDashboard();
+        this.summary = data.summary;
+        this.schedule = data.schedule;
+        this.cashFlow = data.cashFlow;
       } catch (e) {
         this.error = e;
       } finally {
         this.loading = false;
       }
     },
-    async fetchMonthlySummary(token, { month, userId } = {}) {
+    async savePolicy(policy) {
       this.loading = true;
       this.error = null;
       try {
-        this.summary = await getMonthlySummary({ month, userId }, token);
+        await saveUserPolicy(policy);
+        await this.fetchDashboard(); // Refresh dashboard after saving
+        this.resetItems();
+        await this.fetchItems();
       } catch (e) {
         this.error = e;
       } finally {
         this.loading = false;
       }
     },
-    async fetchTrend(token, { from, to, userId } = {}) {
+    async fetchItems() {
+      if (!this.hasNext || this.loading) return;
       this.loading = true;
       this.error = null;
       try {
-        this.trend = await getIncomeExpenseTrend({ from, to, userId }, token);
+        const { items, hasNext } = await getItems({
+          page: this.page,
+          size: this.size,
+        });
+        console.log('[Store] Fetched items from API:', items);
+        this.items = this.page === 0 ? items : [...this.items, ...items];
+        console.log('[Store] Current items state:', this.items);
+        this.hasNext = hasNext;
+        if (hasNext) {
+          this.page += 1;
+        }
       } catch (e) {
         this.error = e;
       } finally {
         this.loading = false;
       }
     },
-    async fetchNextPage(token) {
-      if (!this.hasNext) return;
-      return this.fetchDashboard(token, {
-        page: this.page + 1,
-        size: this.size,
-      });
+    resetItems() {
+      this.items = [];
+      this.page = 0;
+      this.hasNext = true;
     },
   },
 });

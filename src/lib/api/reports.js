@@ -1,198 +1,224 @@
-// api 작성 예시
-
-/**
- * 사용자 정보 조회
- * @param {string} token - 인증 토큰
- * @returns {Promise<Object>} 사용자 프로필 정보
- */
-// export const getUserInfo = async (token) => {
-//     try {
-//         const response = await api.get('/user/profile', {
-//             headers: {
-//                 Authorization: `Bearer ${token}`,
-//             },
-//         })
-//         return response.data
-//     } catch (error) {
-//         console.error('사용자 정보 조회 실패:', error)
-//         throw error
-//     }
-// }
-
-// /**
-//  * 정책 검색 (관심 정책 추가 전 검색)
-//  * @param {string} keyword - 검색어
-//  * @param {string} token - 인증 토큰 (Bearer)
-//  * @returns {Promise<Object>} 정책 검색 결과
-//  */
-// export const getPolicySearch = async (keyword, token) => {
-//   try {
-//     const response = await api.get('/reports/search', {
-//       params: { keyword },
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error('리포트UI _ 정책 검색 실패:', error);
-//     throw error;
-//   }
-// };
-
-// /**
-//  * 사용자의 정책을 리포트에 등록
-//  * @param {Object} payload - 정책 등록 요청 DTO
-//  * @param {number} payload.policyId - 등록할 정책 ID
-//  * @param {string} [payload.memo] - 메모(선택)
-//  * @param {string} token - 인증 토큰 (Bearer)
-//  * @returns {Promise<Object>} 등록 결과 (CustomResponse<Void>)
-//  */
-// export const savePersonalPolicy = async (payload, token) => {
-//   try {
-//     const response = await api.post('/reports/policies', payload, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error('리포트UI _ 사용자 정책 등록 실패:', error);
-//     throw error;
-//   }
-// };
-
-// /**
-//  * 사용자의 대출·정책 종합 데이터 조회 (대시보드)
-//  * @param {string} token - 인증 토큰 (Bearer)
-//  * @returns {Promise<Object>} 대시보드 데이터
-//  */
-// export const getLoanPolicy = async token => {
-//   try {
-//     const response = await api.get('/reports/dashboard', {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error('리포트UI _ 대시보드 조회 실패:', error);
-//     throw error;
-//   }
-// };
 /* eslint-env browser */
 
 import api from './http.js';
 import { getAccessToken } from './auth'; // 토큰은 여기서만 꺼냄
 
-// 공통 에러 핸들러: 콘솔에만 찍고 안전한 기본값 반환 (새 유틸 생성 X)
+// --- Helper Functions ---
+
+/**
+ * API 호출 시 발생하는 에러를 처리합니다.
+ * @param {string} where - 에러 발생 위치 (함수 이름 등)
+ * @param {Error} err - 발생한 에러 객체
+ * @param {*} fallback - 에러 발생 시 반환할 기본값
+ * @returns {*} fallback 값
+ */
 function handleApiError(where, err, fallback) {
   const status = err?.response?.status;
   const msg = err?.response?.data?.message || err?.message || String(err);
-   
+
   globalThis.console?.warn(`[API:${where}] status=${status} msg=${msg}`);
   return fallback;
 }
 
-// ✅ 내부에서 토큰을 읽어 헤더에 자동 첨부
+/**
+ * 인증이 필요한 API 호출을 위해 AccessToken을 포함한 헤더를 생성합니다.
+ * @returns {Object} Authorization 헤더 객체
+ */
 function authHeaders() {
   const at = getAccessToken();
   return at ? { Authorization: `Bearer ${at}` } : {};
 }
 
-/** ① 정책 전용 검색
- *  @param {Object} args
- *  @param {string} args.query
- *  @param {number} [args.limit=10]
- *  @param {number} [args.userId]  // 백엔드가 필요하면 전달
+// --- API Functions ---
+
+/**
+ * ① 정책 검색
+ * @param {Object} args
+ * @param {string} args.query - 검색어
  */
-export async function searchPolicies({ query, limit = 10, userId }) {
+export async function searchPolicies({ query }) {
   try {
     const { data } = await api.get('/reports/search', {
-      headers: authHeaders(), // <-- 토큰 자동 첨부
-      params: {
-        keyword: query, // 백엔드 요구 파라미터 호환
-        q: query, // (양쪽 다 전송해 호환)
-        limit,
-        userId,
-      },
+      headers: authHeaders(),
+      params: { keyword: query },
     });
-    // 표준화
-    const rows = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.items)
-        ? data.items
-        : [];
+
+    const rows = Array.isArray(data.data) ? data.data : [];
     return rows.map(r => ({
-      id: r.id,
-      name: r.name ?? r.title ?? '',
+      id: r.policyId,
+      name: r.policyName ?? '',
       type: '정책',
       typeLabel: '정책',
-      subtitle: r.provider ?? r.department ?? '',
+      subtitle: r.provider ?? '',
     }));
   } catch (err) {
-     
-    globalThis.console?.warn(
-      '[API:searchPolicies]',
-      err?.response?.status,
-      err?.message
-    );
-    return []; // 404 등일 때 조용히 빈 배열
+    return handleApiError('searchPolicies', err, []);
   }
 }
 
-/** ② 2주 일정 (지급/상환/만기 등)
- *  @param {Object} args
- *  @param {string} args.start  // YYYY-MM-DD
- *  @param {string} args.end    // YYYY-MM-DD
- *  @param {number} [args.userId]
- *  ⚠️ 백엔드에 /reports/schedules/two-weeks가 실제로 있을 때만 사용
+/**
+ * ② 대시보드 데이터 조회
  */
-export async function getTwoWeekSchedule({ start, end, userId }) {
+export async function getDashboard() {
+  try {
+    const { data } = await api.get('/reports/dashboard', {
+      headers: authHeaders(),
+    });
+    const backendData = data.data;
+    return {
+      summary: {
+        supportTotal: Number(backendData?.summary?.totalBenefitAmount ?? 0),
+        repayTotal: Number(backendData?.summary?.totalRepaymentAmount ?? 0),
+      },
+      schedule: Array.isArray(backendData?.schedule)
+        ? backendData.schedule
+        : [],
+      cashFlow: Array.isArray(backendData?.cashFlow)
+        ? backendData.cashFlow
+        : [],
+    };
+  } catch (err) {
+    return handleApiError('dashboard', err, {
+      summary: { supportTotal: 0, repayTotal: 0 },
+      schedule: [],
+      cashFlow: [],
+    });
+  }
+}
+
+/**
+ * ③ 사용자의 정책을 리포트에 등록
+ * @param {Object} payload - 정책 등록 요청 DTO
+ * @param {number} payload.policyId - 등록할 정책 ID
+ * @param {string} [payload.memo] - 메모(선택)
+ */
+export async function saveUserPolicy(payload) {
+  try {
+    const response = await api.post('/reports/policies', payload, {
+      headers: authHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('리포트UI _ 사용자 정책 등록 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * ④ 전체 항목 조회 (페이지네이션)
+ * @param {Object} [args]
+ * @param {number} [args.page=0]
+ * @param {number} [args.size=5]
+ */
+export async function getItems({ page = 0, size = 5 } = {}) {
+  try {
+    const { data } = await api.get('/reports/items', {
+      headers: authHeaders(),
+      params: { page, size },
+    });
+    console.log('[API] Raw items data:', data);
+
+    const pageData = data.data;
+    const items = Array.isArray(pageData?.content)
+      ? pageData.content.map(item => {
+          const [startDate, endDate] = item.period
+            .split('~')
+            .map(s => s.trim());
+          const isLoan = item.type.toUpperCase() === 'LOAN';
+
+          const mappedItem = {
+            id: item.itemId,
+            type: item.type.toLowerCase(),
+            name: item.name,
+            startDate,
+            endDate,
+            status: item.status.toLowerCase(),
+          };
+
+          if (isLoan) {
+            mappedItem.totalAmount = item.amount;
+            mappedItem.paidAmount =
+              item.amount * (Number(item.details.repaymentRate) / 100);
+            mappedItem.repaymentMethod = item.details.repaymentMethod;
+            mappedItem.interestRate = item.details.interestRate;
+          } else {
+            // Policy
+            mappedItem.totalAmount = item.details.totalBenefitAmount;
+            mappedItem.monthlyAmount = item.amount;
+          }
+
+          return mappedItem;
+        })
+      : [];
+
+    console.log('[API] Mapped items:', items);
+    return {
+      items,
+      hasNext: pageData ? !pageData.last : false,
+    };
+  } catch (err) {
+    return handleApiError('items', err, {
+      items: [],
+      hasNext: false,
+    });
+  }
+}
+
+/**
+ * ⑤ 2주 일정 조회
+ * ⚠️ 백엔드에 `/reports/schedules/two-weeks`가 실제로 있을 때만 사용
+ * @param {Object} args
+ * @param {string} args.start - 시작일 (YYYY-MM-DD)
+ * @param {string} args.end - 종료일 (YYYY-MM-DD)
+ */
+export async function getTwoWeekSchedule({ start, end }) {
   try {
     const { data } = await api.get('/reports/schedules/two-weeks', {
       headers: authHeaders(),
-      params: { start, end, userId },
+      params: { start, end },
     });
     return Array.isArray(data) ? data : [];
   } catch (err) {
-    return handleApiError('two-weeks', err, []);
+    return handleApiError('getTwoWeekSchedule', err, []);
   }
 }
 
-/** ③ 이번달 요약 (혜택/납부 예정)
- *  @param {Object} args
- *  @param {string} args.month   // 'YYYY-MM'
- *  @param {number} [args.userId]
- *  ⚠️ 백엔드에 /reports/summary가 실제로 있을 때만 사용
+/**
+ * ⑥ 이번달 요약 조회
+ * ⚠️ 백엔드에 `/reports/summary`가 실제로 있을 때만 사용
+ * @param {Object} args
+ * @param {string} args.month - 조회할 월 (YYYY-MM)
  */
-export async function getMonthlySummary({ month, userId }) {
+export async function getMonthlySummary({ month }) {
   try {
     const { data } = await api.get('/reports/summary', {
       headers: authHeaders(),
-      params: { month, userId },
+      params: { month },
     });
     return {
       supportTotal: Number(data?.supportTotal ?? 0),
       repayTotal: Number(data?.repayTotal ?? 0),
     };
   } catch (err) {
-    return handleApiError('summary', err, { supportTotal: 0, repayTotal: 0 });
+    return handleApiError('getMonthlySummary', err, {
+      supportTotal: 0,
+      repayTotal: 0,
+    });
   }
 }
 
-/** ④ 월별 현금 흐름 (정책 수입/대출 상환)
- *  @param {Object} args
- *  @param {string} args.from   // 'YYYY-MM'
- *  @param {string} args.to     // 'YYYY-MM'
- *  @param {number} [args.userId]
- *  ⚠️ 백엔드에 /reports/income-expense가 실제로 있을 때만 사용
+/**
+ * ⑦ 월별 현금 흐름 조회
+ * ⚠️ 백엔드에 `/reports/income-expense`가 실제로 있을 때만 사용
+ * @param {Object} args
+ * @param {string} args.from - 시작 월 (YYYY-MM)
+ * @param {string} args.to - 종료 월 (YYYY-MM)
  */
-export async function getIncomeExpenseTrend({ from, to, userId }) {
+export async function getIncomeExpenseTrend({ from, to }) {
   try {
     const { data } = await api.get('/reports/income-expense', {
       headers: authHeaders(),
-      params: { from, to, granularity: 'MONTHLY', userId },
+      params: { from, to, granularity: 'MONTHLY' },
     });
     return Array.isArray(data)
       ? data.map(r => ({
@@ -202,39 +228,6 @@ export async function getIncomeExpenseTrend({ from, to, userId }) {
         }))
       : [];
   } catch (err) {
-    return handleApiError('trend', err, []);
-  }
-}
-
-/** ⑤ 대시보드 묶음
- *  @param {Object} args
- *  @param {number} [args.page=0]
- *  @param {number} [args.size=20]
- *  @param {number} [args.userId]
- */
-export async function getDashboard({ page = 0, size = 20, userId } = {}) {
-  try {
-    const { data } = await api.get('/reports/dashboard', {
-      headers: authHeaders(),
-      params: { page, size, userId },
-    });
-    return {
-      summary: {
-        supportTotal: Number(data?.summary?.supportTotal ?? 0),
-        repayTotal: Number(data?.summary?.repayTotal ?? 0),
-      },
-      policy: Array.isArray(data?.policy) ? data.policy : [],
-      loan: Array.isArray(data?.loan) ? data.loan : [],
-      items: Array.isArray(data?.items) ? data.items : [],
-      hasNext: Boolean(data?.hasNext),
-    };
-  } catch (err) {
-    return handleApiError('dashboard', err, {
-      summary: { supportTotal: 0, repayTotal: 0 },
-      policy: [],
-      loan: [],
-      items: [],
-      hasNext: false,
-    });
+    return handleApiError('getIncomeExpenseTrend', err, []);
   }
 }

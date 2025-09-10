@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50" @scroll="handleScroll">
     <!-- 헤더 -->
     <ReportHeader
       @click-register-policy="showPolicyModal = true"
@@ -79,7 +79,6 @@
     <!-- 정책 등록 모달 -->
     <RegisterModal
       :show="showPolicyModal"
-      :favorite-items="policyFavorites"
       @close="showPolicyModal = false"
       @register="handlePolicyRegister"
     />
@@ -89,7 +88,8 @@
 <script setup>
 /* eslint-env browser */
 
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { me } from '@/lib/api/auth';
 import ReportHeader from '@/components/report/ReportHeader.vue';
 import TwoWeekCalendar from '@/components/report/TwoWeekCalendar.vue';
@@ -98,10 +98,10 @@ import CashflowChart from '@/components/report/CashflowChart.vue';
 import ReportList from '@/components/report/ReportList.vue';
 import RegisterModal from '@/components/report/RegisterModal.vue';
 import { useReportStore } from '@/stores/reports';
-import { getDashboard } from '@/lib/api/reports.js';
 
 /* ===== Stores ===== */
 const reportStore = useReportStore();
+const { summary, items, schedule, cashFlow } = storeToRefs(reportStore);
 
 /* ===== UI State ===== */
 const showPolicyModal = ref(false);
@@ -113,56 +113,52 @@ const sortBy = ref('name');
 const expandedItems = ref([]);
 
 /* ===== Summary / Chart State ===== */
-const monthlyBenefit = ref(0);
-const monthlyPayment = ref(0);
-const policySeries = ref([]);
-const loanSeries = ref([]);
-const trendLabels = ref([]);
+const monthlyBenefit = computed(() => summary.value?.supportTotal ?? 0);
+const monthlyPayment = computed(() => summary.value?.repayTotal ?? 0);
+
+const policySeries = computed(() => cashFlow.value.map(cf => cf.benefit));
+const loanSeries = computed(() => cashFlow.value.map(cf => cf.repayment));
+const trendLabels = computed(() => cashFlow.value.map(cf => cf.month));
 
 /* ===== Calendar (2주) ===== */
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 const todayISO = ref(toISO(today));
-const calendarDays = ref([]);
 
-/* ===== List ===== */
-const items = ref([]);
-
-/* ===== Favorites ===== */
-const policyFavorites = ref([
-  { id: 'pf-1', type: 'policy', name: '중소기업 성장지원금' },
-  { id: 'pf-2', type: 'policy', name: '청년 창업 지원금' },
-  { id: 'pf-3', type: 'policy', name: '소상공인 경영안정자금' },
-]);
+const calendarDays = computed(() => {
+  const days = generateTwoWeeksAlignedToSunday(today);
+  schedule.value.forEach(event => {
+    const day = days.find(d => d.date === event.date);
+    if (day) {
+      day.events.push(event);
+    }
+  });
+  return days;
+});
 
 /* ===== Tabs ===== */
 const tabs = [
   { key: 'all', label: '전체' },
   { key: 'loan', label: '대출' },
   { key: 'policy', label: '정책' },
-  { key: 'expired', label: '만료' },
 ];
 
 /* ===== Filters / Sorting ===== */
 const filteredItems = computed(() => {
-  let list =
-    activeTab.value === 'all'
-      ? items.value.filter(i => i.status !== 'expired')
-      : activeTab.value === 'loan'
-        ? items.value.filter(i => i.type === 'loan' && i.status !== 'expired')
-        : activeTab.value === 'policy'
-          ? items.value.filter(
-              i => i.type === 'policy' && i.status !== 'expired'
-            )
-          : items.value.filter(i => i.status === 'expired');
+  let list = items.value;
+  if (activeTab.value !== 'all') {
+    list = items.value.filter(i => i.type === activeTab.value);
+  }
 
-  if (sortBy.value === 'alphabet' || sortBy.value === 'name') {
+  if (sortBy.value === 'name') {
     list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   } else if (sortBy.value === 'date') {
     list = [...list].sort(
       (a, b) => new Date(a.startDate) - new Date(b.startDate)
     );
   }
+  console.log('[View] Items from store (items.value):', items.value);
+  console.log('[View] Items passed to ReportList (filteredItems):', list);
   return list;
 });
 
@@ -182,28 +178,24 @@ const openPolicyDetail = item => {
 };
 
 /* ===== RegisterModal → ReportView 핸들러 ===== */
-function handlePolicyRegister(newItem) {
-  items.value.unshift({
-    ...newItem,
-    id: Date.now(),
-    status: 'active',
-  });
+async function handlePolicyRegister(newItem) {
+  await reportStore.savePolicy(newItem);
   showPolicyModal.value = false;
 }
+
+/* ===== Infinite Scroll ===== */
+const handleScroll = e => {
+  const { scrollTop, clientHeight, scrollHeight } = e.target;
+  if (scrollTop + clientHeight >= scrollHeight - 10) {
+    reportStore.fetchItems();
+  }
+};
 
 /* ===== Utils ===== */
 function toISO(d) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x.toISOString().slice(0, 10);
-}
-function toNumber(v) {
-  if (v == null) return 0;
-  if (typeof v === 'number') return v;
-  return Number(String(v).replaceAll(',', '')) || 0;
-}
-function cryptoRandom() {
-  return 'id-' + Math.random().toString(36).slice(2, 10);
 }
 
 /* Calendar helpers */
@@ -226,82 +218,27 @@ function generateTwoWeeksAlignedToSunday(baseDate) {
   return out;
 }
 
-/* ===== Store -> View Sync ===== */
-function syncFromStore() {
-  const s = reportStore.summary || {};
-  monthlyBenefit.value = Number(s.supportTotal ?? 0);
-  monthlyPayment.value = Number(s.repayTotal ?? 0);
-
-  const policies = Array.isArray(reportStore.policy) ? reportStore.policy : [];
-  const loans = Array.isArray(reportStore.loan) ? reportStore.loan : [];
-
-  const mappedPolicies = policies.map(p => ({
-    id: p.id ?? cryptoRandom(),
-    type: 'policy',
-    name: p.name ?? p.title ?? '정책',
-    startDate: p.startDate ?? todayISO.value,
-    endDate: p.endDate ?? todayISO.value,
-    totalAmount: toNumber(p.totalAmount ?? 0),
-    monthlyAmount: toNumber(p.monthlyAmount ?? 0),
-    status: p.status ?? 'active',
-  }));
-
-  const mappedLoans = loans.map(l => ({
-    id: l.id ?? cryptoRandom(),
-    type: 'loan',
-    name: l.name ?? l.title ?? '대출',
-    startDate: l.startDate ?? todayISO.value,
-    endDate: l.endDate ?? todayISO.value,
-    totalAmount: toNumber(l.totalAmount ?? 0),
-    repaymentMethod: l.repaymentMethod ?? '—',
-    totalPayments: Number(l.totalPayments ?? 0),
-    completedPayments: Number(l.completedPayments ?? 0),
-    paidAmount: toNumber(l.paidAmount ?? 0),
-    interestRate: String(l.interestRate ?? '—'),
-    status: l.status ?? 'active',
-  }));
-
-  // 목록 구성
-  items.value = [...mappedPolicies, ...mappedLoans];
-}
-
-/* ===== onMounted: 존재하는 API만 호출 ===== */
+/* ===== onMounted: API 호출 ===== */
 onMounted(async () => {
   // 로그인 사용자 확인
-  let userId = null;
   try {
-    const u = await me();
-    userId = u?.id ?? u?.userId ?? u?.data?.id ?? null;
+    await me();
   } catch (e) {
-     
     globalThis.console?.warn('[ReportView] 사용자 정보 확인 실패', e);
-  }
-  if (!userId) {
-     
-    globalThis.console?.error('[ReportView] 로그인 필요');
+    // TODO: 로그인 페이지로 리디렉션 또는 오류 메시지 표시
     return;
   }
 
+  reportStore.resetItems(); // Reset items before fetching
+
+  // Fetch dashboard first
+  await reportStore.fetchDashboard();
+
+  // Then fetch items
+  await reportStore.fetchItems();
+
   // 캘린더 스켈레톤
   calendarDays.value = generateTwoWeeksAlignedToSunday(today);
-
-  // 대시보드만 호출
-  const data = await getDashboard({ page: 0, size: 200, userId });
-
-  // 스토어 반영
-  reportStore.summary = data?.summary || {};
-  reportStore.policy = Array.isArray(data?.policy) ? data.policy : [];
-  reportStore.loan = Array.isArray(data?.loan) ? data.loan : [];
-  reportStore.page = 0;
-  reportStore.size = 200;
-  reportStore.hasNext = !!data?.hasNext;
-
-  // 요약 수치
-  monthlyBenefit.value = Number(data?.summary?.supportTotal ?? 0);
-  monthlyPayment.value = Number(data?.summary?.repayTotal ?? 0);
-
-  // 리스트 동기화
-  syncFromStore();
 
   // 차트 기본 6개월(0값) — 데이터 없어도 틀 유지
   if (!trendLabels.value.length) {
@@ -317,5 +254,10 @@ onMounted(async () => {
     policySeries.value = new Array(6).fill(0);
     loanSeries.value = new Array(6).fill(0);
   }
+});
+
+onUnmounted(() => {
+  // Remove event listener if added to window
+  // window.removeEventListener('scroll', handleScroll, true);
 });
 </script>
