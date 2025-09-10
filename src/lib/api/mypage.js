@@ -19,7 +19,7 @@ export function parseUser(raw) {
     email: u.email ?? raw.email ?? '',
     name: u.name ?? raw.name ?? '',
     nickname: u.nickname ?? raw.nickname ?? '',
-    phone: u.phone ?? u.phoneNumber ?? raw.phone ?? '',
+    phone: u.phone ?? raw.phone ?? '',
     profileImageUrl: u.profileImageUrl ?? u.profileImageKey ?? '',
     notification: u.notification ?? raw.notification ?? true,
     isVerified: u.isVerified ?? raw.isVerified ?? false,
@@ -43,10 +43,9 @@ export async function updateUser(patch = {}) {
   if (nn) body.nickname = nn;
 
   // 연락처: 서버가 보통 phoneNumber를 받으므로 둘 다 세팅(백 호환)
-  const p = onlyDigits(patch.phone ?? patch.phoneNumber);
+  const p = onlyDigits(patch.phone);
   if (p) {
-    body.phoneNumber = p;
-    body.phone = p; // (선택) 백이 phone만 받는 경우 대비
+    body.phone = p; // (선택) 백이 ph one만 받는 경우 대비
   }
 
   if (Object.keys(body).length === 0) return { skipped: true };

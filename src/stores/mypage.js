@@ -22,7 +22,7 @@ function mapUserToView(u = {}) {
     email: u.email ?? '',
     name: u.name ?? '',
     nickname: u.nickname ?? '',
-    phone: u.phone ?? u.phoneNumber ?? '',
+    phone: u.phone ?? '',
     avatar, // 프론트는 항상 avatar로 사용
   };
 }
@@ -73,7 +73,7 @@ export const useMyPageStore = defineStore('mypage', {
       if (basics && (basics.nickname || basics.phone)) {
         await updateUser({
           nickname: basics.nickname,
-          phoneNumber: basics.phone, // 하이픈은 API 레이어에서 제거됨
+          phone: basics.phone, // 하이픈은 API 레이어에서 제거됨
         });
       }
 
