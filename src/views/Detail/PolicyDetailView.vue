@@ -571,6 +571,7 @@
         <input
           v-model="newDoc.issueDate"
           type="date"
+          :max="new Date().toISOString().split('T')[0]"
           required
           class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
         />
