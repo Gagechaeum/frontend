@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -82,9 +82,32 @@ function validateAll(options = { reveal: true }) {
   return !hasAnyEmptyRequired.value;
 }
 
+function peekValid() {
+  // 에러는 노출하지 않고 유효성만 반환
+  return !hasAnyEmptyRequired.value;
+}
+
+function restErrors() {
+  showErrors.value = false;
+}
+
+/* ✅ 사업자 항목이 "추가"될 때는 에러 표시는 자동으로 꺼줌
+   - 이전에 저장 시도(showErrors=true) 후 추가해도 빨간 테두리가 바로 안 뜨게 */
+// ✅ 사업자 항목이 "추가"되면 에러 표시 자동 OFF
+watch(
+  () => props.items.length,
+  (n, o) => {
+    if (n > (o ?? 0)) {
+      showErrors.value = false; // 새 카드가 생길 때는 에러 숨김(프리스틴)
+    }
+  }
+);
+
 /* 부모에서 접근 가능하도록 노출 */
 defineExpose({
   validateAll,
+  peekValid,
+  restErrors,
   showErrors,
   validations,
   hasAnyEmptyRequired,

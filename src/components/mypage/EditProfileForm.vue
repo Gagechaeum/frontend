@@ -511,10 +511,10 @@ async function onSubmit() {
           취소
         </button>
 
-        <!-- 저장 -->
+        <!-- 저장 : disabled 빈칸인데 저장하지 못하게 함-->
         <button
           type="button"
-          class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
           @click="onSubmit"
         >
           저장
