@@ -136,13 +136,22 @@ router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth);
   const guestOnly = to.matched.some(r => r.meta?.guestOnly);
 
+  // 이미 로그인 페이지에 있다면 추가 검증하지 않음
+  if (to.path === '/login') {
+    return next();
+  }
+
   let hasAT = !!getAccessToken();
 
   if (requiresAuth && !hasAT) {
     try {
       await refresh();
       hasAT = true;
-    } catch {
+    } catch (error) {
+      console.log(
+        '토큰 갱신 실패, 로그인 페이지로 이동:',
+        error?.response?.status
+      );
       return next({ path: '/login', query: { next: to.fullPath } });
     }
   }
