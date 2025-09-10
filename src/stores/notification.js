@@ -5,11 +5,15 @@ export const useNotificationStore = defineStore('notification', {
   state: () => ({
     items: [], // Toast 알림용 (기존)
     notifications: [], // 헤더 드롭다운 알림용 (새로 추가)
+    unreadCount: 0, // 읽지 않은 알림 개수
+    isLoading: false,
+    error: null,
     _seq: 0,
   }),
 
   getters: {
-    unreadCount: state => state.notifications.filter(n => !n.read).length,
+    // 로컬 알림에서 읽지 않은 개수 계산 (API와 병행 사용)
+    localUnreadCount: state => state.notifications.filter(n => !n.read).length,
   },
 
   actions: {
@@ -28,7 +32,33 @@ export const useNotificationStore = defineStore('notification', {
       this.items = [];
     },
 
-    // 새로운 헤더 알림 메서드들
+    // 알림 메서드들 (백엔드 API 없으므로 로컬 상태만 관리)
+    async fetchNotifications() {
+      // 백엔드에 알림 API가 없으므로 로컬 상태만 관리
+      // console.log('알림 API가 백엔드에 구현되지 않았습니다.');
+    },
+
+    async markAsRead(id) {
+      // 로컬 상태만 업데이트
+      const notification = this.notifications.find(n => n.id === id);
+      if (notification) {
+        notification.read = true;
+        this.unreadCount = Math.max(0, this.unreadCount - 1);
+      }
+    },
+
+    async markAllAsRead() {
+      // 로컬 상태만 업데이트
+      this.notifications.forEach(n => (n.read = true));
+      this.unreadCount = 0;
+    },
+
+    async fetchUnreadCount() {
+      // 로컬 상태에서 계산
+      this.unreadCount = this.notifications.filter(n => !n.read).length;
+    },
+
+    // 로컬 알림 메서드들 (기존 호환성 유지)
     addNotification(notification) {
       const id = ++this._seq;
       this.notifications.unshift({
@@ -37,25 +67,20 @@ export const useNotificationStore = defineStore('notification', {
         createdAt: new Date(),
         ...notification,
       });
-    },
-
-    markAsRead(id) {
-      const notification = this.notifications.find(n => n.id === id);
-      if (notification) {
-        notification.read = true;
-      }
-    },
-
-    markAllAsRead() {
-      this.notifications.forEach(n => (n.read = true));
+      this.unreadCount++;
     },
 
     removeNotification(id) {
+      const notification = this.notifications.find(n => n.id === id);
+      if (notification && !notification.read) {
+        this.unreadCount = Math.max(0, this.unreadCount - 1);
+      }
       this.notifications = this.notifications.filter(n => n.id !== id);
     },
 
     clearNotifications() {
       this.notifications = [];
+      this.unreadCount = 0;
     },
 
     // 샘플 데이터 추가 (테스트용)

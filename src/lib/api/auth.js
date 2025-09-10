@@ -69,3 +69,31 @@ export const me = async () => {
     })
   ).data;
 };
+
+/**
+ * 사용자 프로필 정보 조회
+ * @returns {Promise<Object>} 사용자 프로필 정보
+ */
+export const getUserProfile = async () => {
+  try {
+    const response = await api.get('/me/get/userInfo');
+    return response.data;
+  } catch (error) {
+    console.error('사용자 프로필 조회 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 사용자 사업자 정보 조회
+ * @returns {Promise<Object>} 사업자 정보
+ */
+export const getBusinessInfo = async () => {
+  try {
+    const response = await api.get('/BusinessInfo/select');
+    return response.data;
+  } catch (error) {
+    console.error('사업자 정보 조회 실패:', error);
+    throw error;
+  }
+};

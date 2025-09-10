@@ -1,5 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import {
+  getUserDocuments,
+  uploadUserDocument,
+  downloadUserDocuments,
+  deleteUserDocuments,
+} from '@/lib/api/documents.js';
 
 export const useDocsStore = defineStore('docs', () => {
   // 상태
@@ -11,76 +17,10 @@ export const useDocsStore = defineStore('docs', () => {
   });
 
   // 데이터
-  const allItems = ref([
-    {
-      id: 1,
-      type: '정책',
-      name: '청년 전세자금 대출',
-      institution: '한국주택금융공사',
-      status: 'requirements',
-      completedDocs: 0,
-      totalDocs: 5,
-      progress: 10,
-      deadline: 'D-30',
-      files: [
-        { name: '신분증사본.jpg', size: '2.1MB', type: 'image' },
-        { name: '소득증빙서류.pdf', size: '1.8MB', type: 'document' },
-        { name: '주소증빙서류.pdf', size: '0.9MB', type: 'document' },
-      ],
-    },
-    {
-      id: 2,
-      type: '대출',
-      name: '신혼부부 주택구입자금',
-      institution: '국민은행',
-      status: 'collecting',
-      completedDocs: 2,
-      totalDocs: 6,
-      progress: 35,
-      deadline: 'D-15',
-      files: [
-        { name: '결혼증명서.pdf', size: '0.5MB', type: 'document' },
-        { name: '소득증빙서류.pdf', size: '2.3MB', type: 'document' },
-        { name: '주택계약서.pdf', size: '3.1MB', type: 'document' },
-        { name: '은행거래내역.pdf', size: '1.2MB', type: 'document' },
-      ],
-    },
-    {
-      id: 3,
-      type: '정책',
-      name: '중소기업 창업지원금',
-      institution: '중소벤처기업부',
-      status: 'preparing',
-      completedDocs: 4,
-      totalDocs: 5,
-      progress: 80,
-      deadline: 'D-7',
-      files: [
-        { name: '사업계획서.pdf', size: '5.2MB', type: 'document' },
-        { name: '사업자등록증.pdf', size: '0.8MB', type: 'document' },
-        { name: '재무제표.pdf', size: '2.7MB', type: 'document' },
-        { name: '창업교육수료증.pdf', size: '1.1MB', type: 'document' },
-        { name: '사업장사진.jpg', size: '3.4MB', type: 'image' },
-      ],
-    },
-    {
-      id: 4,
-      type: '대출',
-      name: '개인사업자 운영자금',
-      institution: '신한은행',
-      status: 'completed',
-      completedDocs: 4,
-      totalDocs: 4,
-      progress: 100,
-      deadline: '완료',
-      files: [
-        { name: '사업자등록증.pdf', size: '0.8MB', type: 'document' },
-        { name: '재무제표.pdf', size: '2.1MB', type: 'document' },
-        { name: '소득증빙서류.pdf', size: '1.9MB', type: 'document' },
-        { name: '사업계획서.pdf', size: '4.2MB', type: 'document' },
-      ],
-    },
-  ]);
+  const allItems = ref([]);
+  const userDocuments = ref([]);
+  const isLoading = ref(false);
+  const error = ref(null);
 
   // 게터
   const filteredItems = computed(() => {
@@ -154,12 +94,110 @@ export const useDocsStore = defineStore('docs', () => {
     }
   };
 
+  // API 연동 액션들
+  const fetchUserDocuments = async () => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      const response = await getUserDocuments();
+      userDocuments.value = response.data || [];
+    } catch (err) {
+      error.value = err.message || '서류 목록을 불러오는데 실패했습니다.';
+      console.error('서류 목록 조회 실패:', err);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const addDocument = async documentData => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      const formData = new FormData();
+      // 백엔드 API 스펙에 맞게 필드명 수정
+      formData.append('documentId', documentData.documentId || Date.now());
+      formData.append(
+        'documentName',
+        documentData.documentName || documentData.name
+      );
+      formData.append(
+        'issuedAt',
+        documentData.issuedAt || documentData.issueDate
+      );
+      formData.append('file', documentData.file);
+
+      await uploadUserDocument(formData);
+
+      // 업로드 성공 후 목록 새로고침
+      await fetchUserDocuments();
+
+      return true;
+    } catch (err) {
+      error.value = err.message || '서류 업로드에 실패했습니다.';
+      console.error('서류 업로드 실패:', err);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const downloadDocuments = async ids => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      const blob = await downloadUserDocuments(ids);
+
+      // 다운로드 처리
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `documents_${new Date().getTime()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return true;
+    } catch (err) {
+      error.value = err.message || '서류 다운로드에 실패했습니다.';
+      console.error('서류 다운로드 실패:', err);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const removeDocuments = async ids => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      await deleteUserDocuments(ids);
+
+      // 삭제 성공 후 목록 새로고침
+      await fetchUserDocuments();
+
+      return true;
+    } catch (err) {
+      error.value = err.message || '서류 삭제에 실패했습니다.';
+      console.error('서류 삭제 실패:', err);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   return {
     // 상태
     viewMode,
     searchQuery,
     filters,
     allItems,
+    userDocuments,
+    isLoading,
+    error,
 
     // 게터
     filteredItems,
@@ -172,5 +210,11 @@ export const useDocsStore = defineStore('docs', () => {
     updateItem,
     removeItem,
     updateItemStatus,
+
+    // API 액션
+    fetchUserDocuments,
+    addDocument,
+    downloadDocuments,
+    removeDocuments,
   };
 });
