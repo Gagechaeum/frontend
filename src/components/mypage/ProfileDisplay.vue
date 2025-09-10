@@ -20,6 +20,20 @@ watch(
     imgOk.value = true;
   }
 );
+
+// 연락처 표시 전용
+const displayPhone = computed(() => {
+  const digits = (props.profile?.phone ?? '').replace(/[^\d]/g, '');
+  if (!digits) return '—';
+
+  const p1 = digits.slice(0, 3);
+  const p2 = digits.slice(3, 7);
+  const p3 = digits.slice(7, 11);
+
+  if (p3) return `${p1}-${p2}-${p3}`;
+  if (p2) return `${p1}-${p2}`;
+  return p1;
+});
 </script>
 
 <template>
@@ -68,7 +82,7 @@ watch(
           <div class="py-4">
             <p class="text-sm text-gray-500">연락처</p>
             <p class="mt-1 text-base text-gray-900">
-              {{ props.profile?.phone || '—' }}
+              {{ displayPhone }}
             </p>
           </div>
           <!-- 이메일 -->

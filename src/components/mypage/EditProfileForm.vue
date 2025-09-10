@@ -4,17 +4,17 @@ import { useRouter } from 'vue-router';
 import { isNicknameExist, changePassword, withdraw } from '@/lib/api/mypage';
 import BusinessList from '@/components/mypage/BusinessList.vue';
 import DeleteConfirmModal from '@/components/mypage/DeleteConfirmModal.vue';
-import { useToast } from '@/stores/toast';
+// import { useToast } from '@/stores/toast';
 import { useMyPageViewStore } from '@/stores/mypageView';
 const view = useMyPageViewStore();
 
 const router = useRouter();
 
-const {
-  show: showToast,
-  error: toastError,
-  success: toastSuccess,
-} = useToast();
+// const {
+//   show: showToast,
+//   error: toastError,
+//   success: toastSuccess,
+// } = useToast();
 
 const bizList = ref(null);
 
@@ -41,7 +41,7 @@ async function onConfirmDelete() {
 async function onClickSave() {
   const ok = bizList.value?.validateAll?.();
   if (!ok) {
-    toastError('모든 사업자 정보를 입력해 주세요.'); // ✅ 토스트 통일
+    // toastError('모든 사업자 정보를 입력해 주세요.'); // ✅ 토스트 통일
     return;
   }
 }
