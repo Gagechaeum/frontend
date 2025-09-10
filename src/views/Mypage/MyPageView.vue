@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMyPageStore } from '@/stores/mypage';
 import { useMyPageViewStore } from '@/stores/mypageView';
+import { changePassword } from '@/lib/api/mypage';
 
 /* 이 파일의 템플릿에서 쓰는 자식 컴포넌트가 있다면 import (SFC 자동 등록 안 쓰는 경우) */
 // import ProfileDisplay from '@/components/mypage/ProfileDisplay.vue';
@@ -73,23 +74,38 @@ function cancelEdit() {
      nickname, phone,
      avatarFile?,               // 파일 객체 (변경 시)
      businesses?: [...],        // 사업자 배열 최종본
-     currentPassword?, newPassword? // 비번 변경 입력시 선택
+     confirmPassword?, newPassword? // 비번 변경 입력시 선택
    }
 */
 async function submitEdit(payload = {}) {
+  // 1) 비밀번호 값 추출 (current/old 호환)
+  const cur = (payload.currentPassword ?? payload.oldPassword ?? '').trim();
+  const next = (payload.newPassword ?? '').trim();
+  const conf = (payload.confirmPassword ?? payload.newPassword ?? '').trim();
+  const hasPw = !!(cur || next || conf);
+
   try {
     console.log('[MyPage] submitEdit payload=', payload);
 
+    // 2) ✅ 비밀번호 먼저 처리 (응답의 success로 판정)
+    if (hasPw) {
+      const r = await changePassword(cur, next, conf);
+      console.log('[MyPage] password-change response =', r);
+      if (r?.success !== true) {
+        // 실패면 여기서 중단 (나머지 저장 진행하지 않음)
+        alert(r?.message || '비밀번호 변경에 실패했습니다.');
+        return;
+      }
+    }
+
+    // 3) 이후 프로필/사업자 등 저장 (비번은 이미 처리했으니 넘기지 않음)
     await my.saveAll?.({
       basics: { nickname: payload.nickname, phone: payload.phone },
       avatarFile: payload.avatarFile ?? null,
       businesses: Array.isArray(payload.businesses)
         ? payload.businesses
         : undefined,
-      password:
-        payload.currentPassword && payload.newPassword
-          ? { current: payload.currentPassword, next: payload.newPassword }
-          : undefined,
+      password: undefined, // ← 비번 중복 호출 방지
     });
 
     // 저장 후 최신값 재적재

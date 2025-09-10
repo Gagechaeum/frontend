@@ -166,11 +166,11 @@ watch(
 );
 
 /* ───────────── 비밀번호 검증 ───────────── */
-const currentPassword = ref('');
+const oldPassword = ref('');
 const newPassword = ref('');
 const confirmPassword = ref('');
 
-const currentPwError = ref('');
+const oldPwError = ref('');
 const newPwError = ref('');
 const confirmPwError = ref('');
 
@@ -272,11 +272,11 @@ async function onSubmit() {
 
   // 3) 비밀번호 변경(선택)
   const anyPwFilled =
-    !!currentPassword.value || !!newPassword.value || !!confirmPassword.value;
+    !!newPassword.value || !!oldPassword.value || !!confirmPassword.value;
 
   if (anyPwFilled) {
-    if (!currentPassword.value?.trim()) {
-      currentPwError.value = '현재 비밀번호를 입력해 주세요.';
+    if (!oldPassword.value?.trim()) {
+      oldPwError.value = '현재 비밀번호를 입력해 주세요.';
       return;
     }
     if (!newPassword.value?.trim()) {
@@ -287,23 +287,23 @@ async function onSubmit() {
       confirmPwError.value = '비밀번호 확인을 입력해 주세요.';
       return;
     }
-    if (newPwError.value || confirmPwError.value) return;
+    if (newPwError.value || confirmPwError.value || oldPwError.value) return;
 
     try {
       const res = await changePassword(
-        currentPassword.value,
-        newPassword.value
+        confirmPassword.value.trim(),
+        newPassword.value.trim(),
+        oldPassword.value.trim()
       );
       if (!(res?.success ?? false)) {
-        currentPwError.value =
-          res?.message || '현재 비밀번호가 올바르지 않습니다.';
+        oldPwError.value = res?.message || '현재 비밀번호가 올바르지 않습니다.';
         return;
       }
       // 성공 시 입력칸 정리
-      currentPassword.value = '';
+      oldPassword.value = '';
       newPassword.value = '';
       confirmPassword.value = '';
-      currentPwError.value = '';
+      oldPwError.value = '';
       newPwError.value = '';
       confirmPwError.value = '';
     } catch (err) {
@@ -312,7 +312,7 @@ async function onSubmit() {
         (err?.response?.status === 401 || err?.response?.status === 400
           ? '현재 비밀번호가 올바르지 않습니다.'
           : '비밀번호 변경에 실패했습니다.');
-      currentPwError.value = msg;
+      oldPwError.value = msg;
       return;
     }
   }
@@ -414,13 +414,13 @@ async function onSubmit() {
       <div class="mb-6">
         <label class="mb-1 block text-sm font-medium">현재 비밀번호</label>
         <input
-          v-model="currentPassword"
+          v-model="oldPassword"
           type="password"
           class="w-full rounded-lg border px-4 py-2"
-          autocomplete="current-password"
+          autocomplete="old-password"
         />
-        <p v-if="currentPwError" class="mt-1 text-xs text-red-600">
-          {{ currentPwError }}
+        <p v-if="oldPwError" class="mt-1 text-xs text-red-600">
+          {{ oldPwError }}
         </p>
       </div>
 
@@ -443,7 +443,7 @@ async function onSubmit() {
             v-model="confirmPassword"
             type="password"
             class="w-full rounded-lg border px-4 py-2"
-            autocomplete="new-password"
+            autocomplete="confirm-password"
           />
           <p v-if="confirmPwError" class="mt-1 text-xs text-red-600">
             {{ confirmPwError }}

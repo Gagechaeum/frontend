@@ -56,13 +56,17 @@ export async function updateUser(patch = {}) {
 }
 
 /** ✅ PUT /api/me/password-change (인증 헤더 추가) */
-export async function changePassword(currentPassword, newPassword) {
+export async function changePassword(
+  confirmPassword,
+  newPassword,
+  oldPassword
+) {
   const res = await api.put(
     '/me/password-change',
-    { currentPassword, newPassword },
+    { confirmPassword, newPassword, oldPassword },
     { headers: withAT() }
   );
-  return ok(res) ?? res?.data; // 백 응답 형태 어느 쪽이든 대응
+  return res?.data; // 백 응답 형태 어느 쪽이든 대응
 }
 
 /** ✅ PUT /api/me/withdrawal */
