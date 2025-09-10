@@ -90,7 +90,7 @@
                       <div
                         class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        서류명을 클릭 시 다운로드 할 수 있습니다
+                        서류명을 클릭하면 다운로드 할 수 있습니다
                         <div
                           class="absolute left-3 top-full h-0 w-0 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
                         ></div>
