@@ -37,20 +37,20 @@ const routes = [
     component: HomeView,
     meta: { showHeader: true, overlayHeader: true },
   },
-
-  // 보호
   {
     path: '/product/loan/:id',
     name: 'loan-detail',
     component: LoanDetailView,
-    meta: { showHeader: true, requiresAuth: true },
+    meta: { showHeader: true },
   },
   {
     path: '/product/policy/:id',
     name: 'policy-detail',
     component: PolicyDetailView,
-    meta: { showHeader: true, requiresAuth: true },
+    meta: { showHeader: true },
   },
+
+  // 보호
   {
     path: '/report',
     name: 'report',
