@@ -74,9 +74,9 @@ export async function withdraw() {
 /** ✅ PUT /api/me/update/profile-image  (multipart/form-data) */
 export async function updateProfileImage(fileOrBlob) {
   const fd = new FormData();
-  fd.append('file', fileOrBlob);
+  fd.append('image', fileOrBlob);
   const res = await api.put('/me/update/profile-image', fd, {
-    headers: { ...withAT(), 'Content-Type': 'multipart/form-data' },
+    headers: { ...withAT() },
   });
   return ok(res);
 }

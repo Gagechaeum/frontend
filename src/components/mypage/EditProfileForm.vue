@@ -17,6 +17,7 @@ const router = useRouter();
 // } = useToast();
 
 const bizList = ref(null);
+const avatarFile = ref(null); // ✅ 파일 보관용
 
 /* ───────────── 탈퇴 모달 ───────────── */
 const showDeleteModal = ref(false);
@@ -199,12 +200,17 @@ watch(confirmPassword, c => {
 function handleImageUpload(e) {
   const file = e?.target?.files?.[0];
   if (!file) return;
+
+  // (1) 미리보기용 URL 생성해서 즉시 화면 반영
+  avatarFile.value = file;
   const url = URL.createObjectURL(file);
   form.avatar = url;
+
+  // (2) 부모로 "모델 업데이트" 이벤트 전파 (미리보기 URL + 실제 파일)
   emit('update:modelValue', {
     ...props.modelValue,
-    avatar: url,
-    avatarFile: file,
+    avatar: url, // 화면 미리보기용
+    avatarFile: file, // 실제 업로드할 File 객체
   }); // ✅ 파일도 전달
 }
 
@@ -312,10 +318,15 @@ async function onSubmit() {
   }
 
   // 4) 나머지 프로필 업데이트는 부모로 전달
+  console.log(
+    '아바타 잘 들어오는지 [Child] avatarFile in submit =',
+    avatarFile.value
+  );
   const payload = {
-    ...props.modelValue,
-    ...form,
-    phone: phoneInput.value,
+    ...props.modelValue, // (여기에 1단계에서 들어간 avatarFile이 이미 포함될 수 있음)
+    ...form, // 폼의 최신 값들(avatar 미리보기 URL 포함)
+    phone: phoneInput.value, // 포맷된 전화번호
+    avatarFile: avatarFile.value,
   };
   emit('update:modelValue', payload);
   emit('submit', payload);
@@ -332,7 +343,7 @@ async function onSubmit() {
     <div class="mb-8 flex flex-col items-center">
       <div class="relative">
         <img
-          :src="form.avatar || 'https://placehold.co/160x160?text=Avatar'"
+          :src="form.avatar || '사진이 오지 않고 있음'"
           alt="프로필"
           class="h-32 w-32 rounded-full object-cover ring-4 ring-blue-50"
         />
@@ -341,6 +352,7 @@ async function onSubmit() {
           title="사진 변경"
         >
           <i class="fas fa-camera text-sm"></i>
+          <!-- 사용자가 파일을 고를때 @change 실행 -->
           <input
             type="file"
             class="hidden"
