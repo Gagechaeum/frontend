@@ -17,8 +17,8 @@ export function parseUser(raw) {
   return {
     userId: u.userId ?? raw.userId ?? null,
     email: u.email ?? raw.email ?? '',
-    name: u.name ?? raw.name ?? '', // 실명(오면 사용)
-    nickname: u.nickname ?? raw.nickname ?? '', // 닉네임
+    name: u.name ?? raw.name ?? '',
+    nickname: u.nickname ?? raw.nickname ?? '',
     phone: u.phone ?? u.phoneNumber ?? raw.phone ?? '',
     profileImageUrl: u.profileImageUrl ?? u.profileImageKey ?? '',
     notification: u.notification ?? raw.notification ?? true,
@@ -35,17 +35,20 @@ export async function fetchUserInfo() {
   return parseUser(ok(res));
 }
 
-/** ✅ PUT /api/me/update/user  (body: { nickname?, phone? }) */
+/** ✅ PUT /api/me/update/user  (body: { nickname?, phoneNumber? }) */
 export async function updateUser(patch = {}) {
   const body = {};
-  if (patch.nickname ?? patch.nickName) {
-    const nn = String(patch.nickname ?? patch.nickName).trim();
-    if (nn) body.nickname = nn;
+  // 닉네임
+  const nn = (patch.nickname ?? patch.nickName ?? '').toString().trim();
+  if (nn) body.nickname = nn;
+
+  // 연락처: 서버가 보통 phoneNumber를 받으므로 둘 다 세팅(백 호환)
+  const p = onlyDigits(patch.phone ?? patch.phoneNumber);
+  if (p) {
+    body.phoneNumber = p;
+    body.phone = p; // (선택) 백이 phone만 받는 경우 대비
   }
-  if (patch.phone) {
-    const p = onlyDigits(patch.phone);
-    if (p) body.phone = p;
-  }
+
   if (Object.keys(body).length === 0) return { skipped: true };
 
   const res = await api.put('/me/update/user', body, { headers: withAT() });
@@ -53,12 +56,14 @@ export async function updateUser(patch = {}) {
   return data ? parseUser(data) : data;
 }
 
-/** ✅ PUT /api/me/password-change */
-export async function changePassword(payload) {
-  const res = await api.put('/me/password-change', payload, {
-    headers: withAT(),
-  });
-  return ok(res);
+/** ✅ PUT /api/me/password-change (인증 헤더 추가) */
+export async function changePassword(currentPassword, newPassword) {
+  const res = await api.put(
+    '/me/password-change',
+    { currentPassword, newPassword },
+    { headers: withAT() }
+  );
+  return ok(res) ?? res?.data; // 백 응답 형태 어느 쪽이든 대응
 }
 
 /** ✅ PUT /api/me/withdrawal */
@@ -67,15 +72,23 @@ export async function withdraw() {
   return ok(res);
 }
 
+/** ✅ PUT /api/me/update/profile-image  (multipart/form-data) */
+export async function updateProfileImage(fileOrBlob) {
+  const fd = new FormData();
+  fd.append('file', fileOrBlob);
+  const res = await api.put('/me/update/profile-image', fd, {
+    headers: { ...withAT(), 'Content-Type': 'multipart/form-data' },
+  });
+  return ok(res);
+}
+
 /* ────────────── B) 사업자 ────────────── */
-/** ✅ GET /api/BusinessInfo/select  → List */
 export async function fetchBusinesses() {
   const res = await api.get('/BusinessInfo/select', { headers: withAT() });
   const data = ok(res) ?? [];
   return Array.isArray(data) ? data : data ? [data] : [];
 }
 
-/** ✅ POST /api/BusinessInfo/save  (없으면 /insert 폴백) */
 export async function createBusiness(payload) {
   try {
     const res = await api.post('/BusinessInfo/save', payload, {
@@ -93,7 +106,6 @@ export async function createBusiness(payload) {
   }
 }
 
-/** ✅ PUT /api/BusinessInfo/update */
 export async function updateBusiness(payload) {
   const res = await api.put('/BusinessInfo/update', payload, {
     headers: withAT(),
@@ -101,7 +113,6 @@ export async function updateBusiness(payload) {
   return ok(res);
 }
 
-/** ✅ GET /api/BusinessInfo/delete?businessInfoId=...  (DELETE 아님) */
 export async function deleteBusiness(businessInfoId) {
   const res = await api.get('/BusinessInfo/delete', {
     headers: withAT(),
@@ -110,7 +121,6 @@ export async function deleteBusiness(businessInfoId) {
   return ok(res);
 }
 
-/** ✅ GET /api/BusinessInfo/verifyBisNum?bisNum=...&startDate=YYYY-MM-DD */
 export async function verifyBusinessNumber(bisNum, startDate) {
   const res = await api.get('/BusinessInfo/verifyBisNum', {
     headers: withAT(),
@@ -126,4 +136,13 @@ export async function hydrateMypageBundle() {
     fetchBusinesses(),
   ]);
   return { user, businesses };
+}
+
+/** 닉네임 중복 확인 (인증 필요하면 헤더 추가) */
+export async function isNicknameExist(nickname) {
+  const res = await api.get('/me/isNicknameExist', {
+    headers: withAT(), // <- 필요 시
+    params: { nickname },
+  });
+  return ok(res) ?? res?.data;
 }
