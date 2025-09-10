@@ -84,7 +84,7 @@ watch(
 );
 
 /* ───────────── 연락처 ───────────── */
-const phoneInput = ref(props.modelValue?.phone || '');
+const phoneInput = ref(formatPhone(props.modelValue?.phone || ''));
 const touched = ref({ phone: false });
 
 function formatPhone(raw) {
@@ -97,9 +97,14 @@ function formatPhone(raw) {
   if (p2) return `${p1}-${p2}`;
   return p1;
 }
-const onPhoneInput = () => {
-  phoneInput.value = formatPhone(phoneInput.value);
-};
+// const onPhoneInput = () => {
+//   phoneInput.value = formatPhone(phoneInput.value);
+// };
+watch(phoneInput, val => {
+  if (val == null) return;
+  const formatted = formatPhone(val);
+  if (val !== formatted) phoneInput.value = formatted; // 하이픈 자동 삽입
+});
 const phoneValid = computed(() => /^010-\d{4}-\d{4}$/.test(phoneInput.value));
 const phoneError = computed(
   () => phoneInput.value.length > 0 && !phoneValid.value
@@ -374,7 +379,7 @@ async function onSubmit() {
           class="w-full rounded-lg border px-4 py-2"
           maxlength="13"
           inputmode="numeric"
-          @input="onPhoneInput"
+          @input="e => (phoneInput.value = formatPhone(e.target.value))"
           @blur="touched.phone = true"
         />
         <p v-if="phoneError" class="mt-1 text-xs text-red-600">
