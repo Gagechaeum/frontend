@@ -180,7 +180,7 @@
           <!-- RouterLink 대신 ProfileDropdown 사용 -->
           <ProfileDropdown
             :user-info="userInfo"
-            :avatar="avatar"
+            :avatar="props.avatar"
             @mypage="goMyPage"
             @logout-click="handleLogout"
           />
@@ -191,51 +191,85 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+/* eslint-env browser */
+
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  reactive,
+  watchEffect,
+} from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useNotificationStore } from '@/stores/notification';
 import ProfileDropdown from '../mypage/ProfileDropdown.vue';
+import { useMyPageStore } from '@/stores/mypage';
 
-const props = defineProps({
-  overlay: { type: Boolean, default: false },
-  chips: { type: Array, default: () => [] }, // 우측 칩(태그) 리스트
-  showBell: { type: Boolean, default: true }, // 알림 버튼 보이기
-  userInfo: {
-    // 드롭다운 상단 표시 정보
-    type: Object,
-    default: () => ({
-      name: '사용자',
-      region: '서울',
-      business: '카페/디저트',
-    }),
-  },
-  avatar: { type: String, default: '' }, // 프로필 이미지 URL(없으면 아이콘)
+// ─────────────────────────────────────────────────────────────
+// 스토어 & 표시용 userInfo (부모에서 직접 관리)
+// ─────────────────────────────────────────────────────────────
+const my = useMyPageStore();
+
+const userInfo = reactive({
+  name: '사용자',
+  region: '',
+  business: '',
 });
 
-// ===== 헤더 투명/불투명 전환 =====
+// props: userInfo는 내부에서 관리하므로 정의하지 않습니다(중복키 방지)
+const props = defineProps({
+  overlay: { type: Boolean, default: false },
+  chips: { type: Array, default: () => [] },
+  showBell: { type: Boolean, default: true },
+  avatar: { type: String, default: '' },
+});
+
+// ─────────────────────────────────────────────────────────────
+// 헤더 투명/불투명 전환
+// ─────────────────────────────────────────────────────────────
 const scrolled = ref(false);
 const onScroll = () => {
-  scrolled.value = window.scrollY > 12; // 12px 넘으면 불투명 전환
+  const w = globalThis?.window;
+  if (w) {
+    scrolled.value = w.scrollY > 12;
+  }
 };
 
 onMounted(() => {
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll(); // 첫 렌더 상태 반영
+  if (typeof window !== 'undefined') {
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // 초기 상태 반영
+  }
 });
-onBeforeUnmount(() => window.removeEventListener('scroll', onScroll));
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('scroll', onScroll);
+  }
+});
 
-// 홈에서 overlay=true 이고, 아직 스크롤 안했을 때만 '완전 투명'
 const overlayActive = computed(() => props.overlay && !scrolled.value);
 
+// ─────────────────────────────────────────────────────────────
+// 라우팅 / 로그아웃 핸들링
+// ─────────────────────────────────────────────────────────────
 const emit = defineEmits(['logout']);
-const handleLogout = () => emit('logout');
-
 const router = useRouter();
-const goMyPage = () => {
-  router.push('/mypage');
+
+const handleLogout = () => {
+  // 프로필 드롭다운에서 로그아웃 클릭 시 들어옴
+  my.$reset();
+  my.isLoaded = false;
+  emit('logout');
+  router.replace('/login');
 };
 
+const goMyPage = () => router.push('/mypage');
+
+// ─────────────────────────────────────────────────────────────
+// 알림 드롭다운
+// ─────────────────────────────────────────────────────────────
 const notificationStore = useNotificationStore();
 const { notifications } = storeToRefs(notificationStore);
 
@@ -249,12 +283,11 @@ const notificationRoot = ref(null);
 const toggleNotifications = () => {
   isNotificationsOpen.value = !isNotificationsOpen.value;
 };
-
 const closeNotifications = () => {
   isNotificationsOpen.value = false;
 };
 
-// 외부 클릭 감지
+// 외부 클릭 닫기 (캡처 단계 등록)
 const onDocClick = e => {
   const t = e.target;
   if (notificationRoot.value && !notificationRoot.value.contains(t)) {
@@ -262,10 +295,20 @@ const onDocClick = e => {
   }
 };
 
-onMounted(() => document.addEventListener('click', onDocClick));
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
+onMounted(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', onDocClick, true);
+  }
+});
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', onDocClick, true);
+  }
+});
 
-// 알림 관련 함수들
+// ─────────────────────────────────────────────────────────────
+// 알림 아이콘/색상/시간 포맷터 (템플릿에서 사용됨)
+// ─────────────────────────────────────────────────────────────
 function getNotificationIcon(type) {
   switch (type) {
     case 'success':
@@ -322,17 +365,22 @@ function formatTime(date) {
 function markAsRead(id) {
   notificationStore.markAsRead(id);
 }
-
 function markAllAsRead() {
   notificationStore.markAllAsRead();
 }
-</script>
 
-<style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>
+// ─────────────────────────────────────────────────────────────
+// 스토어 → 헤더 표시값 동기화
+// ─────────────────────────────────────────────────────────────
+watchEffect(() => {
+  if (my.isLoggedIn) {
+    userInfo.name = my.displayName;
+    userInfo.region = my.business?.regionName || '';
+    userInfo.business = my.business?.industryName || '';
+  } else {
+    userInfo.name = '사용자';
+    userInfo.region = '';
+    userInfo.business = '';
+  }
+});
+</script>
