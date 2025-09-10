@@ -1,36 +1,64 @@
 <script setup>
-import { ref } from 'vue';
-import ProfileDisplay from '@/components/mypage/ProfileDisplay.vue';
-import EditProfileForm from '@/components/mypage/EditProfileForm.vue';
-import DeleteConfirmModal from '@/components/mypage/DeleteConfirmModal.vue';
-// import ToastMessage from '@/components/mypage/ToastMessage.vue'; // TODO: 나중에 활성화
+/* ───────── imports ───────── */
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useMyPageStore } from '@/stores/mypage';
+import { useMyPageViewStore } from '@/stores/mypageView';
 
+/* 이 파일의 템플릿에서 쓰는 자식 컴포넌트가 있다면 import (SFC 자동 등록 안 쓰는 경우) */
+// import ProfileDisplay from '@/components/mypage/ProfileDisplay.vue';
+// import EditProfileForm from '@/components/mypage/EditProfileForm.vue';
+// import DeleteConfirmModal from '@/components/mypage/DeleteConfirmModal.vue';
+
+/* ───────── 기본 셋업 ───────── */
+const router = useRouter();
+const my = useMyPageStore();
+
+/* 보기/수정 토글 */
 const isEditing = ref(false);
+
+/* 화면용 모델 (초기값 안전) */
+const userProfile = ref({
+  avatar: '',
+  name: '',
+  nickname: '',
+  phone: '',
+  email: '',
+  businesses: [],
+});
+const businesses = ref([]);
+
+/* 탈퇴 확인 모달 */
 const showDeleteConfirm = ref(false);
 
-// ✅ 초기 프로필을 실제 객체로 세팅
-const userProfile = ref({
-  name: '유기현', // 닉네임
-  nickName: '김가게',
-  phone: '010-1234-5678',
-  email: 'gagechaeum@example.com',
-  avatar: '', // 유효한 URL이 없으면 빈 문자열 두세요 (컴포넌트가 플레이스홀더로 대체)
-  businesses: [
-    {
-      id: 1,
-      registrationNumber: '123-45-67890',
-      region: '서울특별시',
-      type: '음식·외식업',
-    },
-    {
-      id: 2,
-      registrationNumber: '234-56-78901',
-      region: '경기도',
-      type: '도소매·유통',
-    },
-  ],
+/* ───────── 초기 로드 ───────── */
+onMounted(async () => {
+  console.log('[MyPage] onMounted: start hydrate');
+  try {
+    await my.hydrate?.();
+    console.log(
+      '[MyPage] hydrate done. rawUser=',
+      my.rawUser,
+      'rawBiz=',
+      my.rawBusinesses
+    );
+
+    const view = my.profileForView;
+    console.log('[MyPage] profileForView=', view);
+
+    if (view) {
+      // avatar는 스토어 게터로 확실히 채움
+      Object.assign(userProfile.value, view, { avatar: my.avatarUrl });
+    }
+    businesses.value = my.businesses ?? [];
+
+    console.log('[MyPage] after merge: userProfile=', userProfile.value);
+  } catch (e) {
+    console.error('[MyPage] hydrate 실패:', e);
+  }
 });
 
+/* ───────── 편집 제어 ───────── */
 function openEdit() {
   isEditing.value = true;
 }
@@ -38,32 +66,101 @@ function cancelEdit() {
   isEditing.value = false;
 }
 
-// ✅ EditProfileForm에서 deepClone 된 최종 객체가 넘어옵니다
-function submitEdit(payload) {
-  userProfile.value = payload; // ✅ form 전체를 그대로 반영
-  isEditing.value = false;
+/* ───────── 저장(닉네임/연락처/이미지/사업자) ─────────
+   자식(EditProfileForm)에서 emit('submit', payload)로 호출됨.
+   payload 예시:
+   {
+     nickname, phone,
+     avatarFile?,               // 파일 객체 (변경 시)
+     businesses?: [...],        // 사업자 배열 최종본
+     currentPassword?, newPassword? // 비번 변경 입력시 선택
+   }
+*/
+async function submitEdit(payload = {}) {
+  try {
+    console.log('[MyPage] submitEdit payload=', payload);
+
+    await my.saveAll?.({
+      basics: { nickname: payload.nickname, phone: payload.phone },
+      avatarFile: payload.avatarFile ?? null,
+      businesses: Array.isArray(payload.businesses)
+        ? payload.businesses
+        : undefined,
+      password:
+        payload.currentPassword && payload.newPassword
+          ? { current: payload.currentPassword, next: payload.newPassword }
+          : undefined,
+    });
+
+    // 저장 후 최신값 재적재
+    await my.hydrate?.();
+
+    const view = my.profileForView;
+    if (view) {
+      Object.assign(userProfile.value, view, { avatar: my.avatarUrl });
+    }
+    businesses.value = my.businesses ?? [];
+    isEditing.value = false;
+
+    console.log('[MyPage] 저장 완료');
+    // TODO: showToast && showToast('저장되었습니다.');
+  } catch (e) {
+    console.error('[MyPage] 저장 실패:', e?.response?.data ?? e);
+    alert(e?.response?.data?.message || '저장에 실패했습니다.');
+  }
 }
 
-// 탈퇴 모달
+/* ───────── 탈퇴(모달 열기/확정) ───────── */
 function requestDelete() {
   showDeleteConfirm.value = true;
 }
-function confirmDelete() {
+function onCancelDelete() {
   showDeleteConfirm.value = false;
-  // 실제 API 호출/라우팅은 여기에서
-  // router.push('/mypage'); 등
 }
+async function onConfirmDelete() {
+  try {
+    showDeleteConfirm.value = false;
+    await my.doWithdraw?.(); // PUT /api/me/withdrawal
+    // 필요 시 토큰/스토어 정리(my.reset?.()) 등 추가
+    router.push('/'); // 홈으로 이동
+  } catch (e) {
+    console.error('[MyPage] 탈퇴 실패:', e?.response?.data ?? e);
+    alert(e?.response?.data?.message || '계정 탈퇴에 실패했습니다.');
+  }
+}
+
+/* 삭제 버튼에서 사용 (왼쪽 하단 작은 버튼) */
+function onClickDelete() {
+  requestDelete();
+}
+
+/* (선택) 템플릿 바깥에서 접근이 필요하면 노출 */
+defineExpose({
+  openEdit,
+  cancelEdit,
+  submitEdit,
+  onClickDelete,
+  requestDelete,
+  onCancelDelete,
+  onConfirmDelete,
+  isEditing,
+  showDeleteConfirm,
+  userProfile,
+  businesses,
+});
 </script>
 
 <template>
   <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-    <!-- profile이 존재할 때만 렌더 -->
+    <!-- 보기 모드 -->
+
     <ProfileDisplay
       v-if="!isEditing && userProfile"
       :profile="userProfile"
       @edit="openEdit"
     />
 
+    <!-- 수정 모드: EditProfileForm만 -->
     <EditProfileForm
       v-else
       :model-value="userProfile"
@@ -72,6 +169,7 @@ function confirmDelete() {
       @request-delete="requestDelete"
     />
 
+    <!-- 탈퇴 모달 -->
     <DeleteConfirmModal
       v-if="showDeleteConfirm"
       @cancel="showDeleteConfirm = false"
