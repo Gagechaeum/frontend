@@ -133,6 +133,8 @@ export const useDocsStore = defineStore('docs', () => {
           progress: item.progressPercentage || 0,
           originalType: type,
           originalId: num,
+          policyId: item.policyId,
+          loanId: item.loanId,
         };
       });
 
@@ -173,13 +175,20 @@ export const useDocsStore = defineStore('docs', () => {
     try {
       const idParts = id.split('_');
       const type = idParts[0];
-      const originalId = idParts[1];
       const koreanStatus = mapStatusToProcessStage(newStatus);
 
       if (type === 'policy') {
-        await updatePolicyStatus(originalId, koreanStatus);
+        // policyId 사용
+        if (!item.policyId) {
+          throw new Error('정책 ID가 없습니다.');
+        }
+        await updatePolicyStatus(item.policyId, item.processStage);
       } else if (type === 'loan') {
-        await updateLoanStatus(originalId, koreanStatus);
+        // loanId 사용
+        if (!item.loanId) {
+          throw new Error('대출 ID가 없습니다.');
+        }
+        await updateLoanStatus(item.loanId, koreanStatus);
       } else {
         throw new Error(`알 수 없는 타입: ${type}`);
       }

@@ -122,7 +122,6 @@ export const getPolicyDocuments = async policyId => {
  */
 export const getDocumentChecklist = async (productId, type) => {
   try {
-    // TODO: 추후 productId 대신 policyId 또는 loanId로 변경
     const response = await api.get(`/products/${productId}/documents`, {
       params: { type },
     });

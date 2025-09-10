@@ -228,20 +228,21 @@ const loadChecklistData = async () => {
   try {
     isLoading.value = true;
 
-    // item에서 productId와 type 추출
-    let productId = props.item.originalId || props.item.id;
-    let type =
-      props.item.originalType ||
-      (props.item.type === '정책' ? 'policy' : 'loan');
+    // item에서 policyId 또는 loanId 추출
+    const policyId = props.item.policyId;
+    const loanId = props.item.loanId;
 
-    // id가 'policy_2' 형태인 경우 숫자 부분만 추출
-    if (typeof productId === 'string' && productId.includes('_')) {
-      const parts = productId.split('_');
-      productId = parts[1]; // 숫자 부분만 추출
-      type = parts[0]; // 'policy' 또는 'loan'
+    let productId, type;
+    if (policyId) {
+      productId = policyId;
+      type = 'policy';
+    } else if (loanId) {
+      productId = loanId.toString();
+      type = 'loan';
+    } else {
+      throw new Error('policyId 또는 loanId가 없습니다.');
     }
 
-    // TODO: 추후 policyId 또는 loanId로 변경
     const response = await getDocumentChecklist(productId, type);
     checklistData.value = response.data;
   } catch (error) {
@@ -252,7 +253,6 @@ const loadChecklistData = async () => {
   }
 };
 
-// 모달이 열릴 때마다 데이터 로드
 watch(
   [() => props.isOpen, () => props.item],
   ([isOpen, item]) => {
