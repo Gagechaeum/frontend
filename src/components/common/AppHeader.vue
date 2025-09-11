@@ -79,7 +79,7 @@
             <span
               v-for="chip in displayChips"
               :key="chip"
-              class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700"
+              class="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800"
             >
               {{ chip }}
             </span>
@@ -253,10 +253,13 @@ const onScroll = () => {
   }
 };
 
-onMounted(() => {
-  if (typeof window !== 'undefined') {
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll(); // 초기 상태 반영
+onMounted(async () => {
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll(); // 첫 렌더 상태 반영
+
+  // 로그인된 사용자의 사업자 정보 로드
+  if (isLoggedIn.value) {
+    await authStore.loadBusinessInfo();
   }
 });
 onBeforeUnmount(() => {
