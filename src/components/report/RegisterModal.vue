@@ -40,17 +40,7 @@
                 type="text"
                 placeholder="정책명을 검색하세요"
                 class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm"
-                @keyup.enter="
-                  (async () => {
-                    loading = true;
-                    try {
-                      results = await searchPolicies({ query: q, limit: 10 });
-                    } finally {
-                      loading = false;
-                      hasSearched = true;
-                    }
-                  })()
-                "
+                @keyup.enter="doSearch"
               />
               <i
                 class="fas fa-search absolute left-3 top-3 text-sm text-gray-400"
@@ -81,25 +71,6 @@
               class="mt-2 text-sm text-gray-500"
             >
               검색 결과가 없습니다
-            </div>
-          </div>
-
-          <!-- 즐겨찾기 (하단) -->
-          <div class="rounded-lg border border-gray-200 p-3">
-            <h4 class="mb-2 font-medium text-gray-900">즐겨찾기</h4>
-            <div class="space-y-2">
-              <div
-                v-for="it in policyFavorites"
-                :key="it.id"
-                class="cursor-pointer rounded-lg border border-gray-200 p-3 hover:bg-gray-50"
-                @click="selectItem(it)"
-              >
-                <div class="font-medium">{{ it.name }}</div>
-                <div class="text-sm text-gray-600">정책</div>
-              </div>
-              <div v-if="!policyFavorites.length" class="text-sm text-gray-500">
-                즐겨찾기 정책이 없습니다
-              </div>
             </div>
           </div>
         </div>
@@ -141,7 +112,7 @@
                 >첫 지급일</label
               >
               <input
-                v-model="form.paymentDate"
+                v-model="form.firstPaymentDate"
                 type="date"
                 class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
               />
@@ -198,12 +169,11 @@
 /* eslint-env browser */
 /* global setTimeout, clearTimeout */
 
-import { ref, computed, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { searchPolicies } from '@/lib/api/reports.js'; // 토큰은 API 내부에서 자동 첨부
 
 const props = defineProps({
   show: { type: Boolean, default: false },
-  favoriteItems: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['close', 'register']);
 
@@ -215,15 +185,10 @@ const selected = ref(null);
 const form = ref({
   startDate: '',
   endDate: '',
-  paymentDate: '',
+  firstPaymentDate: '',
   monthlyAmount: null,
   totalAmount: null,
 });
-
-// 즐겨찾기 섹션
-const policyFavorites = computed(() =>
-  props.favoriteItems.filter(it => it.type === 'policy')
-);
 
 // 검색 결과/상태
 const results = ref([]);
@@ -250,9 +215,8 @@ async function doSearch() {
 
   loading.value = true;
   try {
-    results.value = await searchPolicies({ query, limit: 10 /*, userId*/ });
+    results.value = await searchPolicies({ query });
   } catch (e) {
-     
     globalThis.console?.error('[RegisterModal] 정책 검색 실패:', e);
     results.value = [];
   } finally {
@@ -274,7 +238,7 @@ watch(
       form.value = {
         startDate: '',
         endDate: '',
-        paymentDate: '',
+        firstPaymentDate: '',
         monthlyAmount: null,
         totalAmount: null,
       };
@@ -289,11 +253,10 @@ const selectItem = it => {
 
 const emitRegister = () => {
   emit('register', {
-    type: 'policy',
-    name: selected.value?.name ?? '정책',
+    policyId: selected.value.id,
     startDate: form.value.startDate,
     endDate: form.value.endDate,
-    paymentDate: form.value.paymentDate,
+    firstPaymentDate: form.value.firstPaymentDate,
     monthlyAmount: Number(form.value.monthlyAmount || 0),
     totalAmount: Number(form.value.totalAmount || 0),
   });

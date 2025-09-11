@@ -26,13 +26,13 @@
           <h4 class="truncate text-sm font-medium text-gray-900">
             {{ room.name }}
           </h4>
-          <p class="text-xs text-gray-500">{{ room.memberCount }}명</p>
+          <p class="text-xs text-gray-500">{{ room.participantCount }}명</p>
         </div>
 
         <!-- 시간(항상 위) + 배지(아래). 높이 유지 -->
         <div class="flex flex-col items-end justify-between self-stretch">
           <!-- 항상 오른쪽 위 고정 -->
-          <span class="text-xs text-gray-400">{{ room.lastMessageTime }}</span>
+          <span class="text-xs text-gray-400">{{ parseTime(room.lastMessageDate) }}</span>
 
           <!-- 아래쪽 배지: 없을 때도 자리 유지 -->
           <div
@@ -57,4 +57,8 @@ defineProps({
   selectedRoom: { type: Object, default: null },
 });
 defineEmits(['enter-room']);
+
+function parseTime(time) {
+  return time.split("T")[1];
+}
 </script>

@@ -55,11 +55,5 @@
     "vite-plugin-pwa": "^1.0.3",
     "vitest": "^3.2.4",
     "vue-eslint-parser": "^10.2.0"
-  },
-  "lint-staged": {
-    "*.{js,vue,ts,tsx,css,md}": [
-      "prettier --write",
-      "eslint --fix"
-    ]
   }
 }
