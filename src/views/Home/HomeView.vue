@@ -34,7 +34,7 @@
           <div class="max-w-2xl flex-1">
             <div class="mb-6">
               <h1
-                class="mb-4 bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-4xl font-bold leading-tight text-transparent md:text-5xl"
+                class="mb-4 whitespace-nowrap bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-4xl font-bold leading-tight text-transparent md:text-5xl"
               >
                 정부 지원·대출 상품 한눈에,<br />
                 <span
@@ -43,7 +43,9 @@
                   서류까지 한번에
                 </span>
               </h1>
-              <p class="mb-8 text-xl leading-relaxed text-gray-600">
+              <p
+                class="mb-8 whitespace-nowrap text-xl leading-relaxed text-gray-600"
+              >
                 업종/지역 기반 추천과 올인원 서류 관리로<br />
                 <span class="font-medium text-gray-700"
                   >더 스마트한 비즈니스 지원</span
@@ -206,10 +208,21 @@
       <!-- 추천 대출 섹션 -->
       <div v-inview.once style="margin-bottom: 6rem" class="-mx-6 px-6 py-8">
         <Section
-          :title="'대출을 한눈에 비교하고, 내 조건에 맞는 상품을 확인하세요'"
+          :title="
+            isLoggedIn
+              ? '대출을 한눈에 비교하고, 내 조건에 맞는 상품을 확인하세요'
+              : '인기 대출 상품을 확인하고 비교해보세요'
+          "
         >
           <template #description>
             <div class="reveal-item">
+              <p class="mb-3 text-lg text-gray-600">
+                {{
+                  isLoggedIn
+                    ? '나에게 맞는 대출 상품을 추천해드립니다'
+                    : '많은 사용자들이 관심을 보인 인기 대출 상품입니다'
+                }}
+              </p>
               <ul class="mt-3 flex flex-wrap gap-3">
                 <li v-for="t in loanTags" :key="t" class="reveal-item">
                   <UiButton
@@ -272,19 +285,27 @@
               <div
                 v-for="policy in policies"
                 :key="policy.id"
-                class="reveal-item card-hover-wrap"
+                class="reveal-item card-hover-wrap h-full"
               >
                 <CardLg
                   :title="policy.title"
                   badge="정책"
                   badge-tone="gray"
-                  :details="[
-                    { label: '필요서류', value: policy.documents },
-                    { label: '마감', value: policy.deadline, tone: 'danger' },
-                  ]"
                   action-label="자세히 보기"
+                  class="h-full"
                   @action="handlePolicyDetail(policy)"
-                />
+                >
+                  <template #after-details>
+                    <div class="mb-3 mr-2 flex justify-between text-sm">
+                      <div class="text-gray-600">
+                        필요서류 : {{ policy.documents }}
+                      </div>
+                      <div class="font-medium text-red-600">
+                        {{ policy.deadline }}
+                      </div>
+                    </div>
+                  </template>
+                </CardLg>
               </div>
             </div>
           </Section>
@@ -464,9 +485,11 @@ import { vInview } from '@/utils/inview.js';
 import {
   getRecommendedLoans,
   getRecommendedPolicies,
-  searchProducts,
   getLoanList,
+  searchProducts,
   getPolicyList,
+  FALLBACK_LOANS_DATA,
+  FALLBACK_POLICIES_DATA,
 } from '@/lib/api/products.js';
 import { getChatRooms } from '@/lib/api/community.js';
 import SearchBar from '@/components/common/SearchBar.vue';
@@ -503,38 +526,110 @@ const userId = computed(() => authStore.user?.userId || null);
 
 // API 호출 함수들
 const fetchRecommendedLoans = async () => {
-  if (!userId.value) {
-    return;
-  }
-
   try {
-    const response = await getRecommendedLoans(userId.value);
-    loans.value = response.data.loans.map(loan => ({
-      id: loan.loanId,
-      title: loan.productName,
-      rate: `연 ${loan.basicRate}%`,
-      limit: `최대 ${formatCurrency(loan.maxLimit)}`,
-    }));
+    if (isLoggedIn.value) {
+      // 로그인 상태: 개인 맞춤 추천 대출 API 호출 시도
+      try {
+        const response = await getRecommendedLoans(userId.value);
+        loans.value = response.data.loans.map(loan => ({
+          id: loan.loanId,
+          title: loan.productName,
+          rate: `연 ${loan.basicRate}%`,
+          limit: `최대 ${formatCurrency(loan.maxLimit)}`,
+        }));
+      } catch (apiError) {
+        // 추천 대출 API 호출 실패 시 fallback 데이터 사용
+        console.warn(
+          '추천 대출 API 호출 실패, fallback 데이터 사용:',
+          apiError
+        );
+        loans.value = FALLBACK_LOANS_DATA.map(loan => ({
+          id: loan.loanId,
+          title: loan.productName,
+          rate: `연 ${loan.basicRate}%`,
+          limit:
+            loan.maxLimit > 0
+              ? `최대 ${formatCurrency(loan.maxLimit)}`
+              : '한도 문의',
+        }));
+      }
+    } else {
+      // 비로그인 상태: getLoanList API 호출 시도
+      try {
+        const response = await getLoanList();
+        loans.value = response.data.loans.slice(0, 4).map(loan => ({
+          id: loan.loanId,
+          title: loan.productName,
+          rate: `연 ${loan.basicRate}%`,
+          limit:
+            loan.maxLimit > 0
+              ? `최대 ${formatCurrency(loan.maxLimit)}`
+              : '한도 문의',
+        }));
+      } catch (apiError) {
+        // API 호출 실패 시 fallback 데이터 사용
+        console.warn(
+          '대출 목록 API 호출 실패, fallback 데이터 사용:',
+          apiError
+        );
+        loans.value = FALLBACK_LOANS_DATA.map(loan => ({
+          id: loan.loanId,
+          title: loan.productName,
+          rate: `연 ${loan.basicRate}%`,
+          limit:
+            loan.maxLimit > 0
+              ? `최대 ${formatCurrency(loan.maxLimit)}`
+              : '한도 문의',
+        }));
+      }
+    }
   } catch (error) {
-    console.error('추천 대출 조회 실패:', error);
+    console.error('대출 조회 실패:', error);
   }
 };
 
 const fetchRecommendedPolicies = async () => {
-  if (!userId.value) {
-    return;
-  }
-
   try {
-    const response = await getRecommendedPolicies(userId.value);
-    policies.value = response.data.policies.map(policy => ({
-      id: policy.policyId,
-      title: policy.policyName,
-      documents: `${policy.requiredDocumentsCount || 0}/${policy.totalDocumentsCount || 0}`,
-      deadline: policy.deadline || 'D-7',
-    }));
+    if (isLoggedIn.value) {
+      // 로그인: API 우선, 실패 시 fallback
+      try {
+        const response = await getRecommendedPolicies(userId.value);
+        policies.value = (response?.data?.policies || []).map(policy => ({
+          id: policy.policyId,
+          title: policy.policyName,
+          documents: `${policy.requiredDocumentsCount || 0}/${policy.totalDocumentsCount || 0}`,
+          deadline: policy.endDate
+            ? calculateDDay(policy.endDate) || 'D-7'
+            : 'D-7',
+        }));
+      } catch (apiError) {
+        console.warn('추천 정책 API 실패, fallback 사용:', apiError);
+        policies.value = (FALLBACK_POLICIES_DATA.data.policies || [])
+          .slice(0, 4)
+          .map(policy => ({
+            id: policy.policyId,
+            title: policy.policyName,
+            documents: `0/0`,
+            deadline: policy.endDate
+              ? calculateDDay(policy.endDate) || 'D-7'
+              : 'D-7',
+          }));
+      }
+    } else {
+      // 비로그인: 하드코딩 데이터 사용
+      policies.value = (FALLBACK_POLICIES_DATA.data.policies || [])
+        .slice(0, 4)
+        .map(policy => ({
+          id: policy.policyId,
+          title: policy.policyName,
+          documents: `0/0`,
+          deadline: policy.endDate
+            ? calculateDDay(policy.endDate) || 'D-7'
+            : 'D-7',
+        }));
+    }
   } catch (error) {
-    console.error('추천 정책 조회 실패:', error);
+    console.error('추천 정책 처리 실패:', error);
   }
 };
 
@@ -719,7 +814,7 @@ const calculateDDay = endDate => {
 // 컴포넌트 마운트 시 API 데이터 로드
 onMounted(() => {
   // API 데이터 로드
-  fetchRecommendedLoans();
+  fetchRecommendedLoans(); // 로그인 여부에 따라 분기처리됨
   fetchRecommendedPolicies();
   fetchChatRooms();
   fetchUrgentProducts();
@@ -1120,10 +1215,16 @@ const onSearchButtonClick = () => {
 };
 
 const handleSearchResultDetail = result => {
-  if (result.type === '대출') {
-    router.push(`/product/loan/${result.id}`);
-  } else if (result.type === '정책') {
-    router.push(`/product/policy/${result.id}`);
+  if (isLoggedIn.value) {
+    // 로그인 상태: 상세 페이지로 이동
+    if (result.type === '대출') {
+      router.push(`/product/loan/${result.id}`);
+    } else if (result.type === '정책') {
+      router.push(`/product/policy/${result.id}`);
+    }
+  } else {
+    // 비로그인 상태: 로그인 안내 메시지 표시
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
   }
 };
 
@@ -1146,11 +1247,21 @@ const handleSearchFocusOut = () => {
 };
 
 const handleLoanDetail = loan => {
-  router.push(`/product/loan/${loan.id}`);
+  if (isLoggedIn.value) {
+    // 로그인 상태: 대출 상세 페이지로 이동
+    router.push(`/product/loan/${loan.id}`);
+  } else {
+    // 비로그인 상태: 토스트 알림 표시
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
+  }
 };
 
 const handlePolicyDetail = policy => {
-  router.push(`/product/policy/${policy.id}`);
+  if (isLoggedIn.value) {
+    router.push(`/product/policy/${policy.id}`);
+  } else {
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
+  }
 };
 
 const handlePopularDetail = popular => {
