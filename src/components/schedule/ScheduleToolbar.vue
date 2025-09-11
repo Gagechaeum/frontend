@@ -39,6 +39,7 @@
     </div>
 
     <!-- 상태 퀵필터 -->
+    <!--
     <div class="col-span-6 flex flex-wrap items-center gap-2 md:col-span-4">
       <button
         v-for="s in statuses"
@@ -62,6 +63,7 @@
         모든 필터
       </button>
     </div>
+    -->
   </div>
 </template>
 

@@ -19,7 +19,7 @@ import SegmentedTabs from '@/components/schedule/SegmentedTabs.vue';
 const tabs = [
   { label: '달력', to: '/schedule/calendar' },
   { label: '리스트', to: '/schedule/list' },
-  { label: '내 필터', to: '/schedule/filter' },
+  // { label: '내 필터', to: '/schedule/filter' },
   { label: '즐겨찾기', to: '/schedule/favorites' },
 ];
 </script>
