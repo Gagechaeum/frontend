@@ -61,7 +61,7 @@
           <!-- 핵심: 고정 폭과 항상 렌더링되는 배지 자리 -->
           <div class="flex w-16 flex-col items-end">
             <span class="text-xs text-gray-400">{{
-              room.lastMessageDate
+              parseTime(room.lastMessageDate)
             }}</span>
 
             <!-- 항상 렌더링: 없을 때는 투명으로 공간만 차지 -->
@@ -125,6 +125,10 @@ const mapTypeLabel = key => {
       return '분류없음';
   }
 };
+
+function parseTime(time) {
+  return time.split("T")[1];
+}
 
 /** 안읽은 배지 표시: 10 이상이면 '9+' */
 const displayUnread = n => (n > 9 ? '9+' : String(n || 0));
