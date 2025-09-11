@@ -3,6 +3,12 @@
     <div class="container mx-auto py-16 lg:py-24">
       <div class="grid grid-cols-12 items-start gap-8 lg:gap-12">
         <section class="col-span-12 lg:col-span-7">
+          <UiButton variant="ghost" size="md" @click="goHome" class="mb-6">
+            <template #leading>
+              <i class="fas fa-home text-neutral-900"></i>
+            </template>
+            <span class="text-base">홈으로</span>
+          </UiButton>
           <p class="mb-4 text-3xl font-bold text-neutral-900 md:text-4xl">
             다시 오신 것을 환영합니다
           </p>
@@ -112,6 +118,7 @@ import { ref } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { login } from '@/lib/api/auth';
 import NaverLoginButton from '@/components/auth/NaverLoginButton.vue';
+import UiButton from '@/components/common/UiButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -131,12 +138,22 @@ const validate = () => {
   return !(emailError.value || passwordError.value);
 };
 
+const goHome = () => {
+  router.push('/');
+};
+
 const onSubmit = async () => {
   if (!validate()) return;
   submitting.value = true;
   serverError.value = '';
   try {
     await login(email.value, password.value); // 기존 로컬 로그인 로직 그대로
+
+    // 로그인 성공 후 authStore 상태 강제 업데이트
+    const { useAuthStore } = await import('@/stores/auth');
+    const authStore = useAuthStore();
+    await authStore.hydrateSession();
+
     const next = route.query.next || '/';
     router.replace(String(next));
   } catch (e) {

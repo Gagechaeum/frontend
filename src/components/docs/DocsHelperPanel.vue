@@ -353,10 +353,31 @@
 
         <div class="space-y-4">
           <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 class="mb-2 font-medium text-blue-900">발급 방법</h4>
-            <p class="text-sm text-blue-800">
-              {{ getDocumentGuide(selectedDoc?.name) }}
+            <h4 class="mb-2 font-medium text-blue-900">정부24에서 발급하기</h4>
+            <p class="mb-3 text-sm text-blue-800">
+              필요한 서류를 정부24에서 간편하게 발급받으세요
             </p>
+            <a
+              href="https://plus.gov.kr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              정부24 바로가기
+            </a>
           </div>
 
           <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4">

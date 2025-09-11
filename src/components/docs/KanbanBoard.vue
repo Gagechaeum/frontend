@@ -7,7 +7,13 @@
       :is-open="showChecklistModal"
       @close="closeChecklistModal"
     />
-
+    <div class="mb-5 text-left">
+      <p
+        class="inline-block rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-gray-500"
+      >
+        카드를 드래그하여 진행 상태를 변경하세요
+      </p>
+    </div>
     <div class="grid grid-cols-4 gap-6">
       <div
         v-for="column in kanbanColumns"
