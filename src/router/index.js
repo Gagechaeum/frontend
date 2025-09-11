@@ -17,6 +17,8 @@ import DocsView from '@/views/Docs/DocsView.vue';
 
 import LoginView from '@/views/Auth/LoginView.vue';
 import SignupView from '@/views/Auth/SignupView.vue';
+// ✅ 온보딩 화면 실제 컴포넌트
+import OnboardingView from '@/views/Auth/OnboardingView.vue';
 
 import { getAccessToken, refresh } from '@/lib/api/auth';
 
@@ -88,7 +90,7 @@ const routes = [
   {
     path: '/onboarding',
     name: 'onboarding',
-    component: Placeholder('온보딩'),
+    component: OnboardingView, // ✅ Placeholder → 실제 컴포넌트
     meta: { showHeader: true, requiresAuth: true },
   },
   {
@@ -132,6 +134,8 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 });
 
+const ONBOARDING_DONE_KEY = 'onboarding_done';
+
 router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth);
   const guestOnly = to.matched.some(r => r.meta?.guestOnly);
@@ -158,6 +162,19 @@ router.beforeEach(async (to, from, next) => {
 
   if (guestOnly && hasAT) {
     return next({ path: '/' });
+  }
+
+  // ✅ 회원가입 후 최초 로그인 시 온보딩 강제 이동
+  if (hasAT) {
+    const onboardingDone = localStorage.getItem(ONBOARDING_DONE_KEY) === '1';
+    let isFirstLogin = false;
+    try {
+      const me = JSON.parse(localStorage.getItem('me') || '{}');
+      isFirstLogin = !!me.firstLogin;
+    } catch {}
+    if (isFirstLogin && !onboardingDone && to.path !== '/onboarding') {
+      return next('/onboarding');
+    }
   }
 
   return next();
