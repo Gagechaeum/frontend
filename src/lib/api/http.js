@@ -1,68 +1,60 @@
+// src/lib/api/http.js
 import axios from 'axios';
 import { getAccessToken, refresh } from './auth';
 
+const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, ''); // 끝 슬래시 제거
 class HttpClient {
   constructor() {
     this.api = axios.create({
-      baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
-      withCredentials: true, // refreshToken 쿠키 주고받기
+      baseURL: `${base}/api`,       // 여기서만 /api 붙입니다
+      withCredentials: true,        // refreshToken 쿠키 사용
       timeout: 15000,
     });
 
     this.isRefreshing = false;
-    this.pendingQueue = [];
+    this.pendingQueue = [];         // 대기중 요청을 재시도하기 위한 큐
 
     this.setupInterceptors();
   }
 
   runQueue(error, token) {
-    this.pendingQueue.forEach(({ resolve, reject }) => {
+    this.pendingQueue.forEach(({ resolve, reject, orig }) => {
       if (error) reject(error);
-      else resolve(token);
+      else {
+        orig.headers = { ...(orig.headers || {}), Authorization: `Bearer ${token}` };
+        resolve(this.api(orig));
+      }
     });
     this.pendingQueue = [];
   }
 
   setupInterceptors() {
-    // 요청 인터셉터: 토큰 자동 첨부
-    this.api.interceptors.request.use(config => {
-      const at = getAccessToken();
+    // 요청 인터셉터: AT 부착
+    this.api.interceptors.request.use((config) => {
+      const at = getAccessToken?.();
       if (at && !config.headers?.Authorization) {
-        config.headers = {
-          ...(config.headers || {}),
-          Authorization: `Bearer ${at}`,
-        };
+        config.headers = { ...(config.headers || {}), Authorization: `Bearer ${at}` };
       }
       return config;
     });
 
-    // 응답 인터셉터: 401 에러 시 토큰 갱신 및 재시도
+    // 응답 인터셉터: 401 → refresh → 원요청 재시도
     this.api.interceptors.response.use(
-      res => res,
-      async error => {
+      (res) => res,
+      async (error) => {
         const { config, response } = error || {};
         const original = config || {};
         const status = response?.status;
 
-        // 로그인 요청, 토큰 갱신 요청은 토큰 재발급 로직 제외
         const isAuthPath =
           original?.url?.includes('/auth/login') ||
           original?.url?.includes('/auth/refresh');
 
         if (status === 401 && !isAuthPath && !original._retry) {
           if (this.isRefreshing) {
+            // refresh 중이면 큐잉
             return new Promise((resolve, reject) => {
-              this.pendingQueue.push({
-                resolve: token => {
-                  original.headers = {
-                    ...(original.headers || {}),
-                    Authorization: `Bearer ${token}`,
-                  };
-                  original._retry = true;
-                  resolve(this.api(original));
-                },
-                reject,
-              });
+              this.pendingQueue.push({ resolve, reject, orig: original });
             });
           }
 
@@ -70,7 +62,7 @@ class HttpClient {
           this.isRefreshing = true;
 
           try {
-            const newToken = await refresh();
+            const newToken = await refresh();     // ⬅️ 아래 auth.js 구현 필수
             this.runQueue(null, newToken);
             original.headers = {
               ...(original.headers || {}),
@@ -79,20 +71,19 @@ class HttpClient {
             return this.api(original);
           } catch (e) {
             this.runQueue(e, null);
-            // 토큰 재발급 실패 → 로컬 토큰 제거
-            localStorage.removeItem('access_token');
+            localStorage.removeItem('access_token'); // AT 제거
             throw e;
           } finally {
             this.isRefreshing = false;
           }
         }
 
+        // 네트워크/CORS 등의 기타 에러는 그대로 던짐
         throw error;
       }
     );
   }
 }
 
-// 싱글톤 인스턴스 생성 및 export
 const httpClient = new HttpClient();
 export default httpClient.api;
