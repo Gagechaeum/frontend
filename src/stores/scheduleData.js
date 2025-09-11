@@ -77,10 +77,9 @@ function mapLoan(l) {
 async function loadAll() {
   if (_cache) return _cache;
 
-  // 0-based 페이지로 요청
   const [pols, loans] = await Promise.all([
-    listPolicies({ page: 0, size: 500 }).catch(() => []),
-    listLoans({ page: 0, size: 500 }).catch(() => []),
+    listPolicies({ page: 1, size: 500 }).catch(() => []),
+    listLoans({ page: 1, size: 500 }).catch(() => []),
   ]);
 
   _cache = [

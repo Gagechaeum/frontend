@@ -96,13 +96,11 @@
                   class="fas fa-bell text-lg text-gray-600"
                   aria-hidden="true"
                 ></i>
-                <!-- 읽지 않은 알림 개수 표시 -->
+                <!-- 읽지 않은 알림이 있을 때 빨간 점 표시 -->
                 <span
                   v-if="unreadCount > 0"
-                  class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white"
-                >
-                  {{ unreadCount > 9 ? '9+' : unreadCount }}
-                </span>
+                  class="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500"
+                ></span>
               </button>
 
               <!-- 알림 드롭다운 -->
@@ -113,11 +111,6 @@
                 <div class="border-b border-gray-200 p-4">
                   <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-900">알림</h3>
-                    <span
-                      v-if="unreadCount > 0"
-                      class="text-sm font-medium text-blue-600"
-                      >{{ unreadCount }}개의 읽지 않은 알림</span
-                    >
                   </div>
                 </div>
 
@@ -260,6 +253,8 @@ onMounted(async () => {
   // 로그인된 사용자의 사업자 정보 로드
   if (isLoggedIn.value) {
     await businessInfoStore.loadBusinessInfo();
+    // mock 알림 데이터 추가
+    notificationStore.addSampleNotifications();
   }
 });
 
@@ -313,9 +308,13 @@ watch(
     if (newValue) {
       // 로그인된 경우 사업자 정보 로드
       await businessInfoStore.loadBusinessInfo();
+      // mock 알림 데이터 추가
+      notificationStore.addSampleNotifications();
     } else {
       // 로그아웃된 경우 사업자 정보 초기화
       businessInfoStore.clearBusinessInfo();
+      // 알림 데이터도 초기화
+      notificationStore.clearNotifications();
     }
   },
   { immediate: false }

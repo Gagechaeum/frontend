@@ -16,9 +16,10 @@
       >
         <i
           :class="[
-            'far fa-star',
+            favorited ? 'fas fa-star' : 'far fa-star',
             favorited ? 'text-yellow-400' : 'text-gray-400',
           ]"
+          :style="favorited ? { '-webkit-text-stroke': 'none' } : {}"
         ></i>
       </button>
     </div>
