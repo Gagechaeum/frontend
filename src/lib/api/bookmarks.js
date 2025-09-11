@@ -109,3 +109,31 @@ export async function updateLoanStatus(id, status) {
     throw error;
   }
 }
+
+/**
+ * 즐겨찾기 상품에 필요한 서류 목록 조회
+ * GET /api/me/bookmarks/documents
+ */
+export async function getBookmarkDocuments() {
+  try {
+    const res = await api.get(apiPath('/me/bookmarks/documents'));
+    return unwrap(res);
+  } catch (error) {
+    console.error('즐겨찾기 서류 목록 조회 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 즐겨찾기 상품 목록 조회
+ * GET /api/me/bookmarks/products
+ */
+export async function getBookmarkedProducts() {
+  try {
+    const res = await api.get(apiPath('/me/bookmarks/products'));
+    return unwrap(res);
+  } catch (error) {
+    console.error('즐겨찾기 상품 목록 조회 실패:', error);
+    throw error;
+  }
+}

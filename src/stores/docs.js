@@ -5,6 +5,7 @@ import {
   uploadUserDocument,
   downloadUserDocuments,
   deleteUserDocuments,
+  getDocumentTypes,
 } from '@/lib/api/documents.js';
 import {
   getBookmarksProgress,
@@ -24,6 +25,7 @@ export const useDocsStore = defineStore('docs', () => {
   // 데이터
   const allItems = ref([]);
   const userDocuments = ref([]);
+  const documentTypes = ref([]);
   const isLoading = ref(false);
   const error = ref(null);
 
@@ -294,6 +296,26 @@ export const useDocsStore = defineStore('docs', () => {
     }
   };
 
+  // Document Types 관련 함수들
+  const loadDocumentTypes = async () => {
+    try {
+      isLoading.value = true;
+      const response = await getDocumentTypes();
+      documentTypes.value = response.data?.list || [];
+    } catch (error) {
+      console.error('서류 유형 로드 실패:', error);
+      error.value = error.message;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // 서류명으로 documentId 찾기
+  const getDocumentIdByName = documentName => {
+    const document = documentTypes.value.find(doc => doc.name === documentName);
+    return document ? document.id : null;
+  };
+
   return {
     // 상태
     viewMode,
@@ -301,6 +323,7 @@ export const useDocsStore = defineStore('docs', () => {
     filters,
     allItems,
     userDocuments,
+    documentTypes,
     isLoading,
     error,
 
@@ -325,5 +348,9 @@ export const useDocsStore = defineStore('docs', () => {
     updateItemStatusWithAPI,
     mapProcessStageToStatus,
     mapStatusToProcessStage,
+
+    // Document Types 액션
+    loadDocumentTypes,
+    getDocumentIdByName,
   };
 });

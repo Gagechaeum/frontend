@@ -131,3 +131,18 @@ export const getDocumentChecklist = async (productId, type) => {
     throw error;
   }
 };
+
+/**
+ * 특정 서류가 필요한 상품 목록 조회
+ * @param {number} documentId - 서류 ID
+ * @returns {Promise} 해당 서류가 필요한 상품 목록
+ */
+export const getProductsByDocument = async documentId => {
+  try {
+    const response = await api.get(`/documents/${documentId}/products`);
+    return response.data;
+  } catch (error) {
+    console.error('서류별 상품 목록 조회 실패:', error);
+    throw error;
+  }
+};
