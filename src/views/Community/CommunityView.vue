@@ -2,14 +2,13 @@
   <div class="min-h-screen bg-[#F7F8FA] font-['Pretendard','Inter',sans-serif]">
     <div class="mx-auto max-w-7xl px-4 py-6 lg:px-6">
       <!-- 추천 캐러셀: 채팅방이 없을 때만 -->
-      <section v-if="!selectedRoom" id="recommend" class="mb-6">
+      <!-- <section v-if="!selectedRoom" id="recommend" class="mb-6">
         <RecommendCarousel :rooms="recommendedRooms" @join="openJoinModal" />
-      </section>
+      </section> -->
 
       <div class="flex flex-col gap-6">
         <!-- 리스트 화면 -->
         <div v-if="!selectedRoom" class="space-y-8">
-          <LiveBanner />
 
           <section id="my-rooms">
             <MyRoomsSection
@@ -20,6 +19,8 @@
               @enter-room="enterChatRoom"
             />
           </section>
+
+          <LiveBanner />
 
           <AllRoomsSection
             ref="allRoomsSection"
