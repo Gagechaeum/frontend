@@ -100,9 +100,9 @@
 
   const isMine = m => m?.nickname === props.currentUser;
 
-  const fetchRenewFileUrl = async file_id => {
+  const fetchRenewFileUrl = async fileId => {
     try {
-      const response = await renewFileUrl(file_id);
+      const response = await renewFileUrl(fileId);
       if (response.data) {
         window.open(response.data, '_blank');
       }

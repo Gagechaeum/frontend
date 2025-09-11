@@ -31,9 +31,9 @@ export const getUserChatRooms = async (type) => {
 };
 
 // 채팅방 히스토리 조회
-export const getChatRoomHistory = async (room_id, since) => {
+export const getChatRoomHistory = async (roomId, since) => {
   try {
-    const response = await api.get(`chatrooms/${room_id}/history`, {
+    const response = await api.get(`chatrooms/${roomId}/history`, {
       params: { since },
     });
     return response.data;
@@ -44,9 +44,9 @@ export const getChatRoomHistory = async (room_id, since) => {
 };
 
 // 파일 url 갱신
-export const renewFileUrl = async (file_id) => {
+export const renewFileUrl = async (fileId) => {
   try {
-    const response = await api.get(`chatrooms/attachment/${file_id}`);
+    const response = await api.get(`chatrooms/attachment/${fileId}`);
     return response.data;
   } catch (error) {
     console.error('파일 URL 갱신 실패:', error);

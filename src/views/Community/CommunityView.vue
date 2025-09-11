@@ -79,7 +79,8 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { getUserChatRooms, getChatRooms, getChatRoomHistory } from '@/lib/api/community.js';
-import { useAuthStore  } from '@/stores/auth';
+import { useAuthStore } from '@/stores/auth';
+import { useChatStore } from '@/stores/stomp';
 
 import LiveBanner from '@/components/community/LiveBanner.vue';
 import RecommendCarousel from '@/components/community/RecommendCarousel.vue';
@@ -91,6 +92,7 @@ import JoinModal from '@/components/community/JoinModal.vue';
 import ImagePreviewModal from '@/components/community/ImagePreviewModal.vue';
 
 const authStore = useAuthStore();
+const stompClient = useChatStore();
 
 /** 상태 */
 const activeTab = ref('all');
@@ -219,6 +221,9 @@ onMounted(() => {
   // API 데이터 로드
   fetchUserChatRooms();
   fetchChatRooms();
+
+  // stomp 연결
+  stompClient.connect();
 });
 
 const fetchUserChatRooms = async () => {
@@ -241,9 +246,9 @@ const fetchChatRooms = async () => {
   }
 };
 
-const fetchChatRoomHistory = async (room_id) => {
+const fetchChatRoomHistory = async (roomId) => {
   try {
-    const response = await getChatRoomHistory(room_id, null);
+    const response = await getChatRoomHistory(roomId, null);
     messages.value = response.data.messages;
   } catch (error) {
     console.error('채팅방 히스토리 조회 실패:', error);
@@ -265,10 +270,12 @@ const enterChatRoom = room => {
       },
     ];
   }
+  stompClient.subscribe(room.roomId);
   fetchChatRoomHistory(room.roomId, room.lastLeftAt);
   selectedRoom.value = room;
   nextTick(scrollToBottom);
 };
+
 const leaveRoom = () => {
   selectedRoom.value = null;
 };
@@ -279,6 +286,7 @@ const pushMessageToCurrentRoom = msg => {
   if (!messagesByRoom.value[rid]) messagesByRoom.value[rid] = [];
   messagesByRoom.value[rid].push(msg);
 };
+
 const handleSendText = text => {
   if (!text?.trim() || !selectedRoom.value) return;
   pushMessageToCurrentRoom({
@@ -292,6 +300,7 @@ const handleSendText = text => {
   });
   nextTick(scrollToBottom);
 };
+
 const handleSendImage = fileInfo => {
   pushMessageToCurrentRoom({
     id: Date.now().toString(),
@@ -305,6 +314,7 @@ const handleSendImage = fileInfo => {
   });
   nextTick(scrollToBottom);
 };
+
 const handleSendVideo = fileInfo => {
   pushMessageToCurrentRoom({
     id: Date.now().toString(),
@@ -318,6 +328,7 @@ const handleSendVideo = fileInfo => {
   });
   nextTick(scrollToBottom);
 };
+
 const handleSendFile = fileInfo => {
   pushMessageToCurrentRoom({
     id: Date.now().toString(),
@@ -337,10 +348,12 @@ const openJoinModal = room => {
   selectedRoomForJoin.value = room;
   showJoinModal.value = true;
 };
+
 const closeJoinModal = () => {
   showJoinModal.value = false;
   selectedRoomForJoin.value = null;
 };
+
 const joinRoom = () => {
   if (!selectedRoomForJoin.value) return;
   const room = selectedRoomForJoin.value;
@@ -363,6 +376,7 @@ const openImagePreview = ({ url, name }) => {
   previewImageName.value = name;
   showImagePreview.value = true;
 };
+
 const closeImagePreview = () => {
   showImagePreview.value = false;
   previewImageUrl.value = '';
@@ -395,5 +409,6 @@ onUnmounted(() => {
 
 /** 데모 핸들러 */
 const openRegion = () => {};
+
 const openBusinessCategory = () => {};
 </script>
