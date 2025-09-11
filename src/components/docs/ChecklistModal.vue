@@ -275,13 +275,30 @@ const openUploadModal = async file => {
   try {
     const res = await getDocumentTypes();
     documentTypes.value = (res && res.data && res.data.list) || [];
+
+    // file.documentName과 일치하는 서류 유형 찾기
+    const matchingType = documentTypes.value.find(
+      type => type.name === file.documentName
+    );
+
+    if (matchingType) {
+      // 일치하는 유형이 있으면 자동 선택
+      newDoc.value.typeId = matchingType.id;
+      newDoc.value.typeName = matchingType.name;
+      newDoc.value.customName = '';
+    } else {
+      // 일치하는 유형이 없으면 초기화
+      newDoc.value.typeId = '';
+      newDoc.value.typeName = '';
+      newDoc.value.customName = '';
+    }
   } catch (e) {
     notification.show('error', '서류 유형을 불러오지 못했습니다.');
+    // 에러 발생 시 초기화
+    newDoc.value.typeId = '';
+    newDoc.value.typeName = '';
+    newDoc.value.customName = '';
   }
-  // 초기화
-  newDoc.value.typeId = '';
-  newDoc.value.typeName = '';
-  newDoc.value.customName = '';
 };
 
 // 서류 등록 모달 닫기
