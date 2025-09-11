@@ -109,6 +109,7 @@ import { useNotificationStore } from '@/stores/notification';
 /* ===== Stores ===== */
 const reportStore = useReportStore();
 const notificationStore = useNotificationStore();
+const router = useRouter();
 const { summary, items, schedule, cashFlow } = storeToRefs(reportStore);
 
 /* ===== UI State ===== */
@@ -260,12 +261,10 @@ const toggleDetail = id => {
   else expandedItems.value.push(id);
 };
 const openLoanDetail = item => {
-  // TODO: implement loan detail
-  void item;
+  router.push({ name: 'loan-detail', params: { id: item.itemId } });
 };
 const openPolicyDetail = item => {
-  // TODO: implement policy detail
-  void item;
+  router.push({ name: 'policy-detail', params: { id: item.policyId } });
 };
 
 /* ===== RegisterModal → ReportView 핸들러 ===== */
