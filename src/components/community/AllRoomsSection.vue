@@ -10,9 +10,9 @@
           class="relative cursor-pointer overflow-hidden rounded-xl transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg"
           @click="$emit('enter-room', room)"
         >
-          <img class="h-32 w-full object-cover" />
+          <img class="h-16 w-full object-cover" />
           <div
-            class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"
+            class="absolute inset-0 bg-blue-500 to-transparent"
           ></div>
           <div class="absolute inset-x-0 bottom-0 p-3">
             <h3 class="text-base font-bold text-white">{{ room.name }}</h3>
@@ -32,9 +32,9 @@
           class="relative cursor-pointer overflow-hidden rounded-xl transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg"
           @click="$emit('enter-room', room)"
         >
-          <img class="h-32 w-full object-cover" />
+          <img class="h-20 w-full object-cover" />
           <div
-            class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"
+            class="absolute inset-0 bg-blue-500 to-transparent"
           ></div>
           <div class="absolute inset-x-0 bottom-0 p-3">
             <h3 class="text-base font-bold text-white">{{ room.name }}</h3>
