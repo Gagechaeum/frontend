@@ -281,9 +281,10 @@ const handlePageChange = newPage => {
 
 /* ===== Utils ===== */
 function toISO(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /* Calendar helpers */
