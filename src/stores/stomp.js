@@ -7,7 +7,7 @@ export const useChatStore = defineStore('chat', {
     isConnected: false,
 	roomId: null,
     messages: [],
-	token: null
+	token: null,
   }),
   actions: {
     connect(token) {
@@ -39,7 +39,7 @@ export const useChatStore = defineStore('chat', {
 			console.error('Error with websocket', error);
 		};
 
-		this.stompClient.onStompError = () => {
+		this.stompClient.onStompError = (frame) => {
 			console.error('Broker reported error: ' + frame.headers['message']);
 			console.error('Additional details: ' + frame.body);
 		}
