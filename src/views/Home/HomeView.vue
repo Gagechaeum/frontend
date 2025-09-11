@@ -1198,34 +1198,44 @@ const handlePolicyDetail = policy => {
 };
 
 const handlePopularDetail = popular => {
-  // type 정보를 사용하여 라우팅
-  if (popular.type === 'policy') {
-    router.push(`/product/policy/${popular.id}`);
-  } else if (popular.type === 'loan') {
-    router.push(`/product/loan/${popular.id}`);
-  } else {
-    // fallback: 제목으로 판단
-    if (popular.title.includes('지원금') || popular.title.includes('지원')) {
+  if (isLoggedIn.value) {
+    // 로그인 상태: type 정보를 사용하여 라우팅
+    if (popular.type === 'policy') {
       router.push(`/product/policy/${popular.id}`);
-    } else {
+    } else if (popular.type === 'loan') {
       router.push(`/product/loan/${popular.id}`);
+    } else {
+      // fallback: 제목으로 판단
+      if (popular.title.includes('지원금') || popular.title.includes('지원')) {
+        router.push(`/product/policy/${popular.id}`);
+      } else {
+        router.push(`/product/loan/${popular.id}`);
+      }
     }
+  } else {
+    // 비로그인 상태: 로그인 안내 메시지 표시
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
   }
 };
 
 const handleUrgentDetail = urgent => {
-  // type 정보를 사용하여 라우팅
-  if (urgent.type === 'policy') {
-    router.push(`/product/policy/${urgent.id}`);
-  } else if (urgent.type === 'loan') {
-    router.push(`/product/loan/${urgent.id}`);
-  } else {
-    // fallback: 제목으로 판단
-    if (urgent.title.includes('지원') || urgent.title.includes('지원금')) {
+  if (isLoggedIn.value) {
+    // 로그인 상태: type 정보를 사용하여 라우팅
+    if (urgent.type === 'policy') {
       router.push(`/product/policy/${urgent.id}`);
-    } else {
+    } else if (urgent.type === 'loan') {
       router.push(`/product/loan/${urgent.id}`);
+    } else {
+      // fallback: 제목으로 판단
+      if (urgent.title.includes('지원') || urgent.title.includes('지원금')) {
+        router.push(`/product/policy/${urgent.id}`);
+      } else {
+        router.push(`/product/loan/${urgent.id}`);
+      }
     }
+  } else {
+    // 비로그인 상태: 로그인 안내 메시지 표시
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
   }
 };
 
