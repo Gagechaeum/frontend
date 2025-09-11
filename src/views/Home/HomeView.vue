@@ -395,7 +395,7 @@
         <Section title="인기 채팅방">
           <template #description>
             <p class="reveal-item text-lg text-gray-600">
-              지금 가장 인기 있는 채팅방을 추천해드립니다
+              채팅방에서 다양한 사용자와 고민을 나누고 소통하세요
             </p>
           </template>
           <template #actions>
