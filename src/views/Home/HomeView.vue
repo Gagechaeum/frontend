@@ -291,13 +291,20 @@
                   :title="policy.title"
                   badge="정책"
                   badge-tone="gray"
-                  :details="[
-                    { label: '필요서류', value: policy.documents },
-                    { label: '마감', value: policy.deadline, tone: 'danger' },
-                  ]"
                   action-label="자세히 보기"
                   @action="handlePolicyDetail(policy)"
-                />
+                >
+                  <template #after-details>
+                    <div class="mb-3 mr-2 flex justify-between text-sm">
+                      <div class="text-gray-600">
+                        필요서류 : {{ policy.documents }}
+                      </div>
+                      <div class="font-medium text-red-600">
+                        {{ policy.deadline }}
+                      </div>
+                    </div>
+                  </template>
+                </CardLg>
               </div>
             </div>
           </Section>
@@ -481,6 +488,7 @@ import {
   searchProducts,
   getPolicyList,
   FALLBACK_LOANS_DATA,
+  FALLBACK_POLICIES_DATA,
 } from '@/lib/api/products.js';
 import { getChatRooms } from '@/lib/api/community.js';
 import SearchBar from '@/components/common/SearchBar.vue';
@@ -580,20 +588,47 @@ const fetchRecommendedLoans = async () => {
 };
 
 const fetchRecommendedPolicies = async () => {
-  if (!userId.value) {
-    return;
-  }
-
   try {
-    const response = await getRecommendedPolicies(userId.value);
-    policies.value = response.data.policies.map(policy => ({
-      id: policy.policyId,
-      title: policy.policyName,
-      documents: `${policy.requiredDocumentsCount || 0}/${policy.totalDocumentsCount || 0}`,
-      deadline: policy.deadline || 'D-7',
-    }));
+    if (isLoggedIn.value) {
+      // 로그인: API 우선, 실패 시 fallback
+      try {
+        const response = await getRecommendedPolicies(userId.value);
+        policies.value = (response?.data?.policies || []).map(policy => ({
+          id: policy.policyId,
+          title: policy.policyName,
+          documents: `${policy.requiredDocumentsCount || 0}/${policy.totalDocumentsCount || 0}`,
+          deadline: policy.endDate
+            ? calculateDDay(policy.endDate) || 'D-7'
+            : 'D-7',
+        }));
+      } catch (apiError) {
+        console.warn('추천 정책 API 실패, fallback 사용:', apiError);
+        policies.value = (FALLBACK_POLICIES_DATA.data.policies || [])
+          .slice(0, 4)
+          .map(policy => ({
+            id: policy.policyId,
+            title: policy.policyName,
+            documents: `0/0`,
+            deadline: policy.endDate
+              ? calculateDDay(policy.endDate) || 'D-7'
+              : 'D-7',
+          }));
+      }
+    } else {
+      // 비로그인: 하드코딩 데이터 사용
+      policies.value = (FALLBACK_POLICIES_DATA.data.policies || [])
+        .slice(0, 4)
+        .map(policy => ({
+          id: policy.policyId,
+          title: policy.policyName,
+          documents: `0/0`,
+          deadline: policy.endDate
+            ? calculateDDay(policy.endDate) || 'D-7'
+            : 'D-7',
+        }));
+    }
   } catch (error) {
-    console.error('추천 정책 조회 실패:', error);
+    console.error('추천 정책 처리 실패:', error);
   }
 };
 
@@ -1215,7 +1250,11 @@ const handleLoanDetail = loan => {
 };
 
 const handlePolicyDetail = policy => {
-  router.push(`/product/policy/${policy.id}`);
+  if (isLoggedIn.value) {
+    router.push(`/product/policy/${policy.id}`);
+  } else {
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
+  }
 };
 
 const handlePopularDetail = popular => {

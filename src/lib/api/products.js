@@ -1,6 +1,5 @@
 import api from './http.js';
 
-// 비로그인 상태용 fallback 대출 데이터
 export const FALLBACK_LOANS_DATA = [
   {
     loanId: 1,
@@ -63,6 +62,61 @@ export const FALLBACK_LOANS_DATA = [
     bookmarkCount: 0,
   },
 ];
+
+export const FALLBACK_POLICIES_DATA = {
+  data: {
+    policies: [
+      {
+        policyId: '508000000690',
+        industryId: 3,
+        regionId: 47240,
+        policyName: '구미시 근로취약계층 유급병가 지원',
+        supervisingOrganizationName: '경상북도 구미시',
+        noticeDate: '2024-02-06T13:22:26',
+        modificationDate: '2025-07-25T14:05:37',
+        beginDate: '2025-01-01',
+        endDate: '2025-12-31',
+        bookmarkCount: 0,
+      },
+      {
+        policyId: '510000000132',
+        industryId: 11,
+        regionId: 47260,
+        policyName: '소상공인 정책자금 이차보전',
+        supervisingOrganizationName: '경상북도 영천시',
+        noticeDate: '2022-02-08T18:42:21',
+        modificationDate: '2025-07-23T11:37:32',
+        beginDate: null,
+        endDate: null,
+        bookmarkCount: 0,
+      },
+      {
+        policyId: '516000000124',
+        industryId: 1,
+        regionId: 47330,
+        policyName: '축산물판매업소 육절기, 골절기 구입비용 지원',
+        supervisingOrganizationName: '경상북도 청송군',
+        noticeDate: '2021-09-23T12:34:56',
+        modificationDate: '2025-07-24T11:51:11',
+        beginDate: null,
+        endDate: null,
+        bookmarkCount: 0,
+      },
+      {
+        policyId: '547000000152',
+        industryId: 5,
+        regionId: 48380,
+        policyName: '상수도요금 감면(소상공인)',
+        supervisingOrganizationName: '경상남도 거창군',
+        noticeDate: '2022-12-01T22:14:12',
+        modificationDate: '2025-07-11T10:03:37',
+        beginDate: null,
+        endDate: null,
+        bookmarkCount: 0,
+      },
+    ],
+  },
+};
 
 /**
  * 대출 상세 정보 조회
