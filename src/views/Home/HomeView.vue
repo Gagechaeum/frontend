@@ -1215,10 +1215,16 @@ const onSearchButtonClick = () => {
 };
 
 const handleSearchResultDetail = result => {
-  if (result.type === '대출') {
-    router.push(`/product/loan/${result.id}`);
-  } else if (result.type === '정책') {
-    router.push(`/product/policy/${result.id}`);
+  if (isLoggedIn.value) {
+    // 로그인 상태: 상세 페이지로 이동
+    if (result.type === '대출') {
+      router.push(`/product/loan/${result.id}`);
+    } else if (result.type === '정책') {
+      router.push(`/product/policy/${result.id}`);
+    }
+  } else {
+    // 비로그인 상태: 로그인 안내 메시지 표시
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
   }
 };
 
