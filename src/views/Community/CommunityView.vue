@@ -77,6 +77,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { getUserChatRooms } from '@/lib/api/community.js';
 
 import LiveBanner from '@/components/community/LiveBanner.vue';
 import RecommendCarousel from '@/components/community/RecommendCarousel.vue';
@@ -134,38 +135,13 @@ const recommendedRooms = ref([
 /** 탭/목록 데이터 */
 const tabs = ref([
   { id: 'all', name: '전체', icon: 'fas fa-th-large' },
-  { id: 'business', name: '업종', icon: 'fas fa-briefcase' },
+  { id: 'industry', name: '업종', icon: 'fas fa-briefcase' },
   { id: 'region', name: '지역', icon: 'fas fa-map-marker-alt' },
   { id: 'loan', name: '대출', icon: 'fas fa-hand-holding-usd' },
   { id: 'policy', name: '정책', icon: 'fas fa-gavel' },
 ]);
 
-const myRooms = ref([
-  {
-    id: '5',
-    name: '서초구 맛집 사장님',
-    memberCount: 45,
-    lastMessageTime: '오후 2:30',
-    unreadCount: 3,
-    category: 'region',
-  },
-  {
-    id: '6',
-    name: '헬스장 운영자 모임',
-    memberCount: 28,
-    lastMessageTime: '오전 11:15',
-    unreadCount: 0,
-    category: 'business',
-  },
-  {
-    id: '7',
-    name: '소상공인 정책 Q&A',
-    memberCount: 120,
-    lastMessageTime: '오전 9:40',
-    unreadCount: 5,
-    category: 'policy',
-  },
-]);
+const myRooms = ref();
 
 /** (데모) 영역/업종 */
 const regions = ref([]);
@@ -232,6 +208,20 @@ const messagesByRoom = ref({
 const currentRoomMessages = computed(() =>
   selectedRoom.value ? messagesByRoom.value[selectedRoom.value.id] || [] : []
 );
+
+onMounted(() => {
+  // API 데이터 로드
+  fetchUserChatRooms();
+});
+
+const fetchUserChatRooms = async () => {
+  try {
+    const response = await getUserChatRooms("all");
+    myRooms.value = response.data.chatRooms;
+  } catch (error) {
+    console.error('사용자 채팅방 목록 조회 실패:', error);
+  }
+};
 
 /** 채팅 입퇴장/전송 */
 const enterChatRoom = room => {

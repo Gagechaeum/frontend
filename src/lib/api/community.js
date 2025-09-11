@@ -16,3 +16,15 @@ export const getChatRooms = async (type = 'all') => {
     throw error;
   }
 };
+
+export const getUserChatRooms = async (type) => {
+  try {
+    const response = await api.get('me/chatrooms', {
+      params: { type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('사용자 채팅방 목록 조회 실패:', error);
+    throw error;
+  }
+};
