@@ -30,13 +30,7 @@
         @click="openDropdown = !openDropdown"
       >
         <span>
-          {{
-            sortBy === 'name'
-              ? '정책명순'
-              : sortBy === 'date'
-                ? '날짜순'
-                : '가나다순'
-          }}
+          {{ sortBy === 'date' ? '최신순' : '이름순' }}
         </span>
         <i
           class="fas fa-chevron-down ml-2 text-gray-400 transition-transform"
@@ -52,37 +46,25 @@
           <li>
             <button
               class="w-full rounded-lg px-3 py-2 text-left hover:bg-blue-50"
-              :class="{ 'bg-blue-100 font-medium': sortBy === 'name' }"
-              @click="
-                $emit('update:sort-by', 'name');
-                openDropdown = false;
-              "
-            >
-              정책명순
-            </button>
-          </li>
-          <li>
-            <button
-              class="w-full rounded-lg px-3 py-2 text-left hover:bg-blue-50"
               :class="{ 'bg-blue-100 font-medium': sortBy === 'date' }"
               @click="
                 $emit('update:sort-by', 'date');
                 openDropdown = false;
               "
             >
-              날짜순
+              최신순
             </button>
           </li>
           <li>
             <button
               class="w-full rounded-lg px-3 py-2 text-left hover:bg-blue-50"
-              :class="{ 'bg-blue-100 font-medium': sortBy === 'alphabet' }"
+              :class="{ 'bg-blue-100 font-medium': sortBy === 'name' }"
               @click="
-                $emit('update:sort-by', 'alphabet');
+                $emit('update:sort-by', 'name');
                 openDropdown = false;
               "
             >
-              가나다순
+              이름순
             </button>
           </li>
         </ul>

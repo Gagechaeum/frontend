@@ -118,7 +118,7 @@ const onClickLoan = () => {
   // TODO: implement loan add flow
 };
 const activeTab = ref('all');
-const sortBy = ref('name');
+const sortBy = ref('date');
 const expandedItems = ref([]);
 
 /* ===== Summary / Chart State ===== */
@@ -183,10 +183,12 @@ const filteredItems = computed(() => {
   }
 
   if (sortBy.value === 'name') {
+    // 이름순 (가나다순)
     list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   } else if (sortBy.value === 'date') {
+    // 최신순 (날짜 내림차순)
     list = [...list].sort(
-      (a, b) => new Date(a.startDate) - new Date(b.startDate)
+      (a, b) => new Date(b.startDate) - new Date(a.startDate)
     );
   }
   return list;
