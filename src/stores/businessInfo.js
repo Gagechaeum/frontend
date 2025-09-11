@@ -55,6 +55,15 @@ export const useBusinessInfoStore = defineStore('businessInfo', {
       const business = state.businessInfo?.[0];
       return business?.industryId ? getIndustryName(business.industryId) : '';
     },
+
+    // 사용자의 모든 industryId 배열 반환
+    allIndustryIds: state => {
+      const result =
+        state.businessInfo
+          ?.map(business => business.industryId)
+          .filter(id => id != null) || [];
+      return result;
+    },
   },
 
   actions: {
@@ -72,7 +81,6 @@ export const useBusinessInfoStore = defineStore('businessInfo', {
         }
         return this.businessInfo;
       } catch (error) {
-        console.error('사업자 정보 로드 실패:', error);
         this.error = error;
         this.businessInfo = [];
         return [];

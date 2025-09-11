@@ -48,7 +48,6 @@ export const useProductsStore = defineStore('products', () => {
 
       return { loans: loans.value, policies: policies.value };
     } catch (error) {
-      console.error('상품 데이터 로드 실패:', error);
       throw error;
     } finally {
       isLoading.value = false;
@@ -146,6 +145,60 @@ export const useProductsStore = defineStore('products', () => {
     return allProducts.slice(0, 5);
   });
 
+  // 업종별 인기 상품 데이터 (특정 업종들의 industryId에 해당하는 상품들만 필터링)
+  const getIndustryPopularProducts = industryIds => {
+    if (!industryIds || industryIds.length === 0) {
+      return [];
+    }
+
+    const allProducts = [];
+    const urgentIds = new Set(getUrgentProducts.value.map(item => item.id));
+
+    // 대출 데이터 처리 (마감임박 섹션 제외, 업종 필터링)
+    loans.value.forEach(loan => {
+      if (
+        !urgentIds.has(loan.loanId) &&
+        industryIds.includes(loan.industryId)
+      ) {
+        allProducts.push({
+          id: loan.loanId,
+          title: loan.productName,
+          industry: loan.industryName || '대출',
+          meta: loan.maxLimit
+            ? `최대 ${formatCurrency(loan.maxLimit)}`
+            : '대출 상품',
+          type: 'loan',
+          bookmarkCount: loan.bookmarkCount || 0,
+        });
+      }
+    });
+
+    // 정책 데이터 처리 (마감임박 섹션 제외, 업종 필터링)
+    policies.value.forEach(policy => {
+      if (
+        !urgentIds.has(policy.policyId) &&
+        industryIds.includes(policy.industryId)
+      ) {
+        allProducts.push({
+          id: policy.policyId,
+          title: policy.policyName,
+          industry: policy.industryName || '정책',
+          meta: policy.supportAmount
+            ? `최대 ${formatCurrency(policy.supportAmount)}`
+            : '정책 상품',
+          type: 'policy',
+          bookmarkCount: policy.bookmarkCount || 0,
+        });
+      }
+    });
+
+    // bookmarkCount 기준으로 내림차순 정렬
+    allProducts.sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0));
+
+    const result = allProducts.slice(0, 5);
+    return result;
+  };
+
   // 캐시 초기화
   const clearCache = () => {
     loans.value = [];
@@ -206,5 +259,6 @@ export const useProductsStore = defineStore('products', () => {
     // 계산된 속성
     getUrgentProducts,
     getPopularProducts,
+    getIndustryPopularProducts,
   };
 });

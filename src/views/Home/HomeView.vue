@@ -474,6 +474,7 @@ import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import { useAuthStore } from '@/stores/auth';
 import { useProductsStore } from '@/stores/products';
+import { useBusinessInfoStore } from '@/stores/businessInfo';
 import { vInview } from '@/utils/inview.js';
 import {
   getRecommendedLoans,
@@ -494,6 +495,7 @@ import Tag from '@/components/common/Tag.vue';
 const router = useRouter();
 const authStore = useAuthStore();
 const productsStore = useProductsStore();
+const businessInfoStore = useBusinessInfoStore();
 
 const goDocs = () => router.push('/docs');
 const goReport = () => router.push('/report');
@@ -531,10 +533,7 @@ const fetchRecommendedLoans = async () => {
         }));
       } catch (apiError) {
         // 추천 대출 API 호출 실패 시 fallback 데이터 사용
-        console.warn(
-          '추천 대출 API 호출 실패, fallback 데이터 사용:',
-          apiError
-        );
+        console.warn('추천 대출 API 실패, fallback 사용:', apiError);
         loans.value = FALLBACK_LOANS_DATA.map(loan => ({
           id: loan.loanId,
           title: loan.productName,
@@ -561,9 +560,7 @@ const fetchRecommendedLoans = async () => {
               : '한도 문의',
         }));
     }
-  } catch (error) {
-    console.error('대출 조회 실패:', error);
-  }
+  } catch (error) {}
 };
 
 const fetchRecommendedPolicies = async () => {
@@ -608,9 +605,7 @@ const fetchRecommendedPolicies = async () => {
             : 'D-7',
         }));
     }
-  } catch (error) {
-    console.error('추천 정책 처리 실패:', error);
-  }
+  } catch (error) {}
 };
 
 const fetchChatRooms = async () => {
@@ -627,9 +622,7 @@ const fetchChatRooms = async () => {
     chatRooms.value = allRooms
       .sort((a, b) => b.participantCount - a.participantCount)
       .slice(0, 10);
-  } catch (error) {
-    console.error('채팅방 목록 조회 실패:', error);
-  }
+  } catch (error) {}
 };
 
 const fetchUrgentProducts = async () => {
@@ -637,24 +630,42 @@ const fetchUrgentProducts = async () => {
     // store에서 마감 임박 상품 데이터 가져오기
     urgentProducts.value = productsStore.getUrgentProducts;
   } catch (error) {
-    console.error('마감임박 상품 조회 실패:', error);
     // 에러 발생 시 빈 배열로 설정하여 '상품이 없습니다' UI 표시
     urgentProducts.value = [];
   }
 };
 
-// 비로그인 상태에서 인기 상품 조회 (bookmarkCount 기준)
+// 인기 상품 조회 (로그인 상태에 따라 분기)
 const fetchPopularProducts = async () => {
-  if (isLoggedIn.value) {
-    // 로그인 상태에서는 기존 mock 데이터 유지
-    return;
-  }
-
   try {
-    // store에서 인기 상품 데이터 가져오기
-    popularProducts.value = productsStore.getPopularProducts;
+    if (isLoggedIn.value) {
+      // 로그인 상태: 사용자의 업종에 맞는 상품 필터링
+      const userIndustryIds = businessInfoStore.allIndustryIds;
+
+      if (userIndustryIds.length > 0) {
+        // 사용자의 업종에 해당하는 상품들 필터링
+        const industryProducts =
+          productsStore.getIndustryPopularProducts(userIndustryIds);
+
+        if (industryProducts.length >= 3) {
+          // 3개 이상이면 업종별 인기 상품 표시
+          popularProducts.value = industryProducts;
+        } else {
+          // 3개 미만이면 비로그인 상태와 동일하게 표시
+          const allPopularProducts = productsStore.getPopularProducts;
+          popularProducts.value = allPopularProducts;
+        }
+      } else {
+        // 업종 정보가 없으면 비로그인 상태와 동일하게 표시
+        const allPopularProducts = productsStore.getPopularProducts;
+        popularProducts.value = allPopularProducts;
+      }
+    } else {
+      // 비로그인 상태: 전체 인기 상품 표시
+      const allPopularProducts = productsStore.getPopularProducts;
+      popularProducts.value = allPopularProducts;
+    }
   } catch (error) {
-    console.error('인기 상품 조회 실패:', error);
     // 에러 발생 시 기존 mock 데이터 유지
   }
 };
@@ -700,14 +711,17 @@ onMounted(async () => {
   // authStore 상태 강제 갱신 (로그인 후 라우팅 시 상태 동기화)
   await authStore.hydrateSession();
 
-  // 비로그인 상태에서는 store에서 한 번만 데이터 로드
-  if (!isLoggedIn.value) {
+  // 로그인 상태라면 businessInfo 로드
+  if (isLoggedIn.value) {
     try {
-      await productsStore.fetchAllProducts();
-    } catch (error) {
-      console.error('상품 데이터 로드 실패:', error);
-    }
+      await businessInfoStore.loadBusinessInfo();
+    } catch (error) {}
   }
+
+  // 모든 상태에서 상품 데이터 로드 (캐시 활용)
+  try {
+    await productsStore.fetchAllProducts();
+  } catch (error) {}
 
   // API 데이터 로드
   fetchRecommendedLoans(); // 로그인 여부에 따라 분기처리됨
@@ -744,19 +758,23 @@ watch(isLoggedIn, async newValue => {
   if (newValue) {
     // 로그인된 경우: 개인화된 데이터 로드
     await authStore.hydrateSession(); // 상태 강제 갱신
+
+    // businessInfo 로드
+    try {
+      await businessInfoStore.loadBusinessInfo();
+    } catch (error) {}
+
     fetchRecommendedLoans();
     fetchRecommendedPolicies();
     fetchPopularProducts();
   } else {
-    // 로그아웃된 경우: store에서 공통 데이터 로드
+    // 로그아웃된 경우: 공통 데이터 로드
     try {
       await productsStore.fetchAllProducts();
       fetchRecommendedLoans();
       fetchRecommendedPolicies();
       fetchPopularProducts();
-    } catch (error) {
-      console.error('상품 데이터 로드 실패:', error);
-    }
+    } catch (error) {}
   }
 });
 
@@ -1197,13 +1215,7 @@ const handleUrgentDetail = urgent => {
   }
 };
 
-const handleChatRoom = chat => {
-  console.log('채팅방 입장:', chat);
-};
-
-const handleBoardPost = post => {
-  console.log('게시글 상세:', post);
-};
+const handleChatRoom = chat => {};
 
 const getChatRoomTone = roomType => {
   if (roomType === 'industry') return 'gray';
