@@ -79,7 +79,7 @@
             <span
               v-for="chip in displayChips"
               :key="chip"
-              class="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700"
+              class="rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-800"
             >
               {{ chip }}
             </span>
