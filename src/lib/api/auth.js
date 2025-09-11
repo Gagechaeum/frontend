@@ -86,7 +86,7 @@ export const getUserProfile = async () => {
 
 /**
  * 사용자 사업자 정보 조회
- * @returns {Promise<Object>} 사업자 정보
+ * @returns {Promise<Object>} 사업자 정보 배열
  */
 export const getBusinessInfo = async () => {
   try {

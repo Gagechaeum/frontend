@@ -226,9 +226,14 @@ const onScroll = () => {
   scrolled.value = window.scrollY > 12; // 12px 넘으면 불투명 전환
 };
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll(); // 첫 렌더 상태 반영
+
+  // 로그인된 사용자의 사업자 정보 로드
+  if (isLoggedIn.value) {
+    await authStore.loadBusinessInfo();
+  }
 });
 onBeforeUnmount(() => window.removeEventListener('scroll', onScroll));
 
