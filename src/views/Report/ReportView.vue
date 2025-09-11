@@ -109,6 +109,7 @@ import { useNotificationStore } from '@/stores/notification';
 /* ===== Stores ===== */
 const reportStore = useReportStore();
 const notificationStore = useNotificationStore();
+const router = useRouter();
 const { summary, items, schedule, cashFlow } = storeToRefs(reportStore);
 
 /* ===== UI State ===== */
@@ -158,12 +159,24 @@ const todayISO = ref(toISO(today));
 
 const calendarDays = computed(() => {
   const days = generateTwoWeeksAlignedToSunday(today);
+  // 아이템 이름으로 맵을 생성하여 빠른 조회를 지원
+  const itemsMap = new Map(items.value.map(item => [item.name, item]));
+
   schedule.value.forEach(event => {
     const day = days.find(d => d.date === event.date);
     if (day) {
-      day.events.push(event);
+      // 스케줄 이벤트의 이름과 일치하는 상세 정보를 아이템 맵에서 찾습니다.
+      const correspondingItem = itemsMap.get(event.name);
+
+      // 상세 정보가 있는 경우, 이벤트 객체에 `detail`로 추가합니다.
+      // 캘린더 컴포넌트는 이 `detail` 객체를 사용하여 팝오버를 렌더링합니다.
+      day.events.push({
+        ...event,
+        detail: correspondingItem || null, // 일치하는 아이템이 없으면 null
+      });
     }
   });
+
   return days;
 });
 
@@ -248,12 +261,10 @@ const toggleDetail = id => {
   else expandedItems.value.push(id);
 };
 const openLoanDetail = item => {
-  // TODO: implement loan detail
-  void item;
+  router.push({ name: 'loan-detail', params: { id: item.itemId } });
 };
 const openPolicyDetail = item => {
-  // TODO: implement policy detail
-  void item;
+  router.push({ name: 'policy-detail', params: { id: item.policyId } });
 };
 
 /* ===== RegisterModal → ReportView 핸들러 ===== */
@@ -269,9 +280,10 @@ const handlePageChange = newPage => {
 
 /* ===== Utils ===== */
 function toISO(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /* Calendar helpers */
