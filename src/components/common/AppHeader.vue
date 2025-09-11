@@ -216,6 +216,7 @@ import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useNotificationStore } from '@/stores/notification';
 import { useAuthStore } from '@/stores/auth';
+import { useBusinessInfoStore } from '@/stores/businessInfo';
 import ProfileDropdown from '../mypage/ProfileDropdown.vue';
 import { useMyPageStore } from '@/stores/mypage';
 
@@ -223,6 +224,7 @@ import { useMyPageStore } from '@/stores/mypage';
 // 스토어 & 표시용 userInfo (부모에서 직접 관리)
 // ─────────────────────────────────────────────────────────────
 const my = useMyPageStore();
+const businessInfoStore = useBusinessInfoStore();
 
 const userInfo = reactive({
   name: '사용자',
@@ -259,7 +261,7 @@ onMounted(async () => {
 
   // 로그인된 사용자의 사업자 정보 로드
   if (isLoggedIn.value) {
-    await authStore.loadBusinessInfo();
+    await businessInfoStore.loadBusinessInfo();
   }
 });
 onBeforeUnmount(() => {
@@ -280,6 +282,7 @@ const handleLogout = () => {
   // 프로필 드롭다운에서 로그아웃 클릭 시 들어옴
   my.$reset();
   my.isLoaded = false;
+  businessInfoStore.clearBusinessInfo(); // 사업자 정보 초기화
   emit('logout');
   router.replace('/login');
 };
@@ -293,14 +296,15 @@ const notificationStore = useNotificationStore();
 const { notifications } = storeToRefs(notificationStore);
 
 const authStore = useAuthStore();
-const {
-  chips: authChips,
-  userInfo: authUserInfo,
-  user,
-} = storeToRefs(authStore);
+const { user } = storeToRefs(authStore);
 
-const displayChips = computed(() => props.chips || authChips.value);
-const displayUserInfo = computed(() => props.userInfo || authUserInfo.value);
+const { chips: businessChips, userInfo: businessUserInfo } =
+  storeToRefs(businessInfoStore);
+
+const displayChips = computed(() => props.chips || businessChips.value);
+const displayUserInfo = computed(
+  () => props.userInfo || businessUserInfo.value
+);
 const isLoggedIn = computed(() => !!user.value);
 
 const unreadCount = computed(
@@ -405,8 +409,8 @@ function markAllAsRead() {
 watchEffect(() => {
   if (my.isLoggedIn) {
     userInfo.name = my.displayName;
-    userInfo.region = my.business?.regionName || '';
-    userInfo.business = my.business?.industryName || '';
+    userInfo.region = businessInfoStore.regionName;
+    userInfo.business = businessInfoStore.industryName;
   } else {
     userInfo.name = '사용자';
     userInfo.region = '';
