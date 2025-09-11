@@ -86,13 +86,16 @@ export async function updateProfileImage(fileOrBlob) {
 }
 
 /* ────────────── B) 사업자 ────────────── */
+// 사업자 정보 가져오기 (리스트)
 export async function fetchBusinesses() {
   const res = await api.get('/BusinessInfo/select', { headers: withAT() });
   const data = ok(res) ?? [];
   return Array.isArray(data) ? data : data ? [data] : [];
 }
 
-export async function createBusiness(payload) {
+// 사업자 정보 리스트 저장 : 단건/다건
+export async function createBusiness(listOrOne) {
+  const payload = Array.isArray(listOrOne) ? listOrOne : [listOrOne];
   try {
     const res = await api.post('/BusinessInfo/save', payload, {
       headers: withAT(),
@@ -109,12 +112,12 @@ export async function createBusiness(payload) {
   }
 }
 
-export async function updateBusiness(payload) {
-  const res = await api.put('/BusinessInfo/update', payload, {
-    headers: withAT(),
-  });
-  return ok(res);
-}
+// export async function updateBusiness(payload) {
+//   const res = await api.put('/BusinessInfo/update', payload, {
+//     headers: withAT(),
+//   });
+//   return ok(res);
+// }
 
 export async function deleteBusiness(businessInfoId) {
   const res = await api.get('/BusinessInfo/delete', {

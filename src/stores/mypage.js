@@ -7,9 +7,99 @@ import {
   withdraw as apiWithdraw,
   // 필요 시 사업자 API도 추가:
   // createBusiness, updateBusiness, deleteBusiness
+  fetchBusinesses,
+  createBusiness,
+  deleteBusiness,
 } from '@/lib/api/mypage';
 
-/** 백 응답 → 화면용으로 정규화 */
+export const REGION_OPTIONS = [
+  { value: 11, label: '서울특별시' },
+  { value: 26, label: '부산광역시' },
+  { value: 27, label: '대구광역시' },
+  { value: 28, label: '인천광역시' },
+  { value: 29, label: '광주광역시' },
+  { value: 30, label: '대전광역시' },
+  { value: 31, label: '울산광역시' },
+  { value: 41, label: '경기도' },
+  { value: 42, label: '강원도' },
+  { value: 43, label: '충청북도' },
+  { value: 44, label: '충청남도' },
+  { value: 45, label: '전라북도' },
+  { value: 46, label: '전라남도' },
+  { value: 47, label: '경상북도' },
+  { value: 48, label: '경상남도' },
+  { value: 50, label: '제주특별자치도' },
+];
+const REGION_LABEL = new Map(REGION_OPTIONS.map(o => [o.value, o.label]));
+export const regionLabel = id => {
+  const n = Number(id);
+  if (!Number.isFinite(n)) return '';
+  return REGION_LABEL.get(n) || REGION_LABEL.get(Math.floor(n / 1000)) || '';
+};
+
+// 업종 코드 options + 라벨
+export const INDUSTRY_OPTIONS = [
+  { value: 1, label: '농업, 임업 및 어업' },
+  { value: 2, label: '광업' },
+  { value: 3, label: '제조업' },
+  { value: 4, label: '전기, 가스, 증기 및 공기조절 공급업' },
+  { value: 5, label: '수도, 하수, 폐기물 처리, 원료 재생업' },
+  { value: 6, label: '건설업' },
+  { value: 7, label: '도소매업' },
+  { value: 8, label: '운수 및 창고업' },
+  { value: 9, label: '숙박 및 음식점업' },
+  { value: 10, label: '정보통신업' },
+  { value: 11, label: '금융 및 보험업' },
+  { value: 12, label: '부동산업' },
+  { value: 13, label: '전문, 과학 및 기술 서비스업' },
+  { value: 14, label: '사업시설관리, 사업지원 및 임대 서비스업' },
+  { value: 15, label: '공공행정, 국방 및 사회보장행정' },
+  { value: 16, label: '교육서비스업' },
+  { value: 17, label: '보건업 및 사회복지 서비스업' },
+  { value: 18, label: '예술, 스포츠 및 여가관련 서비스업' },
+  { value: 19, label: '협회 및 단체, 수리 및 기타 개인 서비스업' },
+];
+const INDUSTRY_LABEL = new Map(INDUSTRY_OPTIONS.map(o => [o.value, o.label]));
+export const industryLabel = id => INDUSTRY_LABEL.get(Number(id)) || '';
+
+// 보기용
+export const formatYmdDot = v => {
+  const m = String(v ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[1]}. ${m[2]}. ${m[3]}.` : String(v ?? '') || '—';
+};
+export const normBizNum = v => {
+  const d = String(v ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 10);
+  return d.length === 10
+    ? `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`
+    : '';
+};
+
+// 서버 → 뷰(스토어) 정규화
+export const normalizeServerBiz = b => ({
+  businessInfoId: b.businessInfoId ?? b.id ?? null,
+  registrationNumber: b.businessNum ?? b.registrationNumber ?? '',
+  regionId: Number(b.regionId ?? b.regionCode ?? 0) || null,
+  industryId: Number(b.industryId ?? 0) || null,
+  estbDate: b.estbDate ?? b.startDate ?? '',
+  // companyName: b.companyName ?? b.name ?? '',
+  // salesScope: b.salesScope ?? '',
+});
+
+// 폼 → 서버 저장 DTO
+export const toReqDto = b => {
+  // registrationNumber가 최우선, 없을 때만 businessNum 보조
+  const rawNum = b.registrationNumber || b.businessNum || '';
+  return {
+    businessNum: normBizNum(rawNum),
+    estbDate: b.estbDate ?? '',
+    industryId: Number(b.industryId) || 0,
+    regionId: Number(b.regionId) || 0,
+  };
+};
+
+/** 백 응답 → 화면용으로 정규화 ---------------------------------------------------------- */
 function mapUserToView(u = {}) {
   const avatar =
     u.profileImageUrl ||
@@ -30,7 +120,8 @@ function mapUserToView(u = {}) {
 export const useMyPageStore = defineStore('mypage', {
   state: () => ({
     rawUser: null,
-    rawBusinesses: [],
+    // rawBusinesses: [],
+    businesses: [],
   }),
 
   getters: {
@@ -43,8 +134,23 @@ export const useMyPageStore = defineStore('mypage', {
       const u = state.rawUser || {};
       return u.profileImageUrl || u.profileImageKey || u.avatar || '';
     },
-    businesses(state) {
-      return state.rawBusinesses || [];
+    // businesses(state) {
+    //   return state.businesses || [];
+    // },
+    // ✅ 이름을 바꾸세요 (예: businessesList)
+    businessesList(state) {
+      return state.businesses || [];
+    },
+
+    // (선택) 보기용 라벨/날짜 포함 버전
+    businessesForView(state) {
+      return (state.businesses || []).map(b => ({
+        ...b,
+        // regionLabel / industryLabel 은 스토어에 export 해둔 함수라고 가정
+        regionText: regionLabel(b.regionId) || '',
+        industryText: industryLabel(b.industryId) || '',
+        estbDateText: formatYmdDot(b.estbDate),
+      }));
     },
   },
 
@@ -54,6 +160,26 @@ export const useMyPageStore = defineStore('mypage', {
       const { user, businesses } = await hydrateMypageBundle();
       this.rawUser = user || null;
       this.rawBusinesses = Array.isArray(businesses) ? businesses : [];
+    },
+
+    async loadBusinesses() {
+      const raw = await fetchBusinesses(); // 항상 배열
+      const list = raw.map(normalizeServerBiz);
+      console.log('[Store] after normalize =', list);
+      // this.businesses = raw.map(normalizeServerBiz);
+      this.businesses = list;
+    },
+    async saveBusinesses(listOrOne) {
+      const list = Array.isArray(listOrOne) ? listOrOne : [listOrOne];
+      const req = list.map(toReqDto);
+      if (!req.length) return;
+      await createBusiness(req); // 저장
+      await this.loadBusinesses(); // 다시 select → businessInfoId 반영
+    },
+    async removeBusiness(id) {
+      if (!id) return;
+      await deleteBusiness(id);
+      await this.loadBusinesses();
     },
 
     async load() {
@@ -98,179 +224,3 @@ export const useMyPageStore = defineStore('mypage', {
     },
   },
 });
-// export const useMypageStore = _store;
-
-// // src/stores/mypage.js
-// import { defineStore } from 'pinia';
-// import {
-//   hydrateMypageBundle,
-//   fetchUserInfo,
-//   parseUser,
-//   updateUser,
-//   changePassword as apiChangePassword,
-//   withdraw as apiWithdraw,
-//   fetchBusinesses,
-//   createBusiness,
-//   updateBusiness,
-//   deleteBusiness,
-//   verifyBusinessNumber,
-// } from '@/lib/api/mypage';
-
-// const onlyDigits = v => (v ? String(v).replace(/[^\d]/g, '') : '');
-
-// export const useMypageStore = defineStore('mypage', {
-//   state: () => ({
-//     profile: null, // parseUser 결과(닉네임/전화/이메일 등 평탄화)
-//     businesses: [],
-//     loading: false,
-//     error: null,
-//   }),
-
-//   getters: {
-//     /** 템플릿에서 기대하는 뷰모델 형태로 변환 */
-//     profileForView: s =>
-//       s.profile && {
-//         avatar: s.profile.profileImageUrl ?? '',
-//         name: s.profile.name ?? '', // 실명(백에서 안 오면 공란)
-//         nickName: s.profile.nickname ?? '', // 닉네임
-//         phone: s.profile.phone ?? '',
-//         email: s.profile.email ?? '',
-//         businesses: (s.businesses || []).map(b => ({
-//           id: b.businessInfoId ?? b.id,
-//           businessInfoId: b.businessInfoId ?? b.id,
-//           registrationNumber: b.businessNum ?? b.registrationNumber,
-//           regionId: b.regionId ?? b.region,
-//           industryId: b.industryId ?? b.type,
-//           salesScope: b.salesScope ?? '',
-//           companyName: b.companyName ?? b.name ?? '',
-//           estbDate: b.estbDate ?? b.startDate ?? null,
-//         })),
-//       },
-//   },
-
-//   actions: {
-//     async hydrate() {
-//       this.loading = true;
-//       this.error = null;
-//       try {
-//         const { user, businesses } = await hydrateMypageBundle();
-//         // 부분 응답 보호: 머지
-//         this.profile = { ...(this.profile ?? {}), ...(parseUser(user) ?? {}) };
-//         this.businesses = Array.isArray(businesses) ? businesses : [];
-//       } catch (e) {
-//         console.error('[mypage.hydrate] 실패:', e);
-//         this.error = e;
-//       } finally {
-//         this.loading = false;
-//       }
-//     },
-
-//     /** 닉네임/전화 저장 (바뀐 경우에만 서버 전송) */
-//     async saveProfileBasics(partial) {
-//       const curr = this.profile ?? {};
-//       const payload = {};
-
-//       const nextNN = (partial?.nickName ?? partial?.nickname ?? '').trim();
-//       if (nextNN && nextNN !== (curr.nickname ?? '')) payload.nickname = nextNN;
-
-//       const currPhone = onlyDigits(curr.phone);
-//       const nextPhone = onlyDigits(partial?.phone);
-//       if (nextPhone && nextPhone !== currPhone) payload.phone = nextPhone;
-
-//       if (Object.keys(payload).length === 0) return; // 변경 없음
-
-//       const updated = await updateUser(payload); // PUT /me/user
-//       if (updated) {
-//         this.profile = {
-//           ...(this.profile ?? {}),
-//           ...(parseUser(updated) ?? {}),
-//         };
-//       } else {
-//         const u = await fetchUserInfo();
-//         this.profile = { ...(this.profile ?? {}), ...(u ?? {}) };
-//       }
-//     },
-
-//     async changePassword(payload) {
-//       await apiChangePassword(payload);
-//     },
-//     async doWithdraw() {
-//       await apiWithdraw();
-//     },
-
-//     /** 사업자 번호 검증 (필요 시 호출) */
-//     async verifyBisNum(bisNum, startDate) {
-//       return await verifyBusinessNumber(bisNum, startDate);
-//     },
-
-//     /** 사업자 목록 저장: before vs after diff → save/update/delete 호출 */
-//     async saveBusinesses(newList = []) {
-//       const before = this.businesses || [];
-//       const toKey = x => String(x?.businessInfoId ?? x?.id ?? '');
-//       const byId = arr =>
-//         Object.fromEntries(arr.filter(x => toKey(x)).map(x => [toKey(x), x]));
-//       const mapBefore = byId(before);
-//       const mapAfter = byId(newList);
-
-//       const toCreate = newList.filter(x => !toKey(x));
-//       const toUpdateList = newList.filter(x => {
-//         const id = toKey(x);
-//         if (!id) return false;
-//         const prev = mapBefore[id];
-//         if (!prev) return false;
-//         return (
-//           (x.businessNum ?? x.registrationNumber) !==
-//             (prev.businessNum ?? prev.registrationNumber) ||
-//           (x.regionId ?? x.region) !== (prev.regionId ?? prev.region) ||
-//           (x.industryId ?? x.type) !== (prev.industryId ?? prev.type) ||
-//           (x.salesScope ?? '') !== (prev.salesScope ?? '') ||
-//           (x.companyName ?? x.name ?? '') !==
-//             (prev.companyName ?? prev.name ?? '') ||
-//           (x.estbDate ?? x.startDate ?? null) !==
-//             (prev.estbDate ?? prev.startDate ?? null)
-//         );
-//       });
-//       const toDelete = before.filter(x => !mapAfter[toKey(x)]);
-
-//       // 등록: POST /BusinessInfo/savebisinfo
-//       for (const c of toCreate) {
-//         await createBusiness({
-//           regionId: c.regionId ?? c.region,
-//           industryId: c.industryId ?? c.type,
-//           businessNum: c.businessNum ?? c.registrationNumber,
-//           salesScope: c.salesScope ?? '',
-//           companyName: c.companyName ?? c.name ?? '',
-//           estbDate: c.estbDate ?? c.startDate ?? null,
-//         });
-//       }
-
-//       // 수정: PUT /BusinessInfo/updatebisinfo
-//       for (const u of toUpdateList) {
-//         await updateBusiness({
-//           businessInfoId: u.businessInfoId ?? u.id,
-//           regionId: u.regionId ?? u.region,
-//           industryId: u.industryId ?? u.type,
-//           businessNum: u.businessNum ?? u.registrationNumber,
-//           salesScope: u.salesScope ?? '',
-//           companyName: u.companyName ?? u.name ?? '',
-//           estbDate: u.estbDate ?? u.startDate ?? null,
-//         });
-//       }
-
-//       // 삭제: DELETE/GET /BusinessInfo/deletebisinfo
-//       for (const d of toDelete) {
-//         await deleteBusiness(d.businessInfoId ?? d.id);
-//       }
-
-//       // 최종 재조회
-//       const bs = await fetchBusinesses();
-//       this.businesses = Array.isArray(bs) ? bs : [];
-//     },
-
-//     /** 통합 저장 – 뷰에서 한 번에 호출 */
-//     async saveAll({ basics, businesses }) {
-//       await this.saveProfileBasics(basics ?? {});
-//       if (Array.isArray(businesses)) await this.saveBusinesses(businesses);
-//     },
-//   },
-// });

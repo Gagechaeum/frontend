@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { REGION_OPTIONS, INDUSTRY_OPTIONS } from '@/stores/mypage';
 
 const props = defineProps({
   items: { type: Array, required: true },
@@ -10,6 +11,47 @@ const emit = defineEmits([
   'request-remove', // 삭제 요청 (모달은 부모에서)
   'request-verify', // 인증 요청 (연결은 나중에)
 ]);
+
+// const REGION_OPTIONS = [
+//   { value: 11, label: '서울특별시' },
+//   { value: 26, label: '부산광역시' },
+//   { value: 27, label: '대구광역시' },
+//   { value: 28, label: '인천광역시' },
+//   { value: 29, label: '광주광역시' },
+//   { value: 30, label: '대전광역시' },
+//   { value: 31, label: '울산광역시' },
+//   { value: 41, label: '경기도' },
+//   { value: 42, label: '강원도' },
+//   { value: 43, label: '충청북도' },
+//   { value: 44, label: '충청남도' },
+//   { value: 45, label: '전라북도' },
+//   { value: 46, label: '전라남도' },
+//   { value: 47, label: '경상북도' },
+//   { value: 48, label: '경상남도' },
+//   { value: 50, label: '제주특별자치도' },
+// ];
+
+// const INDUSTRY_OPTIONS = [
+//   { value: 1, label: '농업, 임업 및 어업' },
+//   { value: 2, label: '광업' },
+//   { value: 3, label: '제조업' },
+//   { value: 4, label: '전기, 가스, 증기 및 공기조절 공급업' },
+//   { value: 5, label: '수도, 하수, 폐기물 처리, 원료 재생업' },
+//   { value: 6, label: '건설업' },
+//   { value: 7, label: '도소매업' },
+//   { value: 8, label: '운수 및 창고업' },
+//   { value: 9, label: '숙박 및 음식점업' },
+//   { value: 10, label: '정보통신업' },
+//   { value: 11, label: '금융 및 보험업' },
+//   { value: 12, label: '부동산업' },
+//   { value: 13, label: '전문, 과학 및 기술 서비스업' },
+//   { value: 14, label: '사업시설관리, 사업지원 및 임대 서비스업' },
+//   { value: 15, label: '공공행정, 국방 및 사회보장행정' },
+//   { value: 16, label: '교육서비스업' },
+//   { value: 17, label: '보건업 및 사회복지 서비스업' },
+//   { value: 18, label: '예술, 스포츠 및 여가관련 서비스업' },
+//   { value: 19, label: '협회 및 단체, 수리 및 기타 개인 서비스업' },
+// ];
 
 /* ─────────────────────────────
  * 유틸: 사업자등록번호 ###-##-##### 포맷
@@ -26,15 +68,23 @@ const formatRegNo = raw => {
 
 /* 입력 변경 반영 */
 function updateItem(idx, key, val) {
-  const next = props.items.map((x, i) =>
-    i === idx
-      ? {
-          ...x,
-          [key]: key === 'registrationNumber' ? formatRegNo(val) : val,
-        }
-      : x
+  const next = props.items.map(
+    (x, i) =>
+      i === idx
+        ? {
+            ...x, // 기존 객체 복사
+            [key]:
+              key === 'registrationNumber'
+                ? formatRegNo(val)
+                : key === 'regionId' || key === 'industryId'
+                  ? val === ''
+                    ? null
+                    : Number(val) // ✅ 코드값은 숫자/nullable
+                  : val,
+          }
+        : x // 해당 index 아니면 그대로 둠
   );
-  emit('update', next);
+  emit('update', next); // 부모(EditProfileForm)로 수정된 리스트 전달
 }
 
 /* 버튼 이벤트: 부모로 올려 처리 */
@@ -59,8 +109,9 @@ function isValidRegNo(v) {
 function validateItem(b) {
   return {
     regNo: isValidRegNo(b?.registrationNumber),
-    region: Boolean(String(b?.region ?? '').trim()),
-    type: Boolean(String(b?.type ?? '').trim()),
+    region: Number.isFinite(Number(b?.regionId)),
+    type: Number.isFinite(Number(b?.industryId)),
+    estbDate: isValidDateStr(b?.estbDate),
   };
 }
 
@@ -69,7 +120,7 @@ const validations = computed(() => props.items.map(validateItem));
 
 // 하나라도 비어있거나 형식 불일치면 true
 const hasAnyEmptyRequired = computed(() =>
-  validations.value.some(v => !v.regNo || !v.region || !v.type)
+  validations.value.some(v => !v.regNo || !v.region || !v.type || !v.estbDate)
 );
 
 /**
@@ -102,6 +153,11 @@ watch(
     }
   }
 );
+
+// YYYY-MM-DD 간단 검증 (input[type=date]면 이 정도로 충분)
+function isValidDateStr(v) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ''));
+}
 
 /* 부모에서 접근 가능하도록 노출 */
 defineExpose({
@@ -167,7 +223,7 @@ defineExpose({
       </div>
 
       <!-- 본문: 3열 그리드 -->
-      <div class="grid grid-cols-1 gap-4 px-4 pb-4 md:grid-cols-3">
+      <div class="grid grid-cols-1 gap-4 px-4 pb-4 md:grid-cols-4">
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-700"
             >사업자 등록번호</label
@@ -196,33 +252,24 @@ defineExpose({
             >지역</label
           >
           <select
-            :value="b.region"
+            :value="b.regionId ?? ''"
             :class="[
               'w-full rounded-lg border px-4 py-2',
               showErrors && !validations[i].region
                 ? 'border-red-500'
                 : 'border-gray-300',
             ]"
-            @change="updateItem(i, 'region', $event.target.value)"
+            @change="updateItem(i, 'regionId', $event.target.value)"
           >
-            <option value="" disabled selected hidden>지역 선택</option>
-            <option>서울특별시</option>
-            <option>경기도</option>
-            <option>인천광역시</option>
-            <option>부산광역시</option>
-            <option>대구광역시</option>
-            <option>광주광역시</option>
-            <option>대전광역시</option>
-            <option>울산광역시</option>
-            <option>세종특별자치시</option>
-            <option>강원도</option>
-            <option>충청북도</option>
-            <option>충청남도</option>
-            <option>전라북도</option>
-            <option>전라남도</option>
-            <option>경상북도</option>
-            <option>경상남도</option>
-            <option>제주특별자치도</option>
+            <option value="" disabled>지역 선택</option>
+
+            <option
+              v-for="opt in REGION_OPTIONS"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </option>
           </select>
           <p
             v-if="showErrors && !validations[i].region"
@@ -237,32 +284,52 @@ defineExpose({
             >업종</label
           >
           <select
-            :value="b.type"
+            :value="b.industryId ?? ''"
             :class="[
               'w-full rounded-lg border px-4 py-2',
               showErrors && !validations[i].type
                 ? 'border-red-500'
                 : 'border-gray-300',
             ]"
-            @change="updateItem(i, 'type', $event.target.value)"
+            @change="updateItem(i, 'industryId', $event.target.value)"
           >
-            <option value="" disabled selected hidden>업종 선택</option>
-            <option>음식·외식업</option>
-            <option>도소매·유통</option>
-            <option>서비스업</option>
-            <option>제조업</option>
-            <option>건설업</option>
-            <option>운수·창고업</option>
-            <option>숙박업</option>
-            <option>교육서비스업</option>
-            <option>부동산업</option>
-            <option>기타</option>
+            <option value="" disabled>업종 선택</option>
+            <option
+              v-for="opt in INDUSTRY_OPTIONS"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </option>
           </select>
           <p
             v-if="showErrors && !validations[i].type"
             class="mt-1 text-xs text-red-600"
           >
             업종을 선택해 주세요.
+          </p>
+        </div>
+        <!-- 개업일자 (달력) -->
+        <div>
+          <label class="mb-1 block text-sm font-medium text-gray-700"
+            >개업일자</label
+          >
+          <input
+            type="date"
+            :value="b.estbDate || ''"
+            :class="[
+              'w-full rounded-lg border px-4 py-2',
+              showErrors && !validations[i].estbDate
+                ? 'border-red-500'
+                : 'border-gray-300',
+            ]"
+            @input="updateItem(i, 'estbDate', $event.target.value)"
+          />
+          <p
+            v-if="showErrors && !validations[i].estbDate"
+            class="mt-1 text-xs text-red-600"
+          >
+            개업일자를 선택해 주세요.
           </p>
         </div>
       </div>

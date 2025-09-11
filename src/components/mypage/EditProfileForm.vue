@@ -54,6 +54,7 @@ const emit = defineEmits([
   'submit',
   'cancel',
   'requestDelete',
+  'remove-business',
 ]);
 
 /* ───────────── 폼 바인딩 ───────────── */
@@ -115,7 +116,11 @@ const phoneError = computed(
 watch(phoneValid, ok => {
   if (ok) {
     form.phone = phoneInput.value;
-    emit('update:modelValue', { ...props.modelValue, phone: phoneInput.value });
+    emit('update:modelValue', {
+      ...props.modelValue,
+      ...form,
+      phone: phoneInput.value,
+    });
   }
 });
 
@@ -209,6 +214,7 @@ function handleImageUpload(e) {
   // (2) 부모로 "모델 업데이트" 이벤트 전파 (미리보기 URL + 실제 파일)
   emit('update:modelValue', {
     ...props.modelValue,
+    ...form, // ✅ 현재 폼 상태 함께 전달
     avatar: url, // 화면 미리보기용
     avatarFile: file, // 실제 업로드할 File 객체
   }); // ✅ 파일도 전달
@@ -222,6 +228,7 @@ function addBusiness() {
   form.businesses.push({
     id: crypto?.randomUUID?.() || Date.now(),
     name: '',
+    registrationNumber: '',
     regionId: null,
     industryId: null,
     businessNum: '',
@@ -229,6 +236,7 @@ function addBusiness() {
   });
   emit('update:modelValue', {
     ...props.modelValue,
+    ...form,
     businesses: [...form.businesses],
   });
 }
@@ -242,9 +250,17 @@ function cancelRemoveBusiness() {
 }
 function confirmRemoveBusiness() {
   if (removeTargetIndex.value == null) return;
+
+  const removed = form.businesses[removeTargetIndex.value];
+  // 서버에 등록된 항목이면 businessInfoId를 부모로 올려서 삭제시키기
+  if (removed?.businessInfoId) {
+    emit('remove-business', removed.businessInfoId);
+  }
+
   form.businesses.splice(removeTargetIndex.value, 1);
   emit('update:modelValue', {
     ...props.modelValue,
+    ...form,
     businesses: [...form.businesses],
   });
   cancelRemoveBusiness();
@@ -255,7 +271,7 @@ async function onSubmit() {
   // 0) 사업자 정보 필수값(등록번호/지역/업종) 검증
   const okBiz = bizList.value?.validateAll?.();
   if (!okBiz) {
-    showToast('모든 사업자 정보를 입력해 주세요.', 'error'); // useToast()에서 가져온 showToast
+    alert('모든 사업자 정보를 입력해 주세요.');
     return;
   }
 

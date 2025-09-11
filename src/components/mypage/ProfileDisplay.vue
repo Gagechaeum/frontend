@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 // import ToastMessage from '@/components/mypage/ToastMessage.vue'   // 그대로 주석
+import { regionLabel, industryLabel, formatYmdDot } from '@/stores/mypage';
 
 const props = defineProps({
   profile: { type: Object, required: true },
@@ -109,7 +110,7 @@ const displayPhone = computed(() => {
               :key="b.id ?? b.businessInfoId ?? b.registrationNumber"
               class="rounded-xl bg-gray-50 px-4 py-3"
             >
-              <div class="grid gap-4 sm:grid-cols-3">
+              <div class="grid gap-4 sm:grid-cols-4">
                 <div>
                   <p class="text-xs text-gray-500">사업자 등록번호</p>
                   <p class="mt-1 text-sm font-medium text-gray-900">
@@ -119,13 +120,19 @@ const displayPhone = computed(() => {
                 <div>
                   <p class="text-xs text-gray-500">지역</p>
                   <p class="mt-1 text-sm font-medium text-gray-900">
-                    {{ b.region || b.regionName || '—' }}
+                    {{ regionLabel(b.regionId) || '—' }}
                   </p>
                 </div>
                 <div>
                   <p class="text-xs text-gray-500">업종</p>
                   <p class="mt-1 text-sm font-medium text-gray-900">
-                    {{ b.type || b.industry || b.industryName || '—' }}
+                    {{ industryLabel(b.industryId) || '—' }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-500">개업일자</p>
+                  <p class="mt-1 text-sm font-medium text-gray-900">
+                    {{ formatYmdDot(b.estbDate) }}
                   </p>
                 </div>
               </div>
