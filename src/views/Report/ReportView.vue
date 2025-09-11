@@ -158,12 +158,24 @@ const todayISO = ref(toISO(today));
 
 const calendarDays = computed(() => {
   const days = generateTwoWeeksAlignedToSunday(today);
+  // 아이템 이름으로 맵을 생성하여 빠른 조회를 지원
+  const itemsMap = new Map(items.value.map(item => [item.name, item]));
+
   schedule.value.forEach(event => {
     const day = days.find(d => d.date === event.date);
     if (day) {
-      day.events.push(event);
+      // 스케줄 이벤트의 이름과 일치하는 상세 정보를 아이템 맵에서 찾습니다.
+      const correspondingItem = itemsMap.get(event.name);
+
+      // 상세 정보가 있는 경우, 이벤트 객체에 `detail`로 추가합니다.
+      // 캘린더 컴포넌트는 이 `detail` 객체를 사용하여 팝오버를 렌더링합니다.
+      day.events.push({
+        ...event,
+        detail: correspondingItem || null, // 일치하는 아이템이 없으면 null
+      });
     }
   });
+
   return days;
 });
 
