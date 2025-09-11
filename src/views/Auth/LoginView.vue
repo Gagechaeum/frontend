@@ -148,6 +148,12 @@ const onSubmit = async () => {
   serverError.value = '';
   try {
     await login(email.value, password.value); // 기존 로컬 로그인 로직 그대로
+
+    // 로그인 성공 후 authStore 상태 강제 업데이트
+    const { useAuthStore } = await import('@/stores/auth');
+    const authStore = useAuthStore();
+    await authStore.hydrateSession();
+
     const next = route.query.next || '/';
     router.replace(String(next));
   } catch (e) {

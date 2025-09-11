@@ -211,6 +211,7 @@ import {
   onBeforeUnmount,
   reactive,
   watchEffect,
+  watch,
 } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
@@ -264,6 +265,7 @@ onMounted(async () => {
     await businessInfoStore.loadBusinessInfo();
   }
 });
+
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('scroll', onScroll);
@@ -306,6 +308,21 @@ const displayUserInfo = computed(
   () => props.userInfo || businessUserInfo.value
 );
 const isLoggedIn = computed(() => !!user.value);
+
+// 로그인 상태 변경 감지하여 사업자 정보 다시 로드
+watch(
+  isLoggedIn,
+  async newValue => {
+    if (newValue) {
+      // 로그인된 경우 사업자 정보 로드
+      await businessInfoStore.loadBusinessInfo();
+    } else {
+      // 로그아웃된 경우 사업자 정보 초기화
+      businessInfoStore.clearBusinessInfo();
+    }
+  },
+  { immediate: false }
+);
 
 const unreadCount = computed(
   () => notifications.value.filter(n => !n.read).length

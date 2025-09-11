@@ -697,6 +697,9 @@ const calculateDDay = endDate => {
 
 // 컴포넌트 마운트 시 API 데이터 로드
 onMounted(async () => {
+  // authStore 상태 강제 갱신 (로그인 후 라우팅 시 상태 동기화)
+  await authStore.hydrateSession();
+
   // 비로그인 상태에서는 store에서 한 번만 데이터 로드
   if (!isLoggedIn.value) {
     try {
@@ -740,6 +743,7 @@ watch(isLoggedIn, async newValue => {
   // 로그인 상태가 변경될 때
   if (newValue) {
     // 로그인된 경우: 개인화된 데이터 로드
+    await authStore.hydrateSession(); // 상태 강제 갱신
     fetchRecommendedLoans();
     fetchRecommendedPolicies();
     fetchPopularProducts();
