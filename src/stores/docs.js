@@ -183,10 +183,13 @@ export const useDocsStore = defineStore('docs', () => {
 
       if (type === 'policy') {
         const bookmarkPolicyId = parseInt(idParts[1]);
-        await updatePolicyStatus(bookmarkPolicyId, koreanStatus);
+        await updatePolicyStatus({
+          id: bookmarkPolicyId,
+          status: koreanStatus,
+        });
       } else if (type === 'loan') {
         const bookmarkLoanId = parseInt(idParts[1]);
-        await updateLoanStatus(bookmarkLoanId, koreanStatus);
+        await updateLoanStatus({ id: bookmarkLoanId, status: koreanStatus });
       } else {
         throw new Error(`알 수 없는 타입: ${type}`);
       }
