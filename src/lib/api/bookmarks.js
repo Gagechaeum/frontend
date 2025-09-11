@@ -23,14 +23,16 @@ export async function listServerBookmarks(params) {
 
 // 즐겨찾기 등록
 export async function addServerBookmark({ type, id }) {
-  const url = `/me/${type}s/${id}/bookmark`; // 예: /me/policies/123/bookmark
+  const pluralType = type === 'policy' ? 'policies' : `${type}s`;
+  const url = `/me/${pluralType}/${id}/bookmark`;
   const { data } = await api.post(url, {}, { headers: authHeaders() });
   return data;
 }
 
 // 즐겨찾기 삭제
 export async function removeServerBookmark({ type, id }) {
-  const url = `/me/${type}s/${id}/bookmark`; // 예: /me/policies/123/bookmark
+  const pluralType = type === 'policy' ? 'policies' : `${type}s`;
+  const url = `/me/${pluralType}/${id}/bookmark`;
   const { data } = await api.delete(url, { headers: authHeaders() });
   return data;
 }
