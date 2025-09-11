@@ -59,6 +59,7 @@ defineProps({
 defineEmits(['enter-room']);
 
 function parseTime(time) {
-  return time.split("T")[1];
+  if (time)
+    return time.split("T")[1];
 }
 </script>
