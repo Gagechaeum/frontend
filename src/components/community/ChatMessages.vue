@@ -112,14 +112,17 @@
   };
 
   function parseFileType(type) {
-    return type.split('/')[0];
+    if (type)
+      return type.split('/')[0];
   }
 
   function parseFileSubType(type) {
-    return type.split('/')[1];
+    if (type)
+      return type.split('/')[1];
   }
 
   function parseTime(time) {
+    if (time)
     return time.split('T')[1];
   }
 </script>

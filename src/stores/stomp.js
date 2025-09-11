@@ -7,16 +7,17 @@ export const useChatStore = defineStore('chat', {
     isConnected: false,
 	roomId: null,
     messages: [],
+	token: null
   }),
   actions: {
-    connect() {
-		const token = 'Bearer ' + localStorage.getItem('access_token');
+    connect(token) {
+		console.log('STOMP 연결 시도, 전달된 토큰:', token);
 
 		if (this.stompClient && this.stompClient.connected) {
 			return;
 		}
 
-		const brokerURL = `ws://${window.location.host}/ws-stomp?token=${token}`;
+		const brokerURL = `ws://localhost:8080/ws-stomp?token=${token}`;
 
 		this.stompClient = new Client({
 			brokerURL: brokerURL,
@@ -34,6 +35,15 @@ export const useChatStore = defineStore('chat', {
 			console.log('STOMP 연결 종료');
 		}
 
+		this.stompClient.onWebSocketError = (error) => {
+			console.error('Error with websocket', error);
+		};
+
+		this.stompClient.onStompError = () => {
+			console.error('Broker reported error: ' + frame.headers['message']);
+			console.error('Additional details: ' + frame.body);
+		}
+
 		this.stompClient.activate();
     },
 
@@ -41,6 +51,7 @@ export const useChatStore = defineStore('chat', {
 		if (this.stompClient && this.stompClient.connected) {
 			this.stompClient.deactivate();
 			this.isConnected = false;
+			this.token = null;
 		}
     },
 
@@ -51,11 +62,11 @@ export const useChatStore = defineStore('chat', {
 			}
 
 			this.stompClient.publish({
-				destination: `app/chatrooms/${roomId}/enter`,
+				destination: `/app/chatrooms/${roomId}/enter`,
 				body: ''
 			});
 	
-			this.stompClient.subscribe(`topic/chatrooms/${roomId}`, (message) => {
+			this.stompClient.subscribe(`/topic/chatrooms/${roomId}`, (message) => {
 				console.log('수신 메시지: ', message.body);
 			});
 
@@ -69,12 +80,18 @@ export const useChatStore = defineStore('chat', {
 
 	unsubscribe() {
 		if (this.stompClient && this.stompClient.connected && this.roomId) {
+			this.stompClient.unsubscribe(`/topic/chatrooms/${this.roomId}`);
+
+			this.roomId = null;
+		}
+	},
+
+	leaveRoom() {
+		if (this.stompClient && this.stompClient.connected) {
 			this.stompClient.publish({
 				destination: `/app/chatrooms/${this.roomId}/leave`,
 				body: ''
 			});
-	
-			this.stompClient.unsubscribe(`/topic/chatrooms/${this.roomId}`);
 
 			this.roomId = null;
 		}
@@ -84,6 +101,9 @@ export const useChatStore = defineStore('chat', {
 		if (this.stompClient && this.stompClient.connected && this.roomId) {
 			this.stompClient.publish({
 			  destination: `/app/chatrooms/${this.roomId}/send`,
+			  headers: {
+                'content-type': 'application/json'
+              },
 			  body: JSON.stringify(payload),
 			});
 		}

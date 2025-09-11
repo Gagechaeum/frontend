@@ -41,7 +41,7 @@
           <ChatWindow
             :room="selectedRoom"
             :messages="messages"
-            :current-user="userName"
+            :current-user="currentUser"
             :current-avatar="currentAvatar"
             @back="selectedRoom = null"
             @leave="leaveRoom"
@@ -110,7 +110,7 @@ const showJoinModal = ref(false);
 const selectedRoomForJoin = ref(null);
 
 /** 현재 사용자 */
-const userName = computed(() => authStore.userInfo.name);
+const currentUser = computed(() => authStore.userInfo.name);
 const currentAvatar = 'https://i.pravatar.cc/100?img=5';
 
 /** 추천 데이터(데모) */
@@ -155,59 +155,6 @@ const businessCategories = ref();
 
 /** 방별 메시지 저장소 */
 const messagesByRoom = ref({
-  5: [
-    {
-      id: 'm-501',
-      user: '운영자',
-      nickname: '운영자',
-      avatarUrl: 'https://i.pravatar.cc/100?img=12',
-      content: '어서오세요! 서초구 사장님들 환영합니다 🙌',
-      time: '10:20',
-      type: 'text',
-    },
-    {
-      id: 'm-502',
-      user: '나',
-      nickname: '나',
-      avatarUrl: currentAvatar,
-      content: '안녕하세요~ 반갑습니다!',
-      time: '10:22',
-      type: 'text',
-    },
-  ],
-  6: [
-    {
-      id: 'm-601',
-      user: '헬스장장',
-      nickname: '근지렁',
-      avatarUrl: 'https://i.pravatar.cc/100?img=14',
-      content: '회원권 환불 규정 어떻게 하시나요?',
-      time: '09:05',
-      type: 'text',
-    },
-  ],
-  7: [
-    {
-      id: 'm-701',
-      user: '정책도우미',
-      nickname: '도우미',
-      avatarUrl: 'https://i.pravatar.cc/100?img=22',
-      content: '정책 Q&A에 오신 걸 환영합니다. 무엇이든 물어보세요.',
-      time: '08:55',
-      type: 'text',
-    },
-    // 이미지 메시지 예시 (ChatMessage 템플릿이 imageUrl/fileName을 읽음)
-    {
-      id: 'm-702',
-      user: '나',
-      nickname: '나',
-      avatarUrl: 'https://i.pravatar.cc/100?img=12',
-      imageUrl: 'https://picsum.photos/id/237/400/300',
-      fileName: 'welcome.jpg',
-      time: '10:25',
-      type: 'image',
-    },
-  ],
 });
 
 /** 현재 방 메시지 */
@@ -223,7 +170,8 @@ onMounted(() => {
   fetchChatRooms();
 
   // stomp 연결
-  stompClient.connect();
+  const token = localStorage.getItem('access_token');
+  stompClient.connect(token);
 });
 
 const fetchUserChatRooms = async () => {

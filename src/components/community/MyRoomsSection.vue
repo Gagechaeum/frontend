@@ -127,7 +127,8 @@ const mapTypeLabel = key => {
 };
 
 function parseTime(time) {
-  return time.split("T")[1];
+  if (time)
+    return time.split("T")[1];
 }
 
 /** 안읽은 배지 표시: 10 이상이면 '9+' */

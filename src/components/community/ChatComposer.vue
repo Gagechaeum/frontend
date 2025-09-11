@@ -113,8 +113,6 @@ const isComposing = ref(false);
 
 const emit = defineEmits([
   'send-text',
-  'send-image',
-  'send-video',
   'send-file',
 ]);
 
