@@ -45,7 +45,6 @@ export const getChatRoomHistory = async (room_id, since) => {
 
 // 파일 url 갱신
 export const renewFileUrl = async (file_id) => {
-  console.log(file_id);
   try {
     const response = await api.get(`chatrooms/attachment/${file_id}`);
     return response.data;

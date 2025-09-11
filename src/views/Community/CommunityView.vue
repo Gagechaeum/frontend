@@ -245,7 +245,6 @@ const fetchChatRoomHistory = async (room_id) => {
   try {
     const response = await getChatRoomHistory(room_id, null);
     messages.value = response.data.messages;
-    console.log(response.data);
   } catch (error) {
     console.error('채팅방 히스토리 조회 실패:', error);
   }
