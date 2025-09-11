@@ -85,30 +85,30 @@
             >서류 유형</label
           >
           <select
-            v-model="newDoc.type"
+            v-model="newDoc.typeId"
             required
             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
           >
             <option value="">서류 유형을 선택하세요</option>
             <option
               v-for="docType in documentTypes"
-              :key="docType.value"
-              :value="docType.value"
+              :key="docType.id"
+              :value="docType.id"
             >
-              {{ docType.label }}
+              {{ docType.name }}
             </option>
           </select>
         </div>
 
         <!-- 서류명 입력 (기타 선택 시에만 표시) -->
-        <div v-if="newDoc.type === '기타'">
+        <div v-if="selectedTypeName === '기타'">
           <label class="mb-2 block text-sm font-medium text-gray-700"
             >서류명</label
           >
           <input
-            v-model="newDoc.name"
+            v-model="newDoc.customName"
             type="text"
-            :required="newDoc.type === '기타'"
+            :required="selectedTypeName === '기타'"
             placeholder="서류명을 입력하세요"
             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
           />
@@ -121,6 +121,7 @@
           <input
             v-model="newDoc.issueDate"
             type="date"
+            :max="new Date().toISOString().split('T')[0]"
             required
             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-[#2563EB]"
           />
@@ -144,7 +145,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useDocsStore } from '@/stores/docs';
 import { useNotificationStore } from '@/stores/notification';
 import DocsToolbar from '@/components/docs/DocsToolbar.vue';
@@ -153,6 +154,7 @@ import KanbanBoard from '@/components/docs/KanbanBoard.vue';
 import DocsListView from '@/components/docs/DocsListView.vue';
 import Dropdown from '@/components/common/Dropdown.vue';
 import Modal from '@/components/common/Modal.vue';
+import { getDocumentTypes } from '@/lib/api/documents.js';
 
 const docsStore = useDocsStore();
 const showUploadModal = ref(false);
@@ -160,24 +162,18 @@ const notification = useNotificationStore();
 
 // 새로운 서류 데이터
 const newDoc = ref({
-  name: '',
-  type: '',
+  typeId: '',
+  customName: '',
   issueDate: '',
   file: null,
 });
 
-// 서류 유형 변경 시 서류명 자동 설정
-watch(
-  newDoc,
-  newValue => {
-    if (newValue.type && newValue.type !== '기타') {
-      newValue.name = newValue.type;
-    } else if (newValue.type === '기타') {
-      newValue.name = '';
-    }
-  },
-  { deep: true }
-);
+// 선택된 유형명 계산
+const documentTypes = ref([]);
+const selectedTypeName = computed(() => {
+  const sel = documentTypes.value.find(t => t.id === newDoc.value.typeId);
+  return sel ? sel.name : '';
+});
 
 const viewMode = computed(() => docsStore.viewMode);
 
@@ -200,18 +196,15 @@ const statusOptions = [
   { value: 'completed', label: '완료' },
 ];
 
-// 문서 유형 옵션
-const documentTypes = [
-  { value: '신분증명', label: '신분증명' },
-  { value: '소득증명', label: '소득증명' },
-  { value: '재직증명', label: '재직증명' },
-  { value: '보험증명', label: '보험증명' },
-  { value: '세금증명', label: '세금증명' },
-  { value: '자산증명', label: '자산증명' },
-  { value: '의료증명', label: '의료증명' },
-  { value: '교육증명', label: '교육증명' },
-  { value: '기타', label: '기타' },
-];
+// 서류 유형 로드
+const loadDocumentTypes = async () => {
+  try {
+    const res = await getDocumentTypes();
+    documentTypes.value = (res && res.data && res.data.list) || [];
+  } catch (e) {
+    notification.show('error', '서류 유형을 불러오지 못했습니다.');
+  }
+};
 
 // 검색어 변경 시 store에 반영
 watch(searchQuery, newQuery => {
@@ -240,79 +233,77 @@ const handleFileUpload = event => {
   newDoc.value.file = file;
 };
 
-const handleAddDocument = () => {
-  if (!newDoc.value.type || !newDoc.value.issueDate || !newDoc.value.file)
+const handleAddDocument = async () => {
+  if (!newDoc.value.typeId || !newDoc.value.issueDate || !newDoc.value.file)
     return;
 
-  // 기타가 아닌 경우 서류명을 서류 유형으로 설정
-  if (newDoc.value.type !== '기타') {
-    newDoc.value.name = newDoc.value.type;
+  const nameToUse =
+    selectedTypeName.value === '기타'
+      ? newDoc.value.customName
+      : selectedTypeName.value;
+  if (!nameToUse) return;
+
+  // API를 통해 서류 업로드 (문서 유형 매핑 반영)
+  const success = await docsStore.addDocument({
+    documentId: newDoc.value.typeId,
+    documentName: nameToUse,
+    issuedAt: newDoc.value.issueDate,
+    file: newDoc.value.file,
+  });
+
+  if (success) {
+    notification.show('success', '서류가 성공적으로 업로드되었습니다.');
+    // 초기화 & 닫기
+    newDoc.value = { typeId: '', customName: '', issueDate: '', file: null };
+    showUploadModal.value = false;
+  } else {
+    notification.show(
+      'error',
+      docsStore.error || '서류 업로드에 실패했습니다.'
+    );
   }
-
-  console.log('새 서류 추가:', newDoc.value);
-
-  // TODO: 실제 store에 저장하는 로직 추가 가능
-  docsStore.addDocument?.(newDoc.value);
-
-  // 초기화 & 닫기
-  newDoc.value = { name: '', type: '', issueDate: '', file: null };
-  showUploadModal.value = false;
 };
 
 const closeUploadModal = () => {
   showUploadModal.value = false;
-  newDoc.value = { name: '', type: '', issueDate: '', file: null };
+  newDoc.value = { typeId: '', customName: '', issueDate: '', file: null };
 };
 
-// ZIP 다운로드 처리
+// 다운로드 핸들러
 const handleDownloadZip = async () => {
-  try {
-    const userDocuments = docsStore.filteredItems;
-    if (userDocuments.length === 0) {
-      alert('다운로드할 서류가 없습니다.');
-      return;
-    }
+  // 스토어의 사용자 서류 목록 기준으로 일괄 다운로드
+  const list = docsStore.userDocuments || [];
+  if (!list.length) {
+    notification.show('error', '다운로드할 파일이 없습니다.');
+    return;
+  }
 
-    const JSZip = await import('jszip');
-    const zip = new JSZip.default();
+  const ids = list
+    .map(d => d.userDocumentId)
+    .filter(id => id !== null && id !== undefined);
 
-    userDocuments.forEach(doc => {
-      const docInfo = `서류명: ${doc.name}
-기관: ${doc.institution}
-타입: ${doc.type}
-상태: ${doc.status}
-진행률: ${doc.progress}%
-완료된 서류: ${doc.completedDocs}/${doc.totalDocs}
-마감일: ${doc.deadline}`;
-      const fileName = `${doc.name.replace(/[^a-zA-Z0-9가-힣]/g, '_')}_${doc.institution.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.txt`;
-      zip.file(fileName, docInfo);
-    });
+  if (!ids.length) {
+    notification.show('error', '다운로드할 파일이 없습니다.');
+    return;
+  }
 
-    const summaryInfo = `서류 다운로드 요약
-====================
-다운로드 일시: ${new Date().toLocaleString('ko-KR')}
-총 서류 수: ${userDocuments.length}개`;
-
-    zip.file('서류_요약.txt', summaryInfo);
-
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(zipBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `내_서류_${new Date().toISOString().split('T')[0]}.zip`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    console.log(
-      `${userDocuments.length}개의 서류가 ZIP으로 다운로드되었습니다.`
+  const success = await docsStore.downloadDocuments(ids);
+  if (success) {
+    notification.show('success', '서류가 다운로드되었습니다.');
+  } else {
+    notification.show(
+      'error',
+      docsStore.error || '서류 다운로드에 실패했습니다.'
     );
-  } catch (error) {
-    console.error('ZIP 다운로드 중 오류 발생:', error);
-    alert('ZIP 다운로드 중 오류가 발생했습니다.');
   }
 };
+
+// 컴포넌트 마운트 시 서류 목록 로드
+onMounted(async () => {
+  await docsStore.fetchUserDocuments();
+  await docsStore.fetchBookmarksProgress();
+  await loadDocumentTypes();
+});
 </script>
 
 <style scoped></style>

@@ -7,9 +7,8 @@
             다시 오신 것을 환영합니다
           </p>
           <p class="text-neutral-700">
-            로그인하여 맞춤형 금융 상품을 확인하고<br
-              class="hidden md:block"
-            />간편하게 대출 신청을 진행하세요.
+            로그인하여 맞춤형 금융 상품을 확인하고<br class="hidden md:block" />
+            간편하게 대출 신청을 진행하세요.
           </p>
         </section>
 
@@ -92,23 +91,8 @@
               <div class="h-px flex-1 bg-neutral-200"></div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3">
-              <button
-                class="h-10 rounded-lg border border-neutral-200 bg-white text-sm font-semibold hover:bg-neutral-50"
-              >
-                Google
-              </button>
-              <button
-                class="h-10 rounded-lg border border-neutral-200 bg-white text-sm font-semibold hover:bg-neutral-50"
-              >
-                Kakao
-              </button>
-              <button
-                class="h-10 rounded-lg border border-neutral-200 bg-white text-sm font-semibold hover:bg-neutral-50"
-              >
-                Naver
-              </button>
-            </div>
+            <!-- 네이버 소셜 로그인 (컴포넌트로 분리) -->
+            <NaverLoginButton />
 
             <p class="mt-5 text-center text-sm text-neutral-700">
               계정이 없으신가요?
@@ -127,13 +111,13 @@
 import { ref } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { login } from '@/lib/api/auth';
+import NaverLoginButton from '@/components/auth/NaverLoginButton.vue';
 
 const route = useRoute();
 const router = useRouter();
 
 const email = ref('');
 const password = ref('');
-
 const emailError = ref('');
 const passwordError = ref('');
 const serverError = ref('');
@@ -152,7 +136,7 @@ const onSubmit = async () => {
   submitting.value = true;
   serverError.value = '';
   try {
-    await login(email.value, password.value);
+    await login(email.value, password.value); // 기존 로컬 로그인 로직 그대로
     const next = route.query.next || '/';
     router.replace(String(next));
   } catch (e) {

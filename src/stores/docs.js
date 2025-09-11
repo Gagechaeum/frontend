@@ -1,5 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import {
+  getUserDocuments,
+  uploadUserDocument,
+  downloadUserDocuments,
+  deleteUserDocuments,
+  getDocumentTypes,
+} from '@/lib/api/documents.js';
+import {
+  getBookmarksProgress,
+  updatePolicyStatus,
+  updateLoanStatus,
+} from '@/lib/api/bookmarks.js';
 
 export const useDocsStore = defineStore('docs', () => {
   // 상태
@@ -11,76 +23,11 @@ export const useDocsStore = defineStore('docs', () => {
   });
 
   // 데이터
-  const allItems = ref([
-    {
-      id: 1,
-      type: '정책',
-      name: '청년 전세자금 대출',
-      institution: '한국주택금융공사',
-      status: 'requirements',
-      completedDocs: 0,
-      totalDocs: 5,
-      progress: 10,
-      deadline: 'D-30',
-      files: [
-        { name: '신분증사본.jpg', size: '2.1MB', type: 'image' },
-        { name: '소득증빙서류.pdf', size: '1.8MB', type: 'document' },
-        { name: '주소증빙서류.pdf', size: '0.9MB', type: 'document' },
-      ],
-    },
-    {
-      id: 2,
-      type: '대출',
-      name: '신혼부부 주택구입자금',
-      institution: '국민은행',
-      status: 'collecting',
-      completedDocs: 2,
-      totalDocs: 6,
-      progress: 35,
-      deadline: 'D-15',
-      files: [
-        { name: '결혼증명서.pdf', size: '0.5MB', type: 'document' },
-        { name: '소득증빙서류.pdf', size: '2.3MB', type: 'document' },
-        { name: '주택계약서.pdf', size: '3.1MB', type: 'document' },
-        { name: '은행거래내역.pdf', size: '1.2MB', type: 'document' },
-      ],
-    },
-    {
-      id: 3,
-      type: '정책',
-      name: '중소기업 창업지원금',
-      institution: '중소벤처기업부',
-      status: 'preparing',
-      completedDocs: 4,
-      totalDocs: 5,
-      progress: 80,
-      deadline: 'D-7',
-      files: [
-        { name: '사업계획서.pdf', size: '5.2MB', type: 'document' },
-        { name: '사업자등록증.pdf', size: '0.8MB', type: 'document' },
-        { name: '재무제표.pdf', size: '2.7MB', type: 'document' },
-        { name: '창업교육수료증.pdf', size: '1.1MB', type: 'document' },
-        { name: '사업장사진.jpg', size: '3.4MB', type: 'image' },
-      ],
-    },
-    {
-      id: 4,
-      type: '대출',
-      name: '개인사업자 운영자금',
-      institution: '신한은행',
-      status: 'completed',
-      completedDocs: 4,
-      totalDocs: 4,
-      progress: 100,
-      deadline: '완료',
-      files: [
-        { name: '사업자등록증.pdf', size: '0.8MB', type: 'document' },
-        { name: '재무제표.pdf', size: '2.1MB', type: 'document' },
-        { name: '소득증빙서류.pdf', size: '1.9MB', type: 'document' },
-        { name: '사업계획서.pdf', size: '4.2MB', type: 'document' },
-      ],
-    },
-  ]);
+  const allItems = ref([]);
+  const userDocuments = ref([]);
+  const documentTypes = ref([]);
+  const isLoading = ref(false);
+  const error = ref(null);
 
   // 게터
   const filteredItems = computed(() => {
@@ -151,7 +98,222 @@ export const useDocsStore = defineStore('docs', () => {
     const index = allItems.value.findIndex(item => item.id === id);
     if (index !== -1) {
       allItems.value[index].status = newStatus;
+      allItems.value[index].processStage = mapStatusToProcessStage(newStatus);
     }
+  };
+
+  // 북마크 진행률 데이터 로드
+  const fetchBookmarksProgress = async () => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      const response = await getBookmarksProgress();
+
+      let progressData = [];
+      if (response && response.data) {
+        progressData = response.data;
+      } else if (Array.isArray(response)) {
+        progressData = response;
+      }
+
+      console.log('API 응답:', response);
+      console.log('진행률 데이터:', progressData);
+
+      // API 응답을 칸반보드/리스트뷰 형식으로 변환
+      const transformedItems = progressData.map(item => {
+        const idParts = item.bookmarkId.split('_');
+        const type = idParts[0];
+        const num = idParts[1];
+
+        return {
+          id: item.bookmarkId,
+          name: item.productName,
+          institution: item.providerName,
+          type: item.productType,
+          status: mapProcessStageToStatus(item.processStage),
+          processStage: item.processStage, // 원본 processStage 값 보존
+          completedDocs: item.completedDocsCount || 0,
+          totalDocs: item.totalDocsCount || 0,
+          progress: item.progressPercentage || 0,
+          originalType: type,
+          originalId: num,
+          policyId: item.policyId,
+          loanId: item.loanId,
+        };
+      });
+
+      allItems.value = transformedItems;
+    } catch (err) {
+      error.value = err.message || '북마크 진행률을 불러오는데 실패했습니다.';
+      console.error('북마크 진행률 조회 실패:', err);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const mapProcessStageToStatus = processStage => {
+    const stageMap = {
+      요건확인: 'requirements',
+      '서류 수집/업로드': 'collecting',
+      '제출 준비': 'preparing',
+      '제출 완료/결과': 'completed',
+    };
+    return stageMap[processStage] || 'requirements';
+  };
+
+  const mapStatusToProcessStage = status => {
+    const stageMap = {
+      requirements: '요건확인',
+      collecting: '서류 수집/업로드',
+      preparing: '제출 준비',
+      completed: '제출 완료/결과',
+    };
+    return stageMap[status] || '요건확인';
+  };
+
+  // 상태 업데이트 (API 호출 포함)
+  const updateItemStatusWithAPI = async (id, newStatus) => {
+    const item = allItems.value.find(item => item.id === id);
+    if (!item) return false;
+
+    try {
+      const idParts = id.split('_');
+      const type = idParts[0];
+      const koreanStatus = mapStatusToProcessStage(newStatus);
+
+      if (type === 'policy') {
+        const bookmarkPolicyId = parseInt(idParts[1]);
+        await updatePolicyStatus(bookmarkPolicyId, koreanStatus);
+      } else if (type === 'loan') {
+        const bookmarkLoanId = parseInt(idParts[1]);
+        await updateLoanStatus(bookmarkLoanId, koreanStatus);
+      } else {
+        throw new Error(`알 수 없는 타입: ${type}`);
+      }
+
+      // 로컬 상태 업데이트
+      updateItemStatus(id, newStatus);
+      return true;
+    } catch (err) {
+      error.value = err.message || '상태 업데이트에 실패했습니다.';
+      console.error('상태 업데이트 실패:', err);
+      return false;
+    }
+  };
+
+  // API 연동 액션들
+  const fetchUserDocuments = async () => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      const response = await getUserDocuments();
+      userDocuments.value = response.data || [];
+    } catch (err) {
+      error.value = err.message || '서류 목록을 불러오는데 실패했습니다.';
+      console.error('서류 목록 조회 실패:', err);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const addDocument = async documentData => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      const formData = new FormData();
+      // 백엔드 API 스펙에 맞게 필드명 수정
+      formData.append('documentId', documentData.documentId || Date.now());
+      formData.append(
+        'documentName',
+        documentData.documentName || documentData.name
+      );
+      formData.append(
+        'issuedAt',
+        documentData.issuedAt || documentData.issueDate
+      );
+      formData.append('file', documentData.file);
+
+      await uploadUserDocument(formData);
+
+      // 업로드 성공 후 목록 새로고침
+      await fetchUserDocuments();
+
+      return true;
+    } catch (err) {
+      error.value = err.message || '서류 업로드에 실패했습니다.';
+      console.error('서류 업로드 실패:', err);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const downloadDocuments = async ids => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      const blob = await downloadUserDocuments(ids);
+
+      // 다운로드 처리
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `documents_${new Date().getTime()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return true;
+    } catch (err) {
+      error.value = err.message || '서류 다운로드에 실패했습니다.';
+      console.error('서류 다운로드 실패:', err);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const removeDocuments = async ids => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+
+      await deleteUserDocuments(ids);
+
+      // 삭제 성공 후 목록 새로고침
+      await fetchUserDocuments();
+
+      return true;
+    } catch (err) {
+      error.value = err.message || '서류 삭제에 실패했습니다.';
+      console.error('서류 삭제 실패:', err);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // Document Types 관련 함수들
+  const loadDocumentTypes = async () => {
+    try {
+      isLoading.value = true;
+      const response = await getDocumentTypes();
+      documentTypes.value = response.data?.list || [];
+    } catch (error) {
+      console.error('서류 유형 로드 실패:', error);
+      error.value = error.message;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // 서류명으로 documentId 찾기
+  const getDocumentIdByName = documentName => {
+    const document = documentTypes.value.find(doc => doc.name === documentName);
+    return document ? document.id : null;
   };
 
   return {
@@ -160,6 +322,10 @@ export const useDocsStore = defineStore('docs', () => {
     searchQuery,
     filters,
     allItems,
+    userDocuments,
+    documentTypes,
+    isLoading,
+    error,
 
     // 게터
     filteredItems,
@@ -172,5 +338,19 @@ export const useDocsStore = defineStore('docs', () => {
     updateItem,
     removeItem,
     updateItemStatus,
+
+    // API 액션
+    fetchUserDocuments,
+    addDocument,
+    downloadDocuments,
+    removeDocuments,
+    fetchBookmarksProgress,
+    updateItemStatusWithAPI,
+    mapProcessStageToStatus,
+    mapStatusToProcessStage,
+
+    // Document Types 액션
+    loadDocumentTypes,
+    getDocumentIdByName,
   };
 });

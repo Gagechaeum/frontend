@@ -1,22 +1,55 @@
 import api from './http.js';
 
-// api 작성 예시
-
 /**
- * 사용자 정보 조회
- * @param {string} token - 인증 토큰
- * @returns {Promise<Object>} 사용자 프로필 정보
+ * 채팅방 목록 조회
+ * @param {string} type - 채팅방 타입 (기본값: 'all')
+ * @returns {Promise<Object>} 채팅방 목록
  */
-// export const getUserInfo = async (token) => {
-//     try {
-//         const response = await api.get('/user/profile', {
-//             headers: {
-//                 Authorization: `Bearer ${token}`,
-//             },
-//         })
-//         return response.data
-//     } catch (error) {
-//         console.error('사용자 정보 조회 실패:', error)
-//         throw error
-//     }
-// }
+export const getChatRooms = async (type) => {
+  try {
+    const response = await api.get('/chatrooms', {
+      params: { type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('채팅방 목록 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 사용자 채팅방 목록 조회
+export const getUserChatRooms = async (type) => {
+  try {
+    const response = await api.get('me/chatrooms', {
+      params: { type },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('사용자 채팅방 목록 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 채팅방 히스토리 조회
+export const getChatRoomHistory = async (room_id, since) => {
+  try {
+    const response = await api.get(`chatrooms/${room_id}/history`, {
+      params: { since },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('채팅방 히스토리 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 파일 url 갱신
+export const renewFileUrl = async (file_id) => {
+  try {
+    const response = await api.get(`chatrooms/attachment/${file_id}`);
+    return response.data;
+  } catch (error) {
+    console.error('파일 URL 갱신 실패:', error);
+    throw error;
+  }
+};

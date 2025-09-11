@@ -90,7 +90,7 @@
                       <div
                         class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        서류명을 클릭 시 다운로드 할 수 있습니다
+                        서류명을 클릭하면 다운로드 할 수 있습니다
                         <div
                           class="absolute left-3 top-full h-0 w-0 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
                         ></div>
@@ -171,7 +171,7 @@
                   {{ doc.issueDate }}
                 </td>
                 <td class="px-2 py-3 text-sm text-gray-600">
-                  {{ doc.daysSinceIssue }}
+                  D+{{ doc.daysSinceIssue }}
                 </td>
               </tr>
             </tbody>
@@ -293,10 +293,7 @@
                 <td class="px-2 py-3 text-sm text-gray-600">
                   <button
                     class="cursor-pointer hover:text-[#2563EB] hover:underline"
-                    @click="
-                      showProductsModal = true;
-                      selectedRequiredDoc = doc;
-                    "
+                    @click="openProductsModal(doc)"
                   >
                     {{ doc.count }}개
                   </button>
@@ -414,7 +411,7 @@
     >
       <div class="space-y-3">
         <div
-          v-for="product in getProductsForDocument(selectedRequiredDoc?.name)"
+          v-for="product in productsForSelectedDoc"
           :key="product.id"
           class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
         >
@@ -456,9 +453,33 @@
       :show-confirm-button="false"
       @close="showFavoritesModal = false"
     >
-      <div class="space-y-3">
+      <!-- 즐겨찾기 상품이 없을 때 -->
+      <div
+        v-if="favoriteProducts.length === 0"
+        class="flex flex-col items-center justify-center py-12"
+      >
+        <div class="mb-4 rounded-full bg-gray-100 p-4">
+          <i class="fas fa-star text-2xl text-gray-400"></i>
+        </div>
+        <h4 class="mb-2 text-lg font-medium text-gray-900">
+          즐겨찾기한 상품이 없습니다
+        </h4>
+        <p class="mb-4 text-center text-sm text-gray-500">
+          관심 있는 상품을 찾아서 즐겨찾기에 추가해보세요
+        </p>
+        <button
+          class="inline-flex items-center rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-yellow-600"
+          @click="goToScheduleList"
+        >
+          <i class="fas fa-search mr-2"></i>
+          상품 살펴보기
+        </button>
+      </div>
+
+      <!-- 즐겨찾기 상품 목록 -->
+      <div v-else class="space-y-3">
         <div
-          v-for="product in docsStore.allItems"
+          v-for="product in favoriteProducts"
           :key="product.id"
           class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
         >
@@ -502,10 +523,21 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import { useDocsStore } from '@/stores/docs';
+import {
+  getUserDocuments,
+  uploadUserDocument,
+  downloadUserDocuments,
+  deleteUserDocuments,
+  getProductsByDocument,
+} from '@/lib/api/documents.js';
+import {
+  getBookmarkDocuments,
+  getBookmarkedProducts,
+} from '@/lib/api/bookmarks.js';
 import Tag from '@/components/common/Tag.vue';
 import Modal from '@/components/common/Modal.vue';
 
@@ -553,12 +585,13 @@ const selectedDoc = ref(null);
 // 상품 리스트 모달 상태
 const showProductsModal = ref(false);
 const selectedRequiredDoc = ref(null);
+const productsForSelectedDoc = ref([]);
 
 // 즐겨찾기 관련 상태
 const showFavoritesModal = ref(false);
 
-// 즐겨찾기 상품 수 (실제로는 API에서 가져와야 함)
-const favoriteCount = ref(12);
+// 즐겨찾기 상품 수
+const favoriteCount = ref(0);
 
 const newDoc = ref({
   name: '',
@@ -567,51 +600,11 @@ const newDoc = ref({
   file: null,
 });
 
-const myDocuments = ref([
-  {
-    id: 1,
-    name: '주민등록등본',
-    type: '신분증명',
-    issueDate: '2024-01-15',
-    daysSinceIssue: 'D+45',
-    notification: true,
-    file: null,
-  },
-  {
-    id: 2,
-    name: '소득금액증명원',
-    type: '소득증명',
-    issueDate: '2024-02-01',
-    daysSinceIssue: 'D+12',
-    notification: true,
-    file: null,
-  },
-  {
-    id: 3,
-    name: '건강보험료 납부확인서',
-    type: '보험증명',
-    issueDate: '2024-03-01',
-    daysSinceIssue: 'D+5',
-    notification: false,
-    file: null,
-  },
-  {
-    id: 4,
-    name: '재직증명서',
-    type: '재직증명',
-    issueDate: '2024-01-20',
-    daysSinceIssue: 'D+40',
-    notification: true,
-    file: null,
-  },
-]);
-
-const requiredDocuments = ref([
-  { id: 1, name: '주민등록등본', count: 3, owned: '보유' },
-  { id: 2, name: '소득금액증명원', count: 2, owned: '미보유' },
-  { id: 3, name: '재직증명서', count: 1, owned: '미보유' },
-  { id: 4, name: '건강보험료 납부확인서', count: 2, owned: '보유' },
-]);
+// 실제 API에서 가져온 데이터
+const myDocuments = ref([]);
+const requiredDocuments = ref([]);
+const favoriteProducts = ref([]);
+const isLoading = ref(false);
 
 const isSelectionMode = ref(false);
 const selectedDocuments = ref([]);
@@ -619,6 +612,91 @@ const selectedDocuments = ref([]);
 // 일괄 처리 확인 모달 상태
 const showConfirmModal = ref(false);
 const confirmActionType = ref('download'); // 'download' | 'delete'
+
+// API 호출 함수들
+const fetchMyDocuments = async () => {
+  try {
+    isLoading.value = true;
+    const response = await getUserDocuments();
+    console.log('API 응답:', response); // 디버깅용 로그 추가
+    // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
+    myDocuments.value = (response.data || []).map(doc => ({
+      id: doc.userDocumentId,
+      name: doc.documentName,
+      type: doc.type || '기타', // API에 type 필드가 없으므로 기본값 설정
+      issueDate: doc.issuedAt,
+      daysSinceIssue: doc.daysElapsed,
+      fileKey: doc.fileKey,
+    }));
+    console.log('매핑된 데이터:', myDocuments.value); // 디버깅용 로그 추가
+  } catch (error) {
+    console.error('서류 목록 조회 실패:', error);
+    notification.show('error', '서류 목록을 불러오는데 실패했습니다.');
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const fetchRequiredDocuments = async () => {
+  try {
+    const response = await getBookmarkDocuments();
+    console.log('즐겨찾기 서류 목록 API 응답:', response);
+
+    // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
+    if (response && response.documents) {
+      requiredDocuments.value = response.documents.map(doc => ({
+        id: doc.documentName, // 서류명을 ID로 사용
+        name: doc.documentName,
+        count: doc.productCount,
+        owned: doc.possessionStatus,
+        issuingUrl: doc.issuingUrl,
+      }));
+    } else {
+      requiredDocuments.value = [];
+    }
+  } catch (error) {
+    console.error('필요서류 목록 조회 실패:', error);
+    notification.show('error', '필요서류 목록을 불러오는데 실패했습니다.');
+  }
+};
+
+const fetchFavoriteCount = async () => {
+  try {
+    const response = await getBookmarkDocuments();
+    console.log('즐겨찾기 상품 수 API 응답:', response);
+
+    // totalBookmarkCount를 사용하여 즐겨찾기 상품 수 설정
+    favoriteCount.value = response?.totalBookmarkCount || 0;
+  } catch (error) {
+    console.error('즐겨찾기 상품 수 조회 실패:', error);
+    favoriteCount.value = 0;
+  }
+};
+
+const fetchFavoriteProducts = async () => {
+  try {
+    const response = await getBookmarkedProducts();
+    console.log('즐겨찾기 상품 목록 API 응답:', response);
+
+    // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
+    if (response && Array.isArray(response)) {
+      favoriteProducts.value = response.map(product => ({
+        id: product.name, // 상품명을 ID로 사용
+        name: product.name,
+        type: product.type === 'POLICY' ? '정책' : '대출',
+        institution: product.organization,
+        deadline: product.dDay ? `D-${product.dDay}` : '상시',
+        completedDocs: product.prepared || 0,
+        totalDocs: product.required || 0,
+      }));
+    } else {
+      favoriteProducts.value = [];
+    }
+  } catch (error) {
+    console.error('즐겨찾기 상품 목록 조회 실패:', error);
+    favoriteProducts.value = [];
+  }
+};
 
 const openConfirmModal = type => {
   if (selectedDocuments.value.length === 0) return;
@@ -666,47 +744,53 @@ const isAllSelected = computed(() => {
   );
 });
 
-const downloadSelectedDocuments = () => {
-  let successCount = 0;
-  let errorCount = 0;
-
-  selectedDocuments.value.forEach(docId => {
-    const doc = myDocuments.value.find(d => d.id === docId);
-    if (doc && doc.file) {
-      const url = URL.createObjectURL(doc.file);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = doc.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      successCount++;
-    } else {
-      errorCount++;
+const downloadSelectedDocuments = async () => {
+  try {
+    // 선택된 서류가 없는 경우
+    if (selectedDocuments.value.length === 0) {
+      notification.show('error', '다운로드할 파일이 없습니다.');
+      return;
     }
-  });
 
-  if (successCount > 0) {
+    const response = await downloadUserDocuments(selectedDocuments.value);
+
+    // Blob을 파일로 다운로드
+    const url = window.URL.createObjectURL(new Blob([response]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'documents.zip');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
     notification.show(
       'success',
-      `${successCount}개의 서류가 다운로드되었습니다.`
+      `${selectedDocuments.value.length}개의 서류가 다운로드되었습니다.`
     );
+    selectedDocuments.value = []; // 선택 해제
+  } catch (error) {
+    console.error('서류 다운로드 실패:', error);
+    notification.show('error', '서류 다운로드에 실패했습니다.');
   }
-  if (errorCount > 0) {
-    notification.show('error', `${errorCount}개의 서류에 파일이 없습니다.`);
-  }
-
-  selectedDocuments.value = []; // 선택 해제
 };
 
-const deleteSelectedDocuments = () => {
-  const count = selectedDocuments.value.length;
-  myDocuments.value = myDocuments.value.filter(
-    doc => !selectedDocuments.value.includes(doc.id)
-  );
-  selectedDocuments.value = []; // 선택 해제
-  notification.show('success', `${count}개의 서류가 삭제되었습니다.`);
+const deleteSelectedDocuments = async () => {
+  try {
+    await deleteUserDocuments(selectedDocuments.value);
+
+    // 삭제 성공 후 목록에서 제거
+    myDocuments.value = myDocuments.value.filter(
+      doc => !selectedDocuments.value.includes(doc.id)
+    );
+
+    const count = selectedDocuments.value.length;
+    selectedDocuments.value = []; // 선택 해제
+    notification.show('success', `${count}개의 서류가 삭제되었습니다.`);
+  } catch (error) {
+    console.error('서류 삭제 실패:', error);
+    notification.show('error', '서류 삭제에 실패했습니다.');
+  }
 };
 
 const getOwnedVariant = owned => {
@@ -720,52 +804,62 @@ const handleFileUpload = event => {
   newDoc.value.file = event.target.files[0];
 };
 
-const addDocument = () => {
+const addDocument = async () => {
   if (newDoc.value.name && newDoc.value.issueDate && newDoc.value.file) {
-    const newId = Math.max(...myDocuments.value.map(doc => doc.id)) + 1;
-    const issueDate = new Date(newDoc.value.issueDate);
-    const today = new Date();
-    const diffTime = Math.abs(today - issueDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    try {
+      const formData = new FormData();
+      // 백엔드 API 스펙에 맞게 필드명 수정
+      formData.append('documentId', Date.now());
+      formData.append('documentName', newDoc.value.name);
+      formData.append('issuedAt', newDoc.value.issueDate);
+      formData.append('file', newDoc.value.file);
 
-    myDocuments.value.push({
-      id: newId,
-      name: newDoc.value.name,
-      type: newDoc.value.type || '기타',
-      issueDate: newDoc.value.issueDate,
-      daysSinceIssue: `D+${diffDays}`,
-      notification: true,
-      file: newDoc.value.file,
-    });
+      await uploadUserDocument(formData);
 
-    // 폼 초기화
-    newDoc.value = { name: '', type: '', issueDate: '', file: null };
-    emit('closeUploadModal');
-    emit('addDocument', {
-      id: newId,
-      name: newDoc.value.name,
-      type: newDoc.value.type || '기타',
-      issueDate: newDoc.value.issueDate,
-      daysSinceIssue: `D+${diffDays}`,
-      notification: true,
-      file: newDoc.value.file,
-    });
+      // 성공 후 목록 새로고침
+      await fetchMyDocuments();
+
+      // 폼 초기화
+      newDoc.value = { name: '', type: '', issueDate: '', file: null };
+      emit('closeUploadModal');
+      notification.show('success', '서류가 성공적으로 추가되었습니다.');
+    } catch (error) {
+      console.error('서류 추가 실패:', error);
+      notification.show('error', '서류 추가에 실패했습니다.');
+    }
   }
 };
 
-const downloadDocument = doc => {
-  if (doc.file) {
-    const url = URL.createObjectURL(doc.file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = doc.name; // 파일 이름 설정
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+const downloadDocument = async doc => {
+  try {
+    const response = await downloadUserDocuments([doc.id]);
+
+    // 단일 다운로드: S3 URL을 받아서 직접 다운로드
+    if (typeof response === 'string') {
+      // S3 URL인 경우 직접 링크로 다운로드
+      const link = document.createElement('a');
+      link.href = response;
+      link.setAttribute('download', `${doc.name}.pdf`);
+      link.setAttribute('target', '_blank');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } else {
+      // Blob 데이터인 경우 (fallback)
+      const url = window.URL.createObjectURL(new Blob([response]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${doc.name}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    }
+
     notification.show('success', `'${doc.name}'이(가) 다운로드되었습니다.`);
-  } else {
-    notification.show('error', `'${doc.name}'에 파일이 없습니다.`);
+  } catch (error) {
+    console.error('서류 다운로드 실패:', error);
+    notification.show('error', `'${doc.name}' 다운로드에 실패했습니다.`);
   }
 };
 
@@ -790,10 +884,43 @@ const goToScheduleList = () => {
   router.push('/schedule/list');
 };
 
-const getProductsForDocument = docName => {
-  // 실제 상품 데이터에서 해당 서류를 요구하는 상품들을 필터링
-  // 여기서는 간단히 모든 상품을 반환하지만, 실제로는 서류 요구사항에 따라 필터링해야 함
-  return docsStore.allItems;
+const openProductsModal = async doc => {
+  try {
+    selectedRequiredDoc.value = doc;
+    showProductsModal.value = true;
+
+    // 서류명으로 documentId 찾기
+    const documentId = docsStore.getDocumentIdByName(doc.name);
+    if (!documentId) {
+      console.error(
+        '서류명에 해당하는 documentId를 찾을 수 없습니다:',
+        doc.name
+      );
+      productsForSelectedDoc.value = [];
+      return;
+    }
+
+    const response = await getProductsByDocument(documentId);
+    console.log('서류별 상품 목록 API 응답:', response);
+
+    // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
+    if (response && response.data) {
+      productsForSelectedDoc.value = response.data.map(product => ({
+        id: product.name, // 상품명을 ID로 사용
+        name: product.name,
+        type: product.type === 'POLICY' ? '정책' : '대출',
+        institution: product.organization,
+        deadline: product.dDay ? `D-${product.dDay}` : '상시',
+        completedDocs: product.prepared || 0,
+        totalDocs: product.required || 0,
+      }));
+    } else {
+      productsForSelectedDoc.value = [];
+    }
+  } catch (error) {
+    console.error('서류별 상품 목록 조회 실패:', error);
+    productsForSelectedDoc.value = [];
+  }
 };
 
 const openRemoveFavoriteModal = product => {
@@ -812,4 +939,17 @@ const removeFromFavorites = product => {
     );
   }
 };
+
+// 컴포넌트 마운트 시 데이터 로드
+onMounted(async () => {
+  // document types가 아직 로드되지 않았다면 로드
+  if (docsStore.documentTypes.length === 0) {
+    await docsStore.loadDocumentTypes();
+  }
+
+  await fetchMyDocuments();
+  await fetchRequiredDocuments();
+  await fetchFavoriteCount();
+  await fetchFavoriteProducts();
+});
 </script>
