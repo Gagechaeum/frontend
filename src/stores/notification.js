@@ -5,16 +5,12 @@ export const useNotificationStore = defineStore('notification', {
   state: () => ({
     items: [], // Toast 알림용 (기존)
     notifications: [], // 헤더 드롭다운 알림용 (새로 추가)
-    unreadCount: 0, // 읽지 않은 알림 개수
     isLoading: false,
     error: null,
     _seq: 0,
   }),
 
-  getters: {
-    // 로컬 알림에서 읽지 않은 개수 계산 (API와 병행 사용)
-    localUnreadCount: state => state.notifications.filter(n => !n.read).length,
-  },
+  getters: {},
 
   actions: {
     // 기존 Toast 알림 메서드들
@@ -43,19 +39,12 @@ export const useNotificationStore = defineStore('notification', {
       const notification = this.notifications.find(n => n.id === id);
       if (notification) {
         notification.read = true;
-        this.unreadCount = Math.max(0, this.unreadCount - 1);
       }
     },
 
     async markAllAsRead() {
       // 로컬 상태만 업데이트
       this.notifications.forEach(n => (n.read = true));
-      this.unreadCount = 0;
-    },
-
-    async fetchUnreadCount() {
-      // 로컬 상태에서 계산
-      this.unreadCount = this.notifications.filter(n => !n.read).length;
     },
 
     // 로컬 알림 메서드들 (기존 호환성 유지)
@@ -67,24 +56,21 @@ export const useNotificationStore = defineStore('notification', {
         createdAt: new Date(),
         ...notification,
       });
-      this.unreadCount++;
     },
 
     removeNotification(id) {
-      const notification = this.notifications.find(n => n.id === id);
-      if (notification && !notification.read) {
-        this.unreadCount = Math.max(0, this.unreadCount - 1);
-      }
       this.notifications = this.notifications.filter(n => n.id !== id);
     },
 
     clearNotifications() {
       this.notifications = [];
-      this.unreadCount = 0;
     },
 
     // 샘플 데이터 추가 (테스트용)
     addSampleNotifications() {
+      // 기존 알림이 있으면 추가하지 않음
+      if (this.notifications.length > 0) return;
+
       this.addNotification({
         type: 'deadline',
         title: '청년창업지원금 마감 임박',
@@ -93,22 +79,15 @@ export const useNotificationStore = defineStore('notification', {
       });
 
       this.addNotification({
+        type: 'deadline',
+        title: '세금 신고 마감일 알림',
+        message: '부가가치세 신고가 1주일 후 마감됩니다.',
+      });
+
+      this.addNotification({
         type: 'update',
-        title: '새로운 대출 상품 등록',
-        message: 'IT 스타트업을 위한 새로운 대출 상품이 등록되었습니다.',
-      });
-
-      this.addNotification({
-        type: 'success',
-        title: '서류 제출 완료',
-        message: '중소기업 운영자금 대출 서류가 성공적으로 제출되었습니다.',
-      });
-
-      this.addNotification({
-        type: 'warning',
-        title: '서류 보완 필요',
-        message:
-          '제출하신 서류에 보완이 필요한 항목이 있습니다. 확인 후 재제출해주세요.',
+        title: '정책 업데이트',
+        message: '중소기업 지원 정책이 업데이트되었습니다.',
       });
     },
   },
