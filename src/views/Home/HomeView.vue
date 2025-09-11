@@ -285,13 +285,14 @@
               <div
                 v-for="policy in policies"
                 :key="policy.id"
-                class="reveal-item card-hover-wrap"
+                class="reveal-item card-hover-wrap h-full"
               >
                 <CardLg
                   :title="policy.title"
                   badge="정책"
                   badge-tone="gray"
                   action-label="자세히 보기"
+                  class="h-full"
                   @action="handlePolicyDetail(policy)"
                 >
                   <template #after-details>
