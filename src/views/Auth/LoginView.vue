@@ -3,6 +3,12 @@
     <div class="container mx-auto py-16 lg:py-24">
       <div class="grid grid-cols-12 items-start gap-8 lg:gap-12">
         <section class="col-span-12 lg:col-span-7">
+          <UiButton variant="ghost" size="md" @click="goHome" class="mb-6">
+            <template #leading>
+              <i class="fas fa-home text-neutral-900"></i>
+            </template>
+            <span class="text-base">홈으로</span>
+          </UiButton>
           <p class="mb-4 text-3xl font-bold text-neutral-900 md:text-4xl">
             다시 오신 것을 환영합니다
           </p>
@@ -112,6 +118,7 @@ import { ref } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { login } from '@/lib/api/auth';
 import NaverLoginButton from '@/components/auth/NaverLoginButton.vue';
+import UiButton from '@/components/common/UiButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -129,6 +136,10 @@ const validate = () => {
   if (!email.value) emailError.value = '이메일을 입력해주세요';
   if (!password.value) passwordError.value = '비밀번호를 입력해주세요';
   return !(emailError.value || passwordError.value);
+};
+
+const goHome = () => {
+  router.push('/');
 };
 
 const onSubmit = async () => {
