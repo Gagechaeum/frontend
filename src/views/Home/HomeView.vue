@@ -242,6 +242,7 @@
                   { label: '한도', value: loan.limit },
                 ]"
                 action-label="자세히 보기"
+                :hide-star-when-not-logged-in="true"
                 class="h-full"
                 @action="handleLoanDetail(loan)"
               />
@@ -282,6 +283,7 @@
                   badge="정책"
                   badge-tone="gray"
                   action-label="자세히 보기"
+                  :hide-star-when-not-logged-in="true"
                   class="h-full"
                   @action="handlePolicyDetail(policy)"
                 >

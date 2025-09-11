@@ -8,10 +8,11 @@
     <div class="mb-3 flex items-center justify-between">
       <Tag v-if="badge" :label="badge" :tone="badgeTone" size="xs" />
       <button
+        v-if="showStar"
         class="rounded p-1 hover:bg-gray-100"
         :aria-pressed="favorited"
         aria-label="즐겨찾기"
-        @click.stop="emit('update:favorited', !favorited)"
+        @click.stop="handleStarClick"
       >
         <i
           :class="[
@@ -69,6 +70,9 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { useNotificationStore } from '@/stores/notification';
 import Tag from '@/components/common/Tag.vue';
 import UiButton from '@/components/common/UiButton.vue';
 
@@ -83,7 +87,33 @@ const props = defineProps({
   details: { type: Array, default: () => [] }, // [{label, value, tone?}]
   actionLabel: { type: String, default: '' }, // 버튼 라벨
   favorited: { type: Boolean, default: false }, // 즐겨찾기 상태
+  hideStarWhenNotLoggedIn: { type: Boolean, default: true }, // 비로그인 시 별 모양 숨기기 여부
 });
 
 const emit = defineEmits(['update:favorited', 'action']);
+
+const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
+
+// 로그인 상태 확인
+const isLoggedIn = computed(() => !!authStore.user);
+
+// 별 모양 표시 여부 결정
+const showStar = computed(() => {
+  if (props.hideStarWhenNotLoggedIn) {
+    return isLoggedIn.value;
+  }
+  return true;
+});
+
+// 별 모양 클릭 처리
+const handleStarClick = () => {
+  if (isLoggedIn.value) {
+    // 로그인 상태: 즐겨찾기 토글
+    emit('update:favorited', !props.favorited);
+  } else {
+    // 비로그인 상태: 알림 표시
+    notificationStore.show('info', '로그인 후 즐겨찾기가 가능합니다');
+  }
+};
 </script>
