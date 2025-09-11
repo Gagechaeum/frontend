@@ -5,7 +5,7 @@ import api from './http.js';
  * @param {string} type - 채팅방 타입 (기본값: 'all')
  * @returns {Promise<Object>} 채팅방 목록
  */
-export const getChatRooms = async (type = 'all') => {
+export const getChatRooms = async (type) => {
   try {
     const response = await api.get('/chatrooms', {
       params: { type },
@@ -17,6 +17,7 @@ export const getChatRooms = async (type = 'all') => {
   }
 };
 
+// 사용자 채팅방 목록 조회
 export const getUserChatRooms = async (type) => {
   try {
     const response = await api.get('me/chatrooms', {

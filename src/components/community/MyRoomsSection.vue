@@ -135,7 +135,6 @@ const displayUnread = n => (n > 9 ? '9+' : String(n || 0));
 
 /** 유효성 로그(선택) */
 watchEffect(() => {
-  console.log(props.myRooms)
   const valid = new Set(['industry', 'region', 'loan', 'policy']);
   props.myRooms.forEach(r => {
     if (!valid.has(r?.roomType)) {

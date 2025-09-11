@@ -27,6 +27,7 @@
             :business-categories="businessCategories"
             @open-region="openRegion"
             @open-category="openBusinessCategory"
+            @enter-room="enterChatRoom"
           />
         </div>
 
@@ -77,7 +78,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
-import { getUserChatRooms } from '@/lib/api/community.js';
+import { getUserChatRooms, getChatRooms } from '@/lib/api/community.js';
 
 import LiveBanner from '@/components/community/LiveBanner.vue';
 import RecommendCarousel from '@/components/community/RecommendCarousel.vue';
@@ -143,9 +144,9 @@ const tabs = ref([
 
 const myRooms = ref();
 
-/** (데모) 영역/업종 */
-const regions = ref([]);
-const businessCategories = ref([]);
+/** 영역/업종 */
+const regions = ref();
+const businessCategories = ref();
 
 /** 방별 메시지 저장소 */
 const messagesByRoom = ref({
@@ -212,6 +213,7 @@ const currentRoomMessages = computed(() =>
 onMounted(() => {
   // API 데이터 로드
   fetchUserChatRooms();
+  fetchChatRooms();
 });
 
 const fetchUserChatRooms = async () => {
@@ -220,6 +222,19 @@ const fetchUserChatRooms = async () => {
     myRooms.value = response.data.chatRooms;
   } catch (error) {
     console.error('사용자 채팅방 목록 조회 실패:', error);
+  }
+};
+
+const fetchChatRooms = async () => {
+  try {
+    const regionResponse = await getChatRooms("region");
+    regions.value = regionResponse.data.chatRooms;
+    const businessResponse = await getChatRooms("industry");
+    businessCategories.value = businessResponse.data.chatRooms;
+
+    console.log(businessCategories);
+  } catch (error) {
+    console.error('전체 채팅방 목록 조회 실패:', error);
   }
 };
 
