@@ -67,6 +67,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMyPageStore } from '@/stores/mypage';
+import { useAuthStore } from '@/stores/auth';
 import { logout as apiLogout } from '@/lib/api/auth';
 
 // ── props/emit
@@ -81,6 +82,7 @@ const open = ref(false);
 const rootEl = ref(null);
 const router = useRouter();
 const my = useMyPageStore();
+const auth = useAuthStore();
 
 // ── 안전 전역 핸들 (ESLint/SSR 가드)
 const g = typeof globalThis !== 'undefined' ? globalThis : undefined;
@@ -88,13 +90,13 @@ const d = g?.document;
 const ls = g?.localStorage;
 const ss = g?.sessionStorage;
 
-// ── 표시용 계산값: 스토어 우선, 없으면 props, 그마저 없으면 기본값
+// ── 표시용 계산값: auth 스토어 우선, 없으면 props, 그마저 없으면 기본값
 const displayedUserInfo = computed(() => {
-  if (my?.isLoggedIn) {
+  if (auth?.isReady && auth?.user) {
     return {
-      name: my.displayName || '사용자',
-      region: my.business?.regionName || '',
-      business: my.business?.industryName || '',
+      name: auth.userInfo.name || '사용자',
+      region: auth.userInfo.region || '',
+      business: auth.userInfo.business || '',
     };
   }
   return {
@@ -132,13 +134,12 @@ const onDocClick = evt => {
 const toggle = async evt => {
   evt?.stopPropagation();
 
-  if (typeof my?.ensureFresh === 'function') {
-    await my.ensureFresh(30_000).catch(() => {});
-  } else if (!my?.isLoaded) {
-    await my.load?.().catch(() => {});
+  // auth 스토어가 준비되지 않았다면 세션 복원 시도
+  if (!auth?.isReady) {
+    await auth.hydrateSession().catch(() => {});
   }
 
-  if (!(my?.isLoggedIn || hasToken())) {
+  if (!(auth?.user || hasToken())) {
     router.push('/login');
     return;
   }
@@ -161,8 +162,7 @@ const logoutClick = async () => {
     // ignore
   } finally {
     try {
-      my?.$reset?.();
-      if (my) my.isLoaded = false;
+      await auth.doLogout();
     } catch (e) {
       void e; // 변수 참조로 블록을 "비지 않게" 처리 (no-op)
     }
