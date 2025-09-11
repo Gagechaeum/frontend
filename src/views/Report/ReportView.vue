@@ -66,7 +66,7 @@
           v-model:active-tab="activeTab"
           v-model:sort-by="sortBy"
           :tabs="tabs"
-          :filtered-items="filteredItems"
+          :filtered-items="paginatedItems"
           :expanded-items="expandedItems"
           @toggle-detail="toggleDetail"
           @collapse-all="expandedItems = []"
@@ -74,7 +74,7 @@
           @open-policy="openPolicyDetail"
         />
         <Pagination
-          :current-page="page"
+          :current-page="currentPage"
           :total-pages="totalPages"
           @page-change="handlePageChange"
         />
@@ -93,7 +93,7 @@
 <script setup>
 /* eslint-env browser */
 
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { me } from '@/lib/api/auth';
 import ReportHeader from '@/components/report/ReportHeader.vue';
@@ -109,8 +109,7 @@ import { useNotificationStore } from '@/stores/notification';
 /* ===== Stores ===== */
 const reportStore = useReportStore();
 const notificationStore = useNotificationStore();
-const { summary, items, schedule, cashFlow, page, totalPages } =
-  storeToRefs(reportStore);
+const { summary, items, schedule, cashFlow } = storeToRefs(reportStore);
 
 /* ===== UI State ===== */
 const showPolicyModal = ref(false);
@@ -121,12 +120,15 @@ const activeTab = ref('all');
 const sortBy = ref('date');
 const expandedItems = ref([]);
 
+/* ===== Client-side Pagination State ===== */
+const currentPage = ref(0);
+const pageSize = ref(5);
+
 /* ===== Summary / Chart State ===== */
 const monthlyBenefit = computed(() => summary.value?.supportTotal ?? 0);
 const monthlyPayment = computed(() => summary.value?.repayTotal ?? 0);
 
 const chartData = computed(() => {
-  // API에서 받아온 cashFlow 데이터가 있을 경우
   if (cashFlow.value && cashFlow.value.length > 0) {
     return {
       labels: cashFlow.value.map(cf => cf.month),
@@ -134,8 +136,6 @@ const chartData = computed(() => {
       loanSeries: cashFlow.value.map(cf => cf.repayment),
     };
   }
-
-  // 데이터가 없을 경우, 기본 6개월치 빈 차트를 생성합니다.
   const labels = [];
   const todayForChart = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -144,7 +144,6 @@ const chartData = computed(() => {
     const ym = d.toISOString().slice(0, 7);
     labels.push(`${Number(ym.split('-')[1])}월`);
   }
-
   return {
     labels,
     policySeries: new Array(6).fill(0),
@@ -173,25 +172,73 @@ const tabs = [
   { key: 'all', label: '전체' },
   { key: 'loan', label: '대출' },
   { key: 'policy', label: '정책' },
+  { key: 'expired', label: '만료' },
 ];
 
-/* ===== Filters / Sorting ===== */
-const filteredItems = computed(() => {
-  let list = items.value;
-  if (activeTab.value !== 'all') {
-    list = items.value.filter(i => i.type === activeTab.value);
+/* ===== Full-list Filtering, Sorting, and Pagination ===== */
+
+// 1. Filter and Sort the full list
+const sortedItems = computed(() => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 자정 기준으로 비교
+
+  const activeItems = [];
+  const expiredItems = [];
+
+  items.value.forEach(item => {
+    const endDate = item.endDate ? new Date(item.endDate) : null;
+    if (endDate && endDate < today) {
+      expiredItems.push({ ...item, status: 'expired' });
+    } else {
+      activeItems.push({ ...item, status: 'active' });
+    }
+  });
+
+  let listToShow;
+  if (activeTab.value === 'expired') {
+    listToShow = expiredItems;
+  } else {
+    if (activeTab.value === 'all') {
+      listToShow = activeItems;
+    } else {
+      // 'loan' or 'policy'
+      listToShow = activeItems.filter(
+        i => i.type.toLowerCase() === activeTab.value
+      );
+    }
   }
 
+  // 정렬하기 전에 항상 새 배열을 생성하여 반응성을 보장합니다.
+  const listToSort = [...listToShow];
+
   if (sortBy.value === 'name') {
-    // 이름순 (가나다순)
-    list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    listToSort.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   } else if (sortBy.value === 'date') {
-    // 최신순 (날짜 내림차순)
-    list = [...list].sort(
-      (a, b) => new Date(b.startDate) - new Date(a.startDate)
-    );
+    listToSort.sort((a, b) => {
+      const dateA = a.endDate ? new Date(a.endDate) : 0;
+      const dateB = b.endDate ? new Date(b.endDate) : 0;
+      return dateA - dateB;
+    });
   }
-  return list;
+
+  return listToSort;
+});
+
+// 2. Calculate total pages based on the sorted list
+const totalPages = computed(() => {
+  return Math.ceil(sortedItems.value.length / pageSize.value);
+});
+
+// 3. Get the items for the current page
+const paginatedItems = computed(() => {
+  const start = currentPage.value * pageSize.value;
+  const end = start + pageSize.value;
+  return sortedItems.value.slice(start, end);
+});
+
+// Reset to first page when filters change
+watch([activeTab, sortBy], () => {
+  currentPage.value = 0;
 });
 
 /* ===== Row expand / open detail ===== */
@@ -217,7 +264,7 @@ async function handlePolicyRegister(newItem) {
 
 /* ===== Pagination ===== */
 const handlePageChange = newPage => {
-  reportStore.fetchItems(newPage);
+  currentPage.value = newPage;
 };
 
 /* ===== Utils ===== */
@@ -258,13 +305,9 @@ onMounted(async () => {
     return;
   }
 
-  reportStore.resetItems(); // Reset items before fetching
-
-  // Fetch dashboard first
+  // Fetch all data
+  await reportStore.fetchAllItems();
   await reportStore.fetchDashboard();
-
-  // Then fetch items for the first page
-  await reportStore.fetchItems(0);
 
   notificationStore.show('info', '페이지가 로드되었습니다.');
 });

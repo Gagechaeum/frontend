@@ -30,7 +30,7 @@
         @click="openDropdown = !openDropdown"
       >
         <span>
-          {{ sortBy === 'date' ? '최신순' : '이름순' }}
+          {{ sortBy === 'date' ? '마감순' : '이름순' }}
         </span>
         <i
           class="fas fa-chevron-down ml-2 text-gray-400 transition-transform"
@@ -52,7 +52,7 @@
                 openDropdown = false;
               "
             >
-              최신순
+              마감순
             </button>
           </li>
           <li>
@@ -133,13 +133,13 @@
               <td class="px-4 py-4 text-center">
                 <span
                   :class="
-                    item.status === '진행중'
+                    item.status === 'active'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-gray-100 text-gray-800'
                   "
                   class="rounded-full px-2.5 py-0.5 text-xs"
                 >
-                  {{ item.status }}
+                  {{ item.status === 'active' ? '진행중' : '만료' }}
                 </span>
               </td>
             </tr>
