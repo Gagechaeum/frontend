@@ -41,7 +41,7 @@
           <ChatWindow
             :room="selectedRoom"
             :messages="messages"
-            :current-user="userName"
+            :current-user="currentUser"
             :current-avatar="currentAvatar"
             @back="selectedRoom = null"
             @leave="leaveRoom"
@@ -79,7 +79,8 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { getUserChatRooms, getChatRooms, getChatRoomHistory } from '@/lib/api/community.js';
-import { useAuthStore  } from '@/stores/auth';
+import { useAuthStore } from '@/stores/auth';
+import { useChatStore } from '@/stores/stomp';
 
 import LiveBanner from '@/components/community/LiveBanner.vue';
 import RecommendCarousel from '@/components/community/RecommendCarousel.vue';
@@ -91,6 +92,7 @@ import JoinModal from '@/components/community/JoinModal.vue';
 import ImagePreviewModal from '@/components/community/ImagePreviewModal.vue';
 
 const authStore = useAuthStore();
+const stompClient = useChatStore();
 
 /** 상태 */
 const activeTab = ref('all');
@@ -108,7 +110,7 @@ const showJoinModal = ref(false);
 const selectedRoomForJoin = ref(null);
 
 /** 현재 사용자 */
-const userName = computed(() => authStore.userInfo.name);
+const currentUser = computed(() => authStore.userInfo.name);
 const currentAvatar = 'https://i.pravatar.cc/100?img=5';
 
 /** 추천 데이터(데모) */
@@ -153,59 +155,6 @@ const businessCategories = ref();
 
 /** 방별 메시지 저장소 */
 const messagesByRoom = ref({
-  5: [
-    {
-      id: 'm-501',
-      user: '운영자',
-      nickname: '운영자',
-      avatarUrl: 'https://i.pravatar.cc/100?img=12',
-      content: '어서오세요! 서초구 사장님들 환영합니다 🙌',
-      time: '10:20',
-      type: 'text',
-    },
-    {
-      id: 'm-502',
-      user: '나',
-      nickname: '나',
-      avatarUrl: currentAvatar,
-      content: '안녕하세요~ 반갑습니다!',
-      time: '10:22',
-      type: 'text',
-    },
-  ],
-  6: [
-    {
-      id: 'm-601',
-      user: '헬스장장',
-      nickname: '근지렁',
-      avatarUrl: 'https://i.pravatar.cc/100?img=14',
-      content: '회원권 환불 규정 어떻게 하시나요?',
-      time: '09:05',
-      type: 'text',
-    },
-  ],
-  7: [
-    {
-      id: 'm-701',
-      user: '정책도우미',
-      nickname: '도우미',
-      avatarUrl: 'https://i.pravatar.cc/100?img=22',
-      content: '정책 Q&A에 오신 걸 환영합니다. 무엇이든 물어보세요.',
-      time: '08:55',
-      type: 'text',
-    },
-    // 이미지 메시지 예시 (ChatMessage 템플릿이 imageUrl/fileName을 읽음)
-    {
-      id: 'm-702',
-      user: '나',
-      nickname: '나',
-      avatarUrl: 'https://i.pravatar.cc/100?img=12',
-      imageUrl: 'https://picsum.photos/id/237/400/300',
-      fileName: 'welcome.jpg',
-      time: '10:25',
-      type: 'image',
-    },
-  ],
 });
 
 /** 현재 방 메시지 */
@@ -219,6 +168,10 @@ onMounted(() => {
   // API 데이터 로드
   fetchUserChatRooms();
   fetchChatRooms();
+
+  // stomp 연결
+  const token = localStorage.getItem('access_token');
+  stompClient.connect(token);
 });
 
 const fetchUserChatRooms = async () => {
@@ -241,9 +194,9 @@ const fetchChatRooms = async () => {
   }
 };
 
-const fetchChatRoomHistory = async (room_id) => {
+const fetchChatRoomHistory = async (roomId) => {
   try {
-    const response = await getChatRoomHistory(room_id, null);
+    const response = await getChatRoomHistory(roomId, null);
     messages.value = response.data.messages;
   } catch (error) {
     console.error('채팅방 히스토리 조회 실패:', error);
@@ -265,10 +218,12 @@ const enterChatRoom = room => {
       },
     ];
   }
+  stompClient.subscribe(room.roomId);
   fetchChatRoomHistory(room.roomId, room.lastLeftAt);
   selectedRoom.value = room;
   nextTick(scrollToBottom);
 };
+
 const leaveRoom = () => {
   selectedRoom.value = null;
 };
@@ -279,6 +234,7 @@ const pushMessageToCurrentRoom = msg => {
   if (!messagesByRoom.value[rid]) messagesByRoom.value[rid] = [];
   messagesByRoom.value[rid].push(msg);
 };
+
 const handleSendText = text => {
   if (!text?.trim() || !selectedRoom.value) return;
   pushMessageToCurrentRoom({
@@ -292,6 +248,7 @@ const handleSendText = text => {
   });
   nextTick(scrollToBottom);
 };
+
 const handleSendImage = fileInfo => {
   pushMessageToCurrentRoom({
     id: Date.now().toString(),
@@ -305,6 +262,7 @@ const handleSendImage = fileInfo => {
   });
   nextTick(scrollToBottom);
 };
+
 const handleSendVideo = fileInfo => {
   pushMessageToCurrentRoom({
     id: Date.now().toString(),
@@ -318,6 +276,7 @@ const handleSendVideo = fileInfo => {
   });
   nextTick(scrollToBottom);
 };
+
 const handleSendFile = fileInfo => {
   pushMessageToCurrentRoom({
     id: Date.now().toString(),
@@ -337,10 +296,12 @@ const openJoinModal = room => {
   selectedRoomForJoin.value = room;
   showJoinModal.value = true;
 };
+
 const closeJoinModal = () => {
   showJoinModal.value = false;
   selectedRoomForJoin.value = null;
 };
+
 const joinRoom = () => {
   if (!selectedRoomForJoin.value) return;
   const room = selectedRoomForJoin.value;
@@ -363,6 +324,7 @@ const openImagePreview = ({ url, name }) => {
   previewImageName.value = name;
   showImagePreview.value = true;
 };
+
 const closeImagePreview = () => {
   showImagePreview.value = false;
   previewImageUrl.value = '';
@@ -395,5 +357,6 @@ onUnmounted(() => {
 
 /** 데모 핸들러 */
 const openRegion = () => {};
+
 const openBusinessCategory = () => {};
 </script>
