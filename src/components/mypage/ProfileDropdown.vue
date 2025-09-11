@@ -27,12 +27,18 @@
       <!-- 사용자 정보 -->
       <div class="border-b border-gray-100 px-4 py-3">
         <p class="truncate text-base font-bold text-gray-900">
-          {{ userInfo.name }}
+          {{ displayedUserInfo.name }}
         </p>
         <p class="mt-1 truncate text-sm text-gray-500">
-          <span v-if="userInfo.region">{{ userInfo.region }}</span>
-          <span v-if="userInfo.region && userInfo.business"> · </span>
-          <span v-if="userInfo.business">{{ userInfo.business }}</span>
+          <span v-if="displayedUserInfo.region">{{
+            displayedUserInfo.region
+          }}</span>
+          <span v-if="displayedUserInfo.region && displayedUserInfo.business">
+            ·
+          </span>
+          <span v-if="displayedUserInfo.business">{{
+            displayedUserInfo.business
+          }}</span>
         </p>
       </div>
 
@@ -58,50 +64,121 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { logout as apiLogout } from '@/lib/api/auth'; // ← 로그아웃 API 연결
+import { useMyPageStore } from '@/stores/mypage';
+import { logout as apiLogout } from '@/lib/api/auth';
 
-/* ✅ TS 타입 제거하고 런타임 props로 전환 (ESLint 파싱 에러 해결) */
-defineProps({
-  userInfo: { type: Object, required: true },
+// ── props/emit
+const props = defineProps({
+  userInfo: { type: Object, default: null }, // { name, region, business } (표시용 초기값)
   avatar: { type: String, default: '' },
 });
-
 const emit = defineEmits(['mypage', 'logout-click']);
 
+// ── refs/store/router
 const open = ref(false);
 const rootEl = ref(null);
 const router = useRouter();
+const my = useMyPageStore();
 
-const toggle = () => (open.value = !open.value);
+// ── 안전 전역 핸들 (ESLint/SSR 가드)
+const g = typeof globalThis !== 'undefined' ? globalThis : undefined;
+const d = g?.document;
+const ls = g?.localStorage;
+const ss = g?.sessionStorage;
+
+// ── 표시용 계산값: 스토어 우선, 없으면 props, 그마저 없으면 기본값
+const displayedUserInfo = computed(() => {
+  if (my?.isLoggedIn) {
+    return {
+      name: my.displayName || '사용자',
+      region: my.business?.regionName || '',
+      business: my.business?.industryName || '',
+    };
+  }
+  return {
+    name: props.userInfo?.name ?? '사용자',
+    region: props.userInfo?.region ?? '',
+    business: props.userInfo?.business ?? '',
+  };
+});
+
+// ── helpers
 const close = () => (open.value = false);
 
-const onDocClick = e => {
-  const t = e.target;
+const hasToken = () => {
+  try {
+    return !!(
+      ls?.getItem('access_token') ||
+      ls?.getItem('accessToken') ||
+      ls?.getItem('token') ||
+      ss?.getItem('access_token') ||
+      ss?.getItem('accessToken') ||
+      ss?.getItem('token')
+    );
+  } catch {
+    return false;
+  }
+};
+
+// ── 외부 클릭 닫기(캡처 단계)
+const onDocClick = evt => {
+  const t = evt.target;
   if (rootEl.value && !rootEl.value.contains(t)) close();
 };
 
+// ── 토글(로그인 가드 + 최신 상태 보장)
+const toggle = async evt => {
+  evt?.stopPropagation();
+
+  if (typeof my?.ensureFresh === 'function') {
+    await my.ensureFresh(30_000).catch(() => {});
+  } else if (!my?.isLoaded) {
+    await my.load?.().catch(() => {});
+  }
+
+  if (!(my?.isLoggedIn || hasToken())) {
+    router.push('/login');
+    return;
+  }
+
+  open.value = !open.value;
+  await nextTick();
+};
+
+// ── 마이페이지 이동 (부모에 위임)
 const goMyPage = () => {
   emit('mypage');
   close();
 };
 
-/** 로그아웃: 서버에 로그아웃 요청 → 토큰 정리 → 로그인 화면으로 이동 */
+// ── 로그아웃
 const logoutClick = async () => {
   try {
-    await apiLogout(); // /auth/logout 호출 + access_token 삭제
-  } catch (_) {
-    // 네트워크/401이어도 그냥 넘어가서 클라이언트 상태만 정리
+    await apiLogout();
+  } catch {
+    // ignore
   } finally {
-    emit('logout-click'); // (선택) 부모가 추가 정리를 하고 싶다면 받도록 유지
+    try {
+      my?.$reset?.();
+      if (my) my.isLoaded = false;
+    } catch (e) {
+      void e; // 변수 참조로 블록을 "비지 않게" 처리 (no-op)
+    }
+    emit('logout-click');
     close();
-    router.replace('/login'); // 라우팅 경로가 다르면 '/signin' 등으로 바꿔줘
+    router.replace('/login');
   }
 };
 
-onMounted(() => document.addEventListener('click', onDocClick));
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
+// ── 마운트/언마운트
+onMounted(() => {
+  d?.addEventListener?.('click', onDocClick, true);
+});
+onBeforeUnmount(() => {
+  d?.removeEventListener?.('click', onDocClick, true);
+});
 </script>
 
 <style scoped>
