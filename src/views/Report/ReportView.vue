@@ -37,9 +37,9 @@
             월별 현금 흐름 추이
           </h2>
           <CashflowChart
-            :labels="trendLabels"
-            :policy="policySeries"
-            :loan="loanSeries"
+            :labels="chartData.labels"
+            :policy="chartData.policySeries"
+            :loan="chartData.loanSeries"
           />
         </div>
       </div>
@@ -104,9 +104,11 @@ import ReportList from '@/components/report/ReportList.vue';
 import RegisterModal from '@/components/report/RegisterModal.vue';
 import Pagination from '@/components/common/Pagination.vue';
 import { useReportStore } from '@/stores/reports';
+import { useNotificationStore } from '@/stores/notification';
 
 /* ===== Stores ===== */
 const reportStore = useReportStore();
+const notificationStore = useNotificationStore();
 const { summary, items, schedule, cashFlow, page, totalPages } =
   storeToRefs(reportStore);
 
@@ -123,9 +125,32 @@ const expandedItems = ref([]);
 const monthlyBenefit = computed(() => summary.value?.supportTotal ?? 0);
 const monthlyPayment = computed(() => summary.value?.repayTotal ?? 0);
 
-const policySeries = computed(() => cashFlow.value.map(cf => cf.benefit));
-const loanSeries = computed(() => cashFlow.value.map(cf => cf.repayment));
-const trendLabels = computed(() => cashFlow.value.map(cf => cf.month));
+const chartData = computed(() => {
+  // API에서 받아온 cashFlow 데이터가 있을 경우
+  if (cashFlow.value && cashFlow.value.length > 0) {
+    return {
+      labels: cashFlow.value.map(cf => cf.month),
+      policySeries: cashFlow.value.map(cf => cf.benefit),
+      loanSeries: cashFlow.value.map(cf => cf.repayment),
+    };
+  }
+
+  // 데이터가 없을 경우, 기본 6개월치 빈 차트를 생성합니다.
+  const labels = [];
+  const todayForChart = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(todayForChart);
+    d.setMonth(todayForChart.getMonth() - i);
+    const ym = d.toISOString().slice(0, 7);
+    labels.push(`${Number(ym.split('-')[1])}월`);
+  }
+
+  return {
+    labels,
+    policySeries: new Array(6).fill(0),
+    loanSeries: new Array(6).fill(0),
+  };
+});
 
 /* ===== Calendar (2주) ===== */
 const today = new Date();
@@ -239,22 +264,6 @@ onMounted(async () => {
   // Then fetch items for the first page
   await reportStore.fetchItems(0);
 
-  // 캘린더 스켈레톤
-  calendarDays.value = generateTwoWeeksAlignedToSunday(today);
-
-  // 차트 기본 6개월(0값) — 데이터 없어도 틀 유지
-  if (!trendLabels.value.length) {
-    const end = new Date(today);
-    const labels = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(end);
-      d.setMonth(end.getMonth() - i);
-      const ym = d.toISOString().slice(0, 7);
-      labels.push(`${Number(ym.split('-')[1])}월`);
-    }
-    trendLabels.value = labels;
-    policySeries.value = new Array(6).fill(0);
-    loanSeries.value = new Array(6).fill(0);
-  }
+  notificationStore.show('info', '페이지가 로드되었습니다.');
 });
 </script>
