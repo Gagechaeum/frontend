@@ -29,3 +29,28 @@ export const getUserChatRooms = async (type) => {
     throw error;
   }
 };
+
+// 채팅방 히스토리 조회
+export const getChatRoomHistory = async (room_id, since) => {
+  try {
+    const response = await api.get(`chatrooms/${room_id}/history`, {
+      params: { since },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('채팅방 히스토리 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 파일 url 갱신
+export const renewFileUrl = async (file_id) => {
+  console.log(file_id);
+  try {
+    const response = await api.get(`chatrooms/attachment/${file_id}`);
+    return response.data;
+  } catch (error) {
+    console.error('파일 URL 갱신 실패:', error);
+    throw error;
+  }
+};

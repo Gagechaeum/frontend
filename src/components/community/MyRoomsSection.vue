@@ -90,7 +90,7 @@ import { computed, watchEffect } from 'vue';
 const props = defineProps({
   tabs: { type: Array, default: () => [] }, // [{ id:'all'|'industry'|'region'|'loan'|'policy', name, icon }]
   activeTab: { type: String, default: 'all' },
-  myRooms: { type: Array, default: () => [] }, // { id, name, memberCount, lastMessageTime, unreadCount, category }
+  myRooms: { type: Array, default: () => [] }, // { id, name, memberCount, lastMessageDate, unreadCount, category }
 });
 defineEmits(['update:active-tab', 'enter-room']);
 

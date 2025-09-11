@@ -12,12 +12,9 @@
           <i class="fas fa-arrow-left"></i>
         </button>
         <h3 class="font-semibold text-gray-900">{{ room?.name }}</h3>
-        <span class="text-sm text-gray-500">{{ room?.memberCount }}명</span>
+        <span class="text-sm text-gray-500">{{ room?.participantCount }}명</span>
       </div>
       <div class="flex items-center gap-2">
-        <button class="text-gray-500 hover:text-yellow-500">
-          <i class="fas fa-star"></i>
-        </button>
         <button
           class="text-gray-500 hover:text-red-500"
           @click="$emit('leave')"
@@ -51,7 +48,7 @@ import ChatComposer from './ChatComposer.vue';
 defineProps({
   room: Object,
   messages: Array,
-  currentUser: { type: String, default: '나' },
+  currentUser: { type: String, default: '' },
   currentAvatar: { type: String, default: '' },
 });
 
