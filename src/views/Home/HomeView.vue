@@ -284,8 +284,10 @@
                 ]"
                 action-label="자세히 보기"
                 :hide-star-when-not-logged-in="true"
+                :favorited="isLoanFavorited(loan)"
                 class="h-full"
                 @action="handleLoanDetail(loan)"
+                @update:favorited="toggleLoanFavorite(loan)"
               />
             </div>
           </div>
@@ -325,8 +327,10 @@
                   badge-tone="gray"
                   action-label="자세히 보기"
                   :hide-star-when-not-logged-in="true"
+                  :favorited="isPolicyFavorited(policy)"
                   class="h-full"
                   @action="handlePolicyDetail(policy)"
+                  @update:favorited="togglePolicyFavorite(policy)"
                 >
                   <template #after-details>
                     <div class="mb-3 mr-2 flex justify-between text-sm">
@@ -518,6 +522,7 @@ import { useNotificationStore } from '@/stores/notification';
 import { useAuthStore } from '@/stores/auth';
 import { useProductsStore } from '@/stores/products';
 import { useBusinessInfoStore } from '@/stores/businessInfo';
+import { useFavorites } from '@/stores/favorites';
 import { vInview } from '@/utils/inview.js';
 import {
   getRecommendedLoans,
@@ -539,6 +544,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const productsStore = useProductsStore();
 const businessInfoStore = useBusinessInfoStore();
+const favoritesStore = useFavorites();
 
 const goDocs = () => router.push('/docs');
 const goReport = () => router.push('/report');
@@ -757,10 +763,49 @@ const calculateDDay = endDate => {
   }
 };
 
+// 즐겨찾기 토글 함수들
+const toggleLoanFavorite = async loan => {
+  if (!isLoggedIn.value) {
+    notificationStore.show('info', '로그인 후 즐겨찾기가 가능합니다');
+    return;
+  }
+
+  const favId = `loan_${loan.id}`;
+  await favoritesStore.toggle(favId, {
+    title: loan.title,
+    type: 'loan',
+  });
+};
+
+const togglePolicyFavorite = async policy => {
+  if (!isLoggedIn.value) {
+    notificationStore.show('info', '로그인 후 즐겨찾기가 가능합니다');
+    return;
+  }
+
+  const favId = `policy_${policy.id}`;
+  await favoritesStore.toggle(favId, {
+    title: policy.title,
+    type: 'policy',
+  });
+};
+
+// 즐겨찾기 상태 확인 함수들
+const isLoanFavorited = loan => {
+  return favoritesStore.has(`loan_${loan.id}`);
+};
+
+const isPolicyFavorited = policy => {
+  return favoritesStore.has(`policy_${policy.id}`);
+};
+
 // 컴포넌트 마운트 시 API 데이터 로드
 onMounted(async () => {
   // authStore 상태 강제 갱신 (로그인 후 라우팅 시 상태 동기화)
   await authStore.hydrateSession();
+
+  // 즐겨찾기 스토어 초기화
+  await favoritesStore.load();
 
   // 로그인 상태라면 businessInfo 로드
   if (isLoggedIn.value) {
@@ -809,6 +854,9 @@ watch(isLoggedIn, async newValue => {
   if (newValue) {
     // 로그인된 경우: 개인화된 데이터 로드
     await authStore.hydrateSession(); // 상태 강제 갱신
+
+    // 즐겨찾기 스토어 초기화
+    await favoritesStore.load();
 
     // businessInfo 로드
     try {
