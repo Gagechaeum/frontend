@@ -100,9 +100,9 @@
 
   const isMine = m => m?.nickname === props.currentUser;
 
-  const fetchRenewFileUrl = async file_id => {
+  const fetchRenewFileUrl = async fileId => {
     try {
-      const response = await renewFileUrl(file_id);
+      const response = await renewFileUrl(fileId);
       if (response.data) {
         window.open(response.data, '_blank');
       }
@@ -112,14 +112,17 @@
   };
 
   function parseFileType(type) {
-    return type.split('/')[0];
+    if (type)
+      return type.split('/')[0];
   }
 
   function parseFileSubType(type) {
-    return type.split('/')[1];
+    if (type)
+      return type.split('/')[1];
   }
 
   function parseTime(time) {
+    if (time)
     return time.split('T')[1];
   }
 </script>

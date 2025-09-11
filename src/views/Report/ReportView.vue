@@ -87,6 +87,13 @@
       @close="showPolicyModal = false"
       @register="handlePolicyRegister"
     />
+
+    <!-- 대출 등록 모달 -->
+    <LoanRegisterModal
+      :show="showLoanModal"
+      @close="showLoanModal = false"
+      @confirm="handleLoanRegister"
+    />
   </div>
 </template>
 
@@ -96,12 +103,14 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { me } from '@/lib/api/auth';
+import { linkLoanData } from '@/lib/api/reports.js';
 import ReportHeader from '@/components/report/ReportHeader.vue';
 import TwoWeekCalendar from '@/components/report/TwoWeekCalendar.vue';
 import MonthlySummary from '@/components/report/MonthlySummary.vue';
 import CashflowChart from '@/components/report/CashflowChart.vue';
 import ReportList from '@/components/report/ReportList.vue';
 import RegisterModal from '@/components/report/RegisterModal.vue';
+import LoanRegisterModal from '@/components/report/LoanRegisterModal.vue';
 import Pagination from '@/components/common/Pagination.vue';
 import { useReportStore } from '@/stores/reports';
 import { useNotificationStore } from '@/stores/notification';
@@ -114,8 +123,10 @@ const { summary, items, schedule, cashFlow } = storeToRefs(reportStore);
 
 /* ===== UI State ===== */
 const showPolicyModal = ref(false);
+const showLoanModal = ref(false);
+
 const onClickLoan = () => {
-  // TODO: implement loan add flow
+  showLoanModal.value = true;
 };
 const activeTab = ref('all');
 const sortBy = ref('date');
@@ -261,6 +272,7 @@ const toggleDetail = id => {
   else expandedItems.value.push(id);
 };
 const openLoanDetail = item => {
+  console.log('Clicked Loan Item:', item);
   router.push({ name: 'loan-detail', params: { id: item.itemId } });
 };
 const openPolicyDetail = item => {
@@ -271,6 +283,19 @@ const openPolicyDetail = item => {
 async function handlePolicyRegister(newItem) {
   await reportStore.savePolicy(newItem);
   showPolicyModal.value = false;
+}
+
+async function handleLoanRegister() {
+  showLoanModal.value = false;
+  try {
+    await linkLoanData();
+    notificationStore.show('success', '대출 정보가 연동되었습니다.');
+    // Refresh data
+    await reportStore.fetchAllItems();
+    await reportStore.fetchDashboard();
+  } catch (error) {
+    notificationStore.show('error', '대출 정보 연동에 실패했습니다.');
+  }
 }
 
 /* ===== Pagination ===== */

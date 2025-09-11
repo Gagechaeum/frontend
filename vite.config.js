@@ -23,6 +23,11 @@ export default defineConfig(({ mode }) => {
         '/oauth2': { target: API_BASE, changeOrigin: true, secure: false },
         '/login': { target: API_BASE, changeOrigin: true, secure: false },
         '/logout': { target: API_BASE, changeOrigin: true, secure: false },
+        '/ws-stomp': {
+          target: API_BASE.replace(/^http/, 'ws'),
+          ws: true,
+          changeOrigin: true,
+        },
       },
     },
   };

@@ -199,3 +199,22 @@ export async function getIncomeExpenseTrend({ from, to }) {
     return handleApiError('getIncomeExpenseTrend', err, []);
   }
 }
+
+/**
+ * ⑧ 마이데이터 연동으로 대출 정보 등록
+ */
+export async function linkLoanData() {
+  try {
+    const response = await api.post(
+      '/loans/mydata',
+      {},
+      {
+        headers: authHeaders(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('대출 정보 연동 실패:', error);
+    throw error;
+  }
+}
