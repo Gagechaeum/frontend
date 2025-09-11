@@ -285,7 +285,7 @@
                         </svg>
                       </div>
                       <span class="text-sm font-medium text-gray-900">{{
-                        file.name
+                        file.documentName
                       }}</span>
                     </div>
 
@@ -573,7 +573,11 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import { getLoanDetail } from '@/lib/api/products.js';
-import { uploadUserDocument, getDocumentTypes } from '@/lib/api/documents.js';
+import {
+  uploadUserDocument,
+  getDocumentTypes,
+  getDocumentChecklist,
+} from '@/lib/api/documents.js';
 import HeroSection from '@/components/detail/HeroSection.vue';
 import TabNavigation from '@/components/detail/TabNavigation.vue';
 
@@ -737,17 +741,13 @@ const goToDocs = () => {
   router.push('/docs');
 };
 
-// 필요서류 데이터
-const requiredDocuments = ref([
-  { name: '사업자등록증', uploaded: false },
-  { name: '소득증빙서류', uploaded: false },
-  { name: '신분증', uploaded: false },
-  { name: '대출신청서', uploaded: false },
-]);
+// 필요서류 데이터 (API에서 가져올 데이터)
+const requiredDocuments = ref([]);
+const checklistData = ref(null);
 
 // 업로드된 서류 수 계산
 const uploadedDocumentsCount = computed(() => {
-  return requiredDocuments.value.filter(doc => doc.uploaded).length;
+  return requiredDocuments.value.filter(doc => doc.completed).length;
 });
 
 // 서류 업로드 모달 상태
@@ -775,8 +775,8 @@ const handleTypeChange = () => {
 
 // 서류 업로드 여부 확인
 const isDocumentUploaded = file => {
-  // TODO: API 연동 시 실제 업로드 상태 확인
-  return file.uploaded;
+  // API에서 받은 completed 상태를 사용
+  return file.completed || false;
 };
 
 // 서류 업로드 모달 열기
@@ -785,12 +785,30 @@ const openUploadModal = async file => {
   try {
     const res = await getDocumentTypes();
     documentTypes.value = (res && res.data && res.data.list) || [];
+
+    // file.documentName과 일치하는 서류 유형 찾기
+    const matchingType = documentTypes.value.find(
+      type => type.name === file.documentName
+    );
+
+    if (matchingType) {
+      // 일치하는 유형이 있으면 자동 선택
+      newDoc.value.typeId = matchingType.id;
+      newDoc.value.typeName = matchingType.name;
+      newDoc.value.customName = '';
+    } else {
+      // 일치하는 유형이 없으면 초기화
+      newDoc.value.typeId = '';
+      newDoc.value.typeName = '';
+      newDoc.value.customName = '';
+    }
   } catch (e) {
     notification.show('error', '서류 유형을 불러오지 못했습니다.');
+    // 에러 발생 시 초기화
+    newDoc.value.typeId = '';
+    newDoc.value.typeName = '';
+    newDoc.value.customName = '';
   }
-  newDoc.value.typeId = '';
-  newDoc.value.typeName = '';
-  newDoc.value.customName = '';
 };
 
 // 서류 업로드 모달 닫기
@@ -848,13 +866,8 @@ const addDocument = async () => {
       if (response.success) {
         notification.show('success', '서류가 성공적으로 업로드되었습니다.');
 
-        // 업로드된 서류로 상태 업데이트
-        const docIndex = requiredDocuments.value.findIndex(
-          doc => doc.name === newDoc.value.name
-        );
-        if (docIndex !== -1) {
-          requiredDocuments.value[docIndex].uploaded = true;
-        }
+        // 체크리스트 데이터 새로고침
+        await loadChecklistData();
 
         // 폼 초기화 및 모달 닫기
         newDoc.value = {
@@ -870,6 +883,23 @@ const addDocument = async () => {
       console.error('서류 업로드 실패:', error);
       notification.show('error', '서류 업로드에 실패했습니다.');
     }
+  }
+};
+
+// 체크리스트 데이터 로드
+const loadChecklistData = async () => {
+  if (!route.params.id) return;
+
+  try {
+    const productId = route.params.id;
+    const type = 'loan'; // 대출 페이지이므로 'loan'으로 고정
+
+    const response = await getDocumentChecklist(productId, type);
+    checklistData.value = response.data;
+    requiredDocuments.value = response.data.documents || [];
+  } catch (error) {
+    console.error('체크리스트 데이터 로드 실패:', error);
+    notification.show('error', '체크리스트를 불러오는데 실패했습니다.');
   }
 };
 
@@ -910,12 +940,13 @@ const fetchLoanDetail = async loanId => {
 };
 
 // 컴포넌트 마운트 시 대출 ID에 따른 데이터 로드
-onMounted(() => {
+onMounted(async () => {
   const productId = route.params.id;
   console.log('대출 ID:', productId, '타입:', productType.value);
 
   if (productId) {
-    fetchLoanDetail(productId);
+    await fetchLoanDetail(productId);
+    await loadChecklistData();
   } else {
     error.value = '대출 ID가 제공되지 않았습니다.';
     notification.show('error', '대출 ID가 제공되지 않았습니다.');
