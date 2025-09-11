@@ -1,6 +1,6 @@
 <template>
   <article
-    class="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm"
+    class="flex cursor-pointer flex-col rounded-2xl border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm"
   >
     <div v-if="label" class="mb-2">
       <Tag :label="label" :tone="labelTone" size="xs" />
@@ -16,10 +16,12 @@
     <!-- 제목 아래 추가 영역 -->
     <slot name="after-title" />
 
-    <p v-if="meta" class="text-xs text-gray-600">{{ meta }}</p>
+    <div class="flex-1">
+      <p v-if="meta" class="text-xs text-gray-600">{{ meta }}</p>
 
-    <!-- 메타 정보 아래 추가 영역 -->
-    <slot name="after-meta" />
+      <!-- 메타 정보 아래 추가 영역 -->
+      <slot name="after-meta" />
+    </div>
 
     <!-- 하단 추가 영역 -->
     <slot name="footer" />

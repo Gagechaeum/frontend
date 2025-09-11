@@ -103,34 +103,57 @@
           </div>
 
           <div class="relative hidden flex-1 items-center justify-end lg:flex">
-            <!-- 메인 일러스트 -->
-            <div class="relative">
-              <div
-                class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 opacity-60 blur-2xl"
-              ></div>
-              <div
-                class="relative rounded-3xl border border-white/20 bg-white/80 p-8 shadow-2xl backdrop-blur-sm"
-              >
+            <!-- 메인 일러스트들 -->
+            <div class="relative flex items-center space-x-6">
+              <!-- 첫 번째 일러스트 -->
+              <div class="relative">
                 <div
-                  class="flex h-48 w-48 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100"
+                  class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 opacity-60 blur-2xl"
+                ></div>
+                <div
+                  class="relative rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-sm"
                 >
-                  <svg
-                    class="h-24 w-24 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    ></path>
-                  </svg>
+                  <img
+                    src="@/assets/banner.png"
+                    alt="banner"
+                    class="h-23 w-23"
+                  />
                 </div>
               </div>
 
-              <!-- 부유하는 아이콘들 -->
+              <!-- 두 번째 일러스트 -->
+              <div class="relative">
+                <div
+                  class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-green-100 to-emerald-100 opacity-60 blur-2xl"
+                ></div>
+                <div
+                  class="relative rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-sm"
+                >
+                  <img
+                    src="@/assets/banner2.png"
+                    alt="banner2"
+                    class="h-23 w-23"
+                  />
+                </div>
+              </div>
+
+              <!-- 세 번째 일러스트 -->
+              <div class="relative">
+                <div
+                  class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-purple-100 to-pink-100 opacity-60 blur-2xl"
+                ></div>
+                <div
+                  class="relative rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-sm"
+                >
+                  <img
+                    src="@/assets/banner3.png"
+                    alt="banner3"
+                    class="h-23 w-23"
+                  />
+                </div>
+              </div>
+
+              <!-- 부유하는 아이콘들 (줄임) -->
               <div
                 class="absolute -right-4 -top-4 animate-bounce rounded-full bg-green-100 p-3 shadow-lg"
               >
@@ -163,6 +186,24 @@
                     stroke-linejoin="round"
                     stroke-width="2"
                     d="M13 10V3L4 14h7v7l9-11h-7z"
+                  ></path>
+                </svg>
+              </div>
+
+              <div
+                class="animation-delay-1500 absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce rounded-full bg-blue-100 p-2 shadow-lg"
+              >
+                <svg
+                  class="h-5 w-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                   ></path>
                 </svg>
               </div>
@@ -211,7 +252,7 @@
           :title="
             isLoggedIn
               ? '대출을 한눈에 비교하고, 내 조건에 맞는 상품을 확인하세요'
-              : '인기 대출 상품을 확인하고 비교해보세요'
+              : '다양한 대출 상품을 확인하고 비교해보세요'
           "
         >
           <template #description>
@@ -220,20 +261,9 @@
                 {{
                   isLoggedIn
                     ? '나에게 맞는 대출 상품을 추천해드립니다'
-                    : '많은 사용자들이 관심을 보인 인기 대출 상품입니다'
+                    : '여러 금융사에서 제공하는 대출 상품을 한 눈에 비교해보세요'
                 }}
               </p>
-              <ul class="mt-3 flex flex-wrap gap-3">
-                <li v-for="t in loanTags" :key="t" class="reveal-item">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="pointer-events-none cursor-default"
-                  >
-                    {{ t }}
-                  </UiButton>
-                </li>
-              </ul>
             </div>
           </template>
           <div
@@ -242,7 +272,7 @@
             <div
               v-for="loan in loans"
               :key="loan.id"
-              class="reveal-item card-hover-wrap"
+              class="reveal-item card-hover-wrap h-full"
             >
               <CardLg
                 :title="loan.title"
@@ -253,7 +283,11 @@
                   { label: '한도', value: loan.limit },
                 ]"
                 action-label="자세히 보기"
+                :hide-star-when-not-logged-in="true"
+                :favorited="isLoanFavorited(loan)"
+                class="h-full"
                 @action="handleLoanDetail(loan)"
+                @update:favorited="toggleLoanFavorite(loan)"
               />
             </div>
           </div>
@@ -272,7 +306,7 @@
         class="bg-blue-50"
       >
         <div class="mx-auto max-w-6xl px-6 py-16">
-          <Section :title="'추천 정책도 한 번에 확인하세요'">
+          <Section :title="'정부 지원 정책도 한 번에 확인하세요'">
             <template #description>
               <p class="reveal-item text-lg text-gray-600">
                 내 조건에 맞는 정책을 추천해드립니다
@@ -292,8 +326,11 @@
                   badge="정책"
                   badge-tone="gray"
                   action-label="자세히 보기"
+                  :hide-star-when-not-logged-in="true"
+                  :favorited="isPolicyFavorited(policy)"
                   class="h-full"
                   @action="handlePolicyDetail(policy)"
+                  @update:favorited="togglePolicyFavorite(policy)"
                 >
                   <template #after-details>
                     <div class="mb-3 mr-2 flex justify-between text-sm">
@@ -336,13 +373,14 @@
             <div
               v-for="popular in popularProducts"
               :key="popular.id"
-              class="reveal-item card-hover-wrap"
+              class="reveal-item card-hover-wrap h-full"
             >
               <CardSm
                 :title="popular.title"
                 :label="popular.industry"
                 label-tone="yellow"
                 :meta="popular.meta"
+                class="h-full"
                 @click="handlePopularDetail(popular)"
               />
             </div>
@@ -370,18 +408,19 @@
             </template>
             <div
               v-if="urgentProducts.length > 0"
-              class="reveal-item reveal-stagger grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6"
+              class="reveal-item reveal-stagger grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6"
             >
               <div
                 v-for="urgent in urgentProducts"
                 :key="urgent.id"
-                class="reveal-item card-hover-wrap"
+                class="reveal-item card-hover-wrap h-full"
               >
                 <CardSm
                   :title="urgent.title"
                   :label="urgent.dday"
                   label-tone="red"
                   :meta="urgent.meta"
+                  class="h-full"
                   @click="handleUrgentDetail(urgent)"
                 />
               </div>
@@ -401,7 +440,7 @@
         <Section title="인기 채팅방">
           <template #description>
             <p class="reveal-item text-lg text-gray-600">
-              지금 가장 인기 있는 채팅방을 추천해드립니다
+              채팅방에서 다양한 사용자와 고민을 나누고 소통하세요
             </p>
           </template>
           <template #actions>
@@ -481,13 +520,14 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import { useAuthStore } from '@/stores/auth';
+import { useProductsStore } from '@/stores/products';
+import { useBusinessInfoStore } from '@/stores/businessInfo';
+import { useFavorites } from '@/stores/favorites';
 import { vInview } from '@/utils/inview.js';
 import {
   getRecommendedLoans,
   getRecommendedPolicies,
-  getLoanList,
   searchProducts,
-  getPolicyList,
   FALLBACK_LOANS_DATA,
   FALLBACK_POLICIES_DATA,
 } from '@/lib/api/products.js';
@@ -502,6 +542,9 @@ import Tag from '@/components/common/Tag.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const productsStore = useProductsStore();
+const businessInfoStore = useBusinessInfoStore();
+const favoritesStore = useFavorites();
 
 const goDocs = () => router.push('/docs');
 const goReport = () => router.push('/report');
@@ -539,10 +582,7 @@ const fetchRecommendedLoans = async () => {
         }));
       } catch (apiError) {
         // 추천 대출 API 호출 실패 시 fallback 데이터 사용
-        console.warn(
-          '추천 대출 API 호출 실패, fallback 데이터 사용:',
-          apiError
-        );
+        console.warn('추천 대출 API 실패, fallback 사용:', apiError);
         loans.value = FALLBACK_LOANS_DATA.map(loan => ({
           id: loan.loanId,
           title: loan.productName,
@@ -554,10 +594,12 @@ const fetchRecommendedLoans = async () => {
         }));
       }
     } else {
-      // 비로그인 상태: getLoanList API 호출 시도
-      try {
-        const response = await getLoanList();
-        loans.value = response.data.loans.slice(0, 4).map(loan => ({
+      // 비로그인 상태: store에서 데이터를 가져와서 bookmarkCount 기준 상위 4개 선택
+      const allLoans = productsStore.loans;
+      loans.value = allLoans
+        .sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0))
+        .slice(0, 4)
+        .map(loan => ({
           id: loan.loanId,
           title: loan.productName,
           rate: `연 ${loan.basicRate}%`,
@@ -566,26 +608,8 @@ const fetchRecommendedLoans = async () => {
               ? `최대 ${formatCurrency(loan.maxLimit)}`
               : '한도 문의',
         }));
-      } catch (apiError) {
-        // API 호출 실패 시 fallback 데이터 사용
-        console.warn(
-          '대출 목록 API 호출 실패, fallback 데이터 사용:',
-          apiError
-        );
-        loans.value = FALLBACK_LOANS_DATA.map(loan => ({
-          id: loan.loanId,
-          title: loan.productName,
-          rate: `연 ${loan.basicRate}%`,
-          limit:
-            loan.maxLimit > 0
-              ? `최대 ${formatCurrency(loan.maxLimit)}`
-              : '한도 문의',
-        }));
-      }
     }
-  } catch (error) {
-    console.error('대출 조회 실패:', error);
-  }
+  } catch (error) {}
 };
 
 const fetchRecommendedPolicies = async () => {
@@ -616,8 +640,10 @@ const fetchRecommendedPolicies = async () => {
           }));
       }
     } else {
-      // 비로그인: 하드코딩 데이터 사용
-      policies.value = (FALLBACK_POLICIES_DATA.data.policies || [])
+      // 비로그인: store에서 데이터를 가져와서 bookmarkCount 기준 상위 4개 선택
+      const allPolicies = productsStore.policies;
+      policies.value = allPolicies
+        .sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0))
         .slice(0, 4)
         .map(policy => ({
           id: policy.policyId,
@@ -628,9 +654,7 @@ const fetchRecommendedPolicies = async () => {
             : 'D-7',
         }));
     }
-  } catch (error) {
-    console.error('추천 정책 처리 실패:', error);
-  }
+  } catch (error) {}
 };
 
 const fetchChatRooms = async () => {
@@ -647,130 +671,58 @@ const fetchChatRooms = async () => {
     chatRooms.value = allRooms
       .sort((a, b) => b.participantCount - a.participantCount)
       .slice(0, 10);
-  } catch (error) {
-    console.error('채팅방 목록 조회 실패:', error);
-  }
+  } catch (error) {}
 };
 
 const fetchUrgentProducts = async () => {
   try {
-    // 대출과 정책 데이터를 병렬로 가져오기
-    const [loansResponse, policiesResponse] = await Promise.all([
-      getLoanList(),
-      getPolicyList(),
-    ]);
+    // store에서 마감 임박 상품 데이터 가져오기 시도
+    const storeProducts = productsStore.getUrgentProducts;
 
-    const allProducts = [];
-
-    // 대출 데이터 처리
-    if (loansResponse.data?.loans) {
-      loansResponse.data.loans.forEach(loan => {
-        if (loan.endDate) {
-          const dday = calculateDDay(loan.endDate);
-          if (dday) {
-            allProducts.push({
-              id: loan.loanId,
-              title: loan.productName,
-              dday: dday,
-              meta: loan.maxLimit
-                ? `최대 ${formatCurrency(loan.maxLimit)}`
-                : '대출 상품',
-              type: 'loan',
-              endDate: loan.endDate,
-            });
-          }
-        }
-      });
+    // store에 데이터가 있으면 사용, 없으면 더미데이터 사용
+    if (storeProducts && storeProducts.length > 0) {
+      urgentProducts.value = storeProducts;
+    } else {
+      // 더미데이터 사용 (이미 urgentProducts ref에 정의된 데이터)
+      console.log('마감임박 상품: 더미데이터 사용');
     }
-
-    // 정책 데이터 처리
-    if (policiesResponse.data?.policies) {
-      policiesResponse.data.policies.forEach(policy => {
-        if (policy.endDate) {
-          const dday = calculateDDay(policy.endDate);
-          if (dday) {
-            allProducts.push({
-              id: policy.policyId,
-              title: policy.policyName,
-              dday: dday,
-              meta: policy.supportAmount
-                ? `최대 ${formatCurrency(policy.supportAmount)}`
-                : '정책 상품',
-              type: 'policy',
-              endDate: policy.endDate,
-            });
-          }
-        }
-      });
-    }
-
-    // endDate 기준으로 오름차순 정렬 (가장 임박한 순서)
-    allProducts.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-
-    // 상위 6개만 선택
-    urgentProducts.value = allProducts.slice(0, 6);
   } catch (error) {
-    console.error('마감임박 상품 조회 실패:', error);
-    // 에러 발생 시 빈 배열로 설정하여 '상품이 없습니다' UI 표시
-    urgentProducts.value = [];
+    // 에러 발생 시 더미데이터 사용
+    console.log('마감임박 상품: 에러 발생, 더미데이터 사용', error);
   }
 };
 
-// 비로그인 상태에서 인기 상품 조회 (bookmarkCount 기준)
+// 인기 상품 조회 (로그인 상태에 따라 분기)
 const fetchPopularProducts = async () => {
-  if (isLoggedIn.value) {
-    // 로그인 상태에서는 기존 mock 데이터 유지
-    return;
-  }
-
   try {
-    // 대출과 정책 데이터를 병렬로 가져오기
-    const [loansResponse, policiesResponse] = await Promise.all([
-      getLoanList({ size: 50 }), // 더 많은 데이터 가져오기
-      getPolicyList({ size: 50 }),
-    ]);
+    if (isLoggedIn.value) {
+      // 로그인 상태: 사용자의 업종에 맞는 상품 필터링
+      const userIndustryIds = businessInfoStore.allIndustryIds;
 
-    const allProducts = [];
+      if (userIndustryIds.length > 0) {
+        // 사용자의 업종에 해당하는 상품들 필터링
+        const industryProducts =
+          productsStore.getIndustryPopularProducts(userIndustryIds);
 
-    // 대출 데이터 처리
-    if (loansResponse.data?.loans) {
-      loansResponse.data.loans.forEach(loan => {
-        allProducts.push({
-          id: loan.loanId,
-          title: loan.productName,
-          industry: loan.industryName || '대출',
-          meta: loan.maxLimit
-            ? `최대 ${formatCurrency(loan.maxLimit)}`
-            : '대출 상품',
-          type: 'loan',
-          bookmarkCount: loan.bookmarkCount || 0,
-        });
-      });
+        if (industryProducts.length >= 3) {
+          // 3개 이상이면 업종별 인기 상품 표시
+          popularProducts.value = industryProducts;
+        } else {
+          // 3개 미만이면 비로그인 상태와 동일하게 표시
+          const allPopularProducts = productsStore.getPopularProducts;
+          popularProducts.value = allPopularProducts;
+        }
+      } else {
+        // 업종 정보가 없으면 비로그인 상태와 동일하게 표시
+        const allPopularProducts = productsStore.getPopularProducts;
+        popularProducts.value = allPopularProducts;
+      }
+    } else {
+      // 비로그인 상태: 전체 인기 상품 표시
+      const allPopularProducts = productsStore.getPopularProducts;
+      popularProducts.value = allPopularProducts;
     }
-
-    // 정책 데이터 처리
-    if (policiesResponse.data?.policies) {
-      policiesResponse.data.policies.forEach(policy => {
-        allProducts.push({
-          id: policy.policyId,
-          title: policy.policyName,
-          industry: policy.industryName || '정책',
-          meta: policy.supportAmount
-            ? `최대 ${formatCurrency(policy.supportAmount)}`
-            : '정책 상품',
-          type: 'policy',
-          bookmarkCount: policy.bookmarkCount || 0,
-        });
-      });
-    }
-
-    // bookmarkCount 기준으로 내림차순 정렬
-    allProducts.sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0));
-
-    // 상위 5개만 선택
-    popularProducts.value = allProducts.slice(0, 5);
   } catch (error) {
-    console.error('인기 상품 조회 실패:', error);
     // 에러 발생 시 기존 mock 데이터 유지
   }
 };
@@ -811,8 +763,62 @@ const calculateDDay = endDate => {
   }
 };
 
+// 즐겨찾기 토글 함수들
+const toggleLoanFavorite = async loan => {
+  if (!isLoggedIn.value) {
+    notificationStore.show('info', '로그인 후 즐겨찾기가 가능합니다');
+    return;
+  }
+
+  const favId = `loan_${loan.id}`;
+  await favoritesStore.toggle(favId, {
+    title: loan.title,
+    type: 'loan',
+  });
+};
+
+const togglePolicyFavorite = async policy => {
+  if (!isLoggedIn.value) {
+    notificationStore.show('info', '로그인 후 즐겨찾기가 가능합니다');
+    return;
+  }
+
+  const favId = `policy_${policy.id}`;
+  await favoritesStore.toggle(favId, {
+    title: policy.title,
+    type: 'policy',
+  });
+};
+
+// 즐겨찾기 상태 확인 함수들
+const isLoanFavorited = loan => {
+  return favoritesStore.has(`loan_${loan.id}`);
+};
+
+const isPolicyFavorited = policy => {
+  return favoritesStore.has(`policy_${policy.id}`);
+};
+
 // 컴포넌트 마운트 시 API 데이터 로드
-onMounted(() => {
+onMounted(async () => {
+  // authStore 상태 강제 갱신 (로그인 후 라우팅 시 상태 동기화)
+  await authStore.hydrateSession();
+
+  // 즐겨찾기 스토어 초기화
+  await favoritesStore.load();
+
+  // 로그인 상태라면 businessInfo 로드
+  if (isLoggedIn.value) {
+    try {
+      await businessInfoStore.loadBusinessInfo();
+    } catch (error) {}
+  }
+
+  // 모든 상태에서 상품 데이터 로드 (캐시 활용)
+  try {
+    await productsStore.fetchAllProducts();
+  } catch (error) {}
+
   // API 데이터 로드
   fetchRecommendedLoans(); // 로그인 여부에 따라 분기처리됨
   fetchRecommendedPolicies();
@@ -843,21 +849,33 @@ watch(searchQuery, (newQuery, oldQuery) => {
 });
 
 // 로그인 상태 변경 시 추천 데이터 다시 조회
-watch(isLoggedIn, () => {
-  fetchRecommendedLoans();
-  fetchRecommendedPolicies();
-  fetchPopularProducts();
-});
+watch(isLoggedIn, async newValue => {
+  // 로그인 상태가 변경될 때
+  if (newValue) {
+    // 로그인된 경우: 개인화된 데이터 로드
+    await authStore.hydrateSession(); // 상태 강제 갱신
 
-const loanTags = ref([
-  '# 중소기업',
-  '# 청년창업',
-  '# 소상공인',
-  '# 여성기업',
-  '# IT업종',
-  '# 제조업',
-  '# 서비스업',
-]);
+    // 즐겨찾기 스토어 초기화
+    await favoritesStore.load();
+
+    // businessInfo 로드
+    try {
+      await businessInfoStore.loadBusinessInfo();
+    } catch (error) {}
+
+    fetchRecommendedLoans();
+    fetchRecommendedPolicies();
+    fetchPopularProducts();
+  } else {
+    // 로그아웃된 경우: 공통 데이터 로드
+    try {
+      await productsStore.fetchAllProducts();
+      fetchRecommendedLoans();
+      fetchRecommendedPolicies();
+      fetchPopularProducts();
+    } catch (error) {}
+  }
+});
 
 const loans = ref([
   {
@@ -957,36 +975,42 @@ const urgentProducts = ref([
     title: '긴급 운영자금 지원',
     dday: 'D-2',
     meta: '최대 2억원',
+    type: 'loan',
   },
   {
     id: 2,
     title: '코로나19 피해지원',
     dday: 'D-3',
     meta: '무이자 대출',
+    type: 'loan',
   },
   {
     id: 3,
     title: '청년 취업지원금',
     dday: 'D-1',
     meta: '월 50만원',
+    type: 'policy',
   },
   {
     id: 4,
     title: '소상공인 임대료 지원',
     dday: 'D-4',
     meta: '월 100만원',
+    type: 'policy',
   },
   {
     id: 5,
     title: '농업인 재해지원',
     dday: 'D-2',
     meta: '최대 3천만원',
+    type: 'policy',
   },
   {
     id: 6,
     title: '문화예술인 지원',
     dday: 'D-5',
     meta: '월 80만원',
+    type: 'policy',
   },
 ]);
 
@@ -1265,44 +1289,48 @@ const handlePolicyDetail = policy => {
 };
 
 const handlePopularDetail = popular => {
-  // type 정보를 사용하여 라우팅
-  if (popular.type === 'policy') {
-    router.push(`/product/policy/${popular.id}`);
-  } else if (popular.type === 'loan') {
-    router.push(`/product/loan/${popular.id}`);
-  } else {
-    // fallback: 제목으로 판단
-    if (popular.title.includes('지원금') || popular.title.includes('지원')) {
+  if (isLoggedIn.value) {
+    // 로그인 상태: type 정보를 사용하여 라우팅
+    if (popular.type === 'policy') {
       router.push(`/product/policy/${popular.id}`);
-    } else {
+    } else if (popular.type === 'loan') {
       router.push(`/product/loan/${popular.id}`);
+    } else {
+      // fallback: 제목으로 판단
+      if (popular.title.includes('지원금') || popular.title.includes('지원')) {
+        router.push(`/product/policy/${popular.id}`);
+      } else {
+        router.push(`/product/loan/${popular.id}`);
+      }
     }
+  } else {
+    // 비로그인 상태: 로그인 안내 메시지 표시
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
   }
 };
 
 const handleUrgentDetail = urgent => {
-  // type 정보를 사용하여 라우팅
-  if (urgent.type === 'policy') {
-    router.push(`/product/policy/${urgent.id}`);
-  } else if (urgent.type === 'loan') {
-    router.push(`/product/loan/${urgent.id}`);
-  } else {
-    // fallback: 제목으로 판단
-    if (urgent.title.includes('지원') || urgent.title.includes('지원금')) {
+  if (isLoggedIn.value) {
+    // 로그인 상태: type 정보를 사용하여 라우팅
+    if (urgent.type === 'policy') {
       router.push(`/product/policy/${urgent.id}`);
-    } else {
+    } else if (urgent.type === 'loan') {
       router.push(`/product/loan/${urgent.id}`);
+    } else {
+      // fallback: 제목으로 판단
+      if (urgent.title.includes('지원') || urgent.title.includes('지원금')) {
+        router.push(`/product/policy/${urgent.id}`);
+      } else {
+        router.push(`/product/loan/${urgent.id}`);
+      }
     }
+  } else {
+    // 비로그인 상태: 로그인 안내 메시지 표시
+    notificationStore.show('info', '로그인 후 상세 보기가 가능합니다');
   }
 };
 
-const handleChatRoom = chat => {
-  console.log('채팅방 입장:', chat);
-};
-
-const handleBoardPost = post => {
-  console.log('게시글 상세:', post);
-};
+const handleChatRoom = chat => {};
 
 const getChatRoomTone = roomType => {
   if (roomType === 'industry') return 'gray';
@@ -1473,5 +1501,14 @@ main > div[v-inview]:last-child {
 .reveal-item .cursor-default:hover {
   background-color: transparent !important;
   color: inherit !important;
+}
+
+/* === 애니메이션 지연 클래스들 === */
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-1500 {
+  animation-delay: 1.5s;
 }
 </style>

@@ -353,10 +353,31 @@
 
         <div class="space-y-4">
           <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 class="mb-2 font-medium text-blue-900">발급 방법</h4>
-            <p class="text-sm text-blue-800">
-              {{ getDocumentGuide(selectedDoc?.name) }}
+            <h4 class="mb-2 font-medium text-blue-900">정부24에서 발급하기</h4>
+            <p class="mb-3 text-sm text-blue-800">
+              필요한 서류를 정부24에서 간편하게 발급받으세요
             </p>
+            <a
+              href="https://plus.gov.kr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              정부24 바로가기
+            </a>
           </div>
 
           <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
@@ -510,10 +531,25 @@
               </p>
             </div>
             <button
-              class="text-yellow-500 transition-colors hover:text-red-500"
-              @click="openRemoveFavoriteModal(product)"
+              :class="[
+                'transition-colors',
+                isProductFavorited(product)
+                  ? 'text-yellow-400 hover:text-red-500'
+                  : 'text-gray-400 hover:text-yellow-400',
+              ]"
+              @click="toggleFavorite(product)"
             >
-              <i class="fas fa-star text-lg"></i>
+              <i
+                :class="[
+                  'text-lg',
+                  isProductFavorited(product) ? 'fas fa-star' : 'far fa-star',
+                ]"
+                :style="
+                  isProductFavorited(product)
+                    ? { '-webkit-text-stroke': 'none' }
+                    : {}
+                "
+              ></i>
             </button>
           </div>
         </div>
@@ -527,6 +563,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import { useDocsStore } from '@/stores/docs';
+import { useFavorites } from '@/stores/favorites';
 import {
   getUserDocuments,
   uploadUserDocument,
@@ -543,6 +580,7 @@ import Modal from '@/components/common/Modal.vue';
 
 const router = useRouter();
 const docsStore = useDocsStore();
+const favoritesStore = useFavorites();
 
 const props = defineProps({
   showUploadModal: {
@@ -681,7 +719,7 @@ const fetchFavoriteProducts = async () => {
     // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
     if (response && Array.isArray(response)) {
       favoriteProducts.value = response.map(product => ({
-        id: product.name, // 상품명을 ID로 사용
+        id: product.policyId || product.loanId, // 실제 ID 사용
         name: product.name,
         type: product.type === 'POLICY' ? '정책' : '대출',
         institution: product.organization,
@@ -923,9 +961,53 @@ const openProductsModal = async doc => {
   }
 };
 
+// 즐겨찾기 토글 함수
+const toggleFavorite = async product => {
+  if (!product) return;
+
+  const productType = product.type === '정책' ? 'policy' : 'loan';
+  const favId = `${productType}_${product.id}`;
+
+  try {
+    const wasFavorited = favoritesStore.has(favId);
+
+    await favoritesStore.toggle(favId, {
+      title: product.name,
+      type: productType,
+    });
+
+    // 즐겨찾기 목록 새로고침
+    await fetchFavoriteProducts();
+    await fetchFavoriteCount();
+
+    const message = wasFavorited
+      ? `'${product.name}'이(가) 즐겨찾기에서 제거되었습니다.`
+      : `'${product.name}'이(가) 즐겨찾기에 추가되었습니다.`;
+
+    notification.show('success', message);
+  } catch (error) {
+    console.error('즐겨찾기 토글 실패:', error);
+    notification.show('error', '즐겨찾기 처리 중 오류가 발생했습니다.');
+  }
+};
+
+// 즐겨찾기 상태 확인 함수
+const isProductFavorited = product => {
+  if (!product) return false;
+  const productType = product.type === '정책' ? 'policy' : 'loan';
+  const favId = `${productType}_${product.id}`;
+  const isFavorited = favoritesStore.has(favId);
+  console.log('즐겨찾기 상태 확인:', {
+    product: product.name,
+    favId,
+    isFavorited,
+  });
+  return isFavorited;
+};
+
 const openRemoveFavoriteModal = product => {
   // 바로 제거하고 토스트 표시
-  removeFromFavorites(product);
+  toggleFavorite(product);
 };
 
 const removeFromFavorites = product => {
@@ -942,6 +1024,10 @@ const removeFromFavorites = product => {
 
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
+  // 즐겨찾기 스토어 초기화
+  await favoritesStore.load();
+  console.log('즐겨찾기 스토어 상태:', favoritesStore.ids.value);
+
   // document types가 아직 로드되지 않았다면 로드
   if (docsStore.documentTypes.length === 0) {
     await docsStore.loadDocumentTypes();

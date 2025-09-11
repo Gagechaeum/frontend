@@ -9,7 +9,10 @@
           class="text-gray-500 hover:text-gray-700"
           @click="$emit('back')"
         >
-          <i class="fas fa-arrow-left"></i>
+          <i
+            class="fas fa-arrow-left"
+            @click="stompClient.unsubscribe"
+          ></i>
         </button>
         <h3 class="font-semibold text-gray-900">{{ room?.name }}</h3>
         <span class="text-sm text-gray-500">{{ room?.participantCount }}명</span>

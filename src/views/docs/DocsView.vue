@@ -189,7 +189,7 @@ const typeOptions = [
 ];
 
 const statusOptions = [
-  { value: 'all', label: '상태' },
+  { value: 'all', label: '상태 전체' },
   { value: 'requirements', label: '요건확인' },
   { value: 'collecting', label: '수집중' },
   { value: 'preparing', label: '제출준비' },
