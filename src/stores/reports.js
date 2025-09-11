@@ -11,7 +11,7 @@ export const useReportStore = defineStore('report', {
     error: null,
     page: 0,
     size: 5,
-    hasNext: true,
+    totalPages: 0,
   }),
   actions: {
     async fetchDashboard() {
@@ -35,7 +35,7 @@ export const useReportStore = defineStore('report', {
       try {
         await saveUserPolicy(policy);
         this.resetItems();
-        await this.fetchItems();
+        await this.fetchItems(0); // Fetch the first page
         await this.fetchDashboard();
       } catch (e) {
         this.error = e;
@@ -44,23 +44,19 @@ export const useReportStore = defineStore('report', {
       }
     },
 
-    async fetchItems() {
-      if (!this.hasNext || this.loading) return;
+    async fetchItems(page = 0) {
+      if (this.loading) return;
       this.loading = true;
       this.error = null;
       try {
         const pageData = await getItems({
-          page: this.page,
+          page: page,
           size: this.size,
         });
 
-        const newItems = pageData.content || [];
-        this.items = this.page === 0 ? newItems : [...this.items, ...newItems];
-        this.hasNext = pageData.page < pageData.totalPages - 1;
-
-        if (this.hasNext) {
-          this.page += 1;
-        }
+        this.items = pageData.content || [];
+        this.page = pageData.page;
+        this.totalPages = pageData.totalPages;
       } catch (e) {
         this.error = e;
       } finally {
@@ -70,7 +66,7 @@ export const useReportStore = defineStore('report', {
     resetItems() {
       this.items = [];
       this.page = 0;
-      this.hasNext = true;
+      this.totalPages = 0;
     },
   },
 });

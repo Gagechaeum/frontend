@@ -73,6 +73,11 @@
           @open-loan="openLoanDetail"
           @open-policy="openPolicyDetail"
         />
+        <Pagination
+          :current-page="page"
+          :total-pages="totalPages"
+          @page-change="handlePageChange"
+        />
       </div>
     </div>
 
@@ -88,7 +93,7 @@
 <script setup>
 /* eslint-env browser */
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { me } from '@/lib/api/auth';
 import ReportHeader from '@/components/report/ReportHeader.vue';
@@ -97,11 +102,13 @@ import MonthlySummary from '@/components/report/MonthlySummary.vue';
 import CashflowChart from '@/components/report/CashflowChart.vue';
 import ReportList from '@/components/report/ReportList.vue';
 import RegisterModal from '@/components/report/RegisterModal.vue';
+import Pagination from '@/components/common/Pagination.vue';
 import { useReportStore } from '@/stores/reports';
 
 /* ===== Stores ===== */
 const reportStore = useReportStore();
-const { summary, items, schedule, cashFlow } = storeToRefs(reportStore);
+const { summary, items, schedule, cashFlow, page, totalPages } =
+  storeToRefs(reportStore);
 
 /* ===== UI State ===== */
 const showPolicyModal = ref(false);
@@ -181,16 +188,9 @@ async function handlePolicyRegister(newItem) {
   showPolicyModal.value = false;
 }
 
-/* ===== Infinite Scroll ===== */
-const handleScroll = () => {
-  // document.documentElement는 <html> 요소를 가리킵니다.
-  const { scrollTop, scrollHeight } = document.documentElement;
-  const clientHeight = window.innerHeight; // 현재 보이는 창의 높이
-
-  // 거의 맨 아래까지 스크롤했는지 확인 (10px 여유)
-  if (scrollTop + clientHeight >= scrollHeight - 10) {
-    reportStore.fetchItems();
-  }
+/* ===== Pagination ===== */
+const handlePageChange = newPage => {
+  reportStore.fetchItems(newPage);
 };
 
 /* ===== Utils ===== */
@@ -236,11 +236,8 @@ onMounted(async () => {
   // Fetch dashboard first
   await reportStore.fetchDashboard();
 
-  // Then fetch items
-  await reportStore.fetchItems();
-
-  // 컴포넌트가 마운트될 때 window에 스크롤 이벤트를 등록합니다.
-  window.addEventListener('scroll', handleScroll);
+  // Then fetch items for the first page
+  await reportStore.fetchItems(0);
 
   // 캘린더 스켈레톤
   calendarDays.value = generateTwoWeeksAlignedToSunday(today);
@@ -259,9 +256,5 @@ onMounted(async () => {
     policySeries.value = new Array(6).fill(0);
     loanSeries.value = new Array(6).fill(0);
   }
-});
-
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll);
 });
 </script>
