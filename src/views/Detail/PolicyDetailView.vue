@@ -41,11 +41,6 @@
         :description="policyData.policySummary"
         cta-text="바로 신청하기"
         :agency="policyData.supervisingOrganizationName"
-        :image="
-          policyData.image ||
-          'https://readdy.ai/api/search-image?query=government%20policy%20support%20illustration%20with%20official%20documents%20and%20business%20people%20in%20clean%20minimalist%20style%20with%20green%20accent%20colors%20and%20professional%20atmosphere&width=600&height=400&seq=policy001&orientation=landscape'
-        "
-        :image-alt="`${policyData.policyName} 이미지`"
         product-type="policy"
       />
 

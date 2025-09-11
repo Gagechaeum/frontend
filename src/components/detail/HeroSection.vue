@@ -1,8 +1,8 @@
 <template>
   <section :class="heroBackgroundClass">
     <div class="mx-auto max-w-7xl px-6">
-      <div class="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-        <div>
+      <div class="grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
+        <div class="order-2 lg:order-1">
           <h1 class="mb-4 text-3xl font-bold text-gray-900 lg:text-4xl">
             {{ title }}
           </h1>
@@ -42,11 +42,11 @@
             <p>주관기관: {{ agency }}</p>
           </div>
         </div>
-        <div class="hidden lg:block">
+        <div class="order-1 lg:order-2">
           <img
-            :src="image"
-            :alt="imageAlt"
-            class="h-full w-full rounded-2xl object-cover"
+            :src="productsImage"
+            alt="상품 이미지"
+            class="h-48 w-full object-cover sm:h-64 lg:h-full"
           />
         </div>
       </div>
@@ -57,6 +57,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useNotificationStore } from '@/stores/notification';
+import productsImage from '@/assets/products_image.jpg';
 
 const notification = useNotificationStore();
 
@@ -74,14 +75,6 @@ const props = defineProps({
     default: '바로 신청하기',
   },
   agency: {
-    type: String,
-    required: true,
-  },
-  image: {
-    type: String,
-    required: true,
-  },
-  imageAlt: {
     type: String,
     required: true,
   },

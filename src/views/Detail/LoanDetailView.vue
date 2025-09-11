@@ -43,11 +43,6 @@
         "
         cta-text="바로 신청하기"
         :agency="loanData.companyName"
-        :image="
-          loanData.image ||
-          'https://readdy.ai/api/search-image?query=modern%20business%20financial%20support%20illustration%20with%20small%20business%20owners%20receiving%20government%20assistance%20in%20clean%20minimalist%20style%20with%20yellow%20accent%20colors%20and%20professional%20atmosphere&width=600&height=400&seq=hero001&orientation=landscape'
-        "
-        :image-alt="`${loanData.productName} 이미지`"
         product-type="loan"
       />
 
