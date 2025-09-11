@@ -34,7 +34,7 @@
           <div class="max-w-2xl flex-1">
             <div class="mb-6">
               <h1
-                class="mb-4 bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-4xl font-bold leading-tight text-transparent md:text-5xl"
+                class="mb-4 whitespace-nowrap bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-4xl font-bold leading-tight text-transparent md:text-5xl"
               >
                 정부 지원·대출 상품 한눈에,<br />
                 <span
@@ -43,7 +43,9 @@
                   서류까지 한번에
                 </span>
               </h1>
-              <p class="mb-8 text-xl leading-relaxed text-gray-600">
+              <p
+                class="mb-8 whitespace-nowrap text-xl leading-relaxed text-gray-600"
+              >
                 업종/지역 기반 추천과 올인원 서류 관리로<br />
                 <span class="font-medium text-gray-700"
                   >더 스마트한 비즈니스 지원</span
