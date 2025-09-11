@@ -1,139 +1,85 @@
-// src/lib/api/bookmarks.js
-import api from './http';
+import api from './http.js';
+import { getAccessToken } from './auth';
 
-// 공통 언래핑: {data:{...}} | {data:[...]} | {...}
-const unwrap = res => res?.data?.data ?? res?.data ?? res;
-
-// baseURL이 /api 로 끝나는지에 따라 경로 자동 보정
-function apiPath(p) {
-  const base = api?.defaults?.baseURL || '';
-  return base.endsWith('/api') ? p : `/api${p}`;
+function authHeaders() {
+  const at = getAccessToken();
+  return at ? { Authorization: `Bearer ${at}` } : {};
 }
 
-/**
- * 북마크 목록 조회 (정책/대출 통합)
- * GET /api/me/bookmarks?type=all|policy|loan&page=&size=
- */
-export async function listServerBookmarks({
-  page = 0,
-  size = 1000,
-  type = 'all',
-} = {}) {
-  const res = await api.get(apiPath('/me/bookmarks'), {
-    params: { page, size, type },
-  });
-  const body = unwrap(res);
-  return body?.bookmarks ?? body ?? [];
-}
-
-/**
- * 북마크 추가
- * 1순위: POST /api/me/bookmarks/{type}/{id}
- * 2순위: POST /api/me/bookmarks  { type, id }
- */
-export async function addServerBookmark({ type, id, title, org } = {}) {
+// 즐겨찾기 목록 조회
+export async function listServerBookmarks(params) {
   try {
-    await api.post(apiPath(`/me/bookmarks/${type}/${id}`));
-    return true;
+    const { data } = await api.get('/me/bookmarks', {
+      headers: authHeaders(),
+      params,
+    });
+    // 스토어는 policyId 또는 loanId를 포함하는 객체의 배열을 기대합니다.
+    return data.data?.content || [];
   } catch (e) {
-    // path 방식이 없으면 body 방식 시도
-    if (e?.response?.status === 404 || e?.response?.status === 405) {
-      await api.post(apiPath('/me/bookmarks'), { type, id, title, org });
-      return true;
-    }
-    throw e;
+    console.warn('[API:bookmarks] 목록 조회 실패', e);
+    return []; // 에러 발생 시 빈 배열 반환
   }
 }
 
-/**
- * 북마크 삭제
- * 1순위: DELETE /api/me/bookmarks/{type}/{id}
- * 2순위: DELETE /api/me/bookmarks  (body 지원 서버용)
- */
-export async function removeServerBookmark({ type, id } = {}) {
-  try {
-    await api.delete(apiPath(`/me/bookmarks/${type}/${id}`));
-    return true;
-  } catch (e) {
-    if (e?.response?.status === 404 || e?.response?.status === 405) {
-      await api.delete(apiPath('/me/bookmarks'), { data: { type, id } });
-      return true;
-    }
-    throw e;
-  }
+// 즐겨찾기 등록
+export async function addServerBookmark({ type, id }) {
+  const url = `/me/${type}s/${id}/bookmark`; // 예: /me/policies/123/bookmark
+  const { data } = await api.post(url, {}, { headers: authHeaders() });
+  return data;
 }
 
-/**
- * 북마크 진행률 조회
- * GET /api/me/bookmarks/progress
- */
+// 즐겨찾기 삭제
+export async function removeServerBookmark({ type, id }) {
+  const url = `/me/${type}s/${id}/bookmark`; // 예: /me/policies/123/bookmark
+  const { data } = await api.delete(url, { headers: authHeaders() });
+  return data;
+}
+
+// 즐겨찾기 진행상황 조회
 export async function getBookmarksProgress() {
   try {
-    const res = await api.get(apiPath('/me/bookmarks/progress'));
-    // 실제 API 응답 구조에 맞게 수정: { status: 200, data: [...] }
-    return res.data || res;
-  } catch (error) {
-    console.error('북마크 진행률 조회 실패:', error);
-    throw error;
-  }
-}
-
-/**
- * 정책 상태 업데이트
- * PATCH /api/me/policies/{id}/status
- */
-export async function updatePolicyStatus(id, status) {
-  try {
-    const res = await api.patch(apiPath(`/me/policies/${id}/status`), {
-      status,
+    const { data } = await api.get('/me/bookmarks/progress', {
+      headers: authHeaders(),
     });
-    return unwrap(res);
-  } catch (error) {
-    console.error('정책 상태 업데이트 실패:', error);
-    throw error;
+    return data.data || []; // 엔드포인트는 리스트를 반환합니다.
+  } catch (e) {
+    console.warn('[API:bookmarks] 진행률 조회 실패', e);
+    return [];
   }
 }
 
-/**
- * 대출 상태 업데이트
- * PATCH /api/me/loans/{id}/status
- */
-export async function updateLoanStatus(id, status) {
-  try {
-    const res = await api.patch(apiPath(`/me/loans/${id}/status`), {
-      status,
-    });
-    return unwrap(res);
-  } catch (error) {
-    console.error('대출 상태 업데이트 실패:', error);
-    throw error;
-  }
+export async function updateLoanStatus({ id, status }) {
+  const url = `/me/loans/${id}/status`;
+  const { data } = await api.patch(url, { status }, { headers: authHeaders() });
+  return data;
 }
 
-/**
- * 즐겨찾기 상품에 필요한 서류 목록 조회
- * GET /api/me/bookmarks/documents
- */
+export async function updatePolicyStatus({ id, status }) {
+  const url = `/me/policies/${id}/status`;
+  const { data } = await api.patch(url, { status }, { headers: authHeaders() });
+  return data;
+}
+
 export async function getBookmarkDocuments() {
   try {
-    const res = await api.get(apiPath('/me/bookmarks/documents'));
-    return unwrap(res);
-  } catch (error) {
-    console.error('즐겨찾기 서류 목록 조회 실패:', error);
-    throw error;
+    const { data } = await api.get('/me/bookmarks/documents', {
+      headers: authHeaders(),
+    });
+    return data.data || { totalBookmarkCount: 0, documents: [] };
+  } catch (e) {
+    console.warn('[API:bookmarks] 필요서류 조회 실패', e);
+    return { totalBookmarkCount: 0, documents: [] };
   }
 }
 
-/**
- * 즐겨찾기 상품 목록 조회
- * GET /api/me/bookmarks/products
- */
 export async function getBookmarkedProducts() {
   try {
-    const res = await api.get(apiPath('/me/bookmarks/products'));
-    return unwrap(res);
-  } catch (error) {
-    console.error('즐겨찾기 상품 목록 조회 실패:', error);
-    throw error;
+    const { data } = await api.get('/me/bookmarks/products', {
+      headers: authHeaders(),
+    });
+    return data.data || [];
+  } catch (e) {
+    console.warn('[API:bookmarks] 즐겨찾기 상품 조회 실패', e);
+    return [];
   }
 }
