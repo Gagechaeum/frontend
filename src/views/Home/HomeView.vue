@@ -103,34 +103,57 @@
           </div>
 
           <div class="relative hidden flex-1 items-center justify-end lg:flex">
-            <!-- 메인 일러스트 -->
-            <div class="relative">
-              <div
-                class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 opacity-60 blur-2xl"
-              ></div>
-              <div
-                class="relative rounded-3xl border border-white/20 bg-white/80 p-8 shadow-2xl backdrop-blur-sm"
-              >
+            <!-- 메인 일러스트들 -->
+            <div class="relative flex items-center space-x-6">
+              <!-- 첫 번째 일러스트 -->
+              <div class="relative">
                 <div
-                  class="flex h-48 w-48 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100"
+                  class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 opacity-60 blur-2xl"
+                ></div>
+                <div
+                  class="relative rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-sm"
                 >
-                  <svg
-                    class="h-24 w-24 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.5"
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    ></path>
-                  </svg>
+                  <img
+                    src="@/assets/banner.png"
+                    alt="banner"
+                    class="h-23 w-23"
+                  />
                 </div>
               </div>
 
-              <!-- 부유하는 아이콘들 -->
+              <!-- 두 번째 일러스트 -->
+              <div class="relative">
+                <div
+                  class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-green-100 to-emerald-100 opacity-60 blur-2xl"
+                ></div>
+                <div
+                  class="relative rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-sm"
+                >
+                  <img
+                    src="@/assets/banner2.png"
+                    alt="banner2"
+                    class="h-23 w-23"
+                  />
+                </div>
+              </div>
+
+              <!-- 세 번째 일러스트 -->
+              <div class="relative">
+                <div
+                  class="absolute inset-0 animate-pulse rounded-3xl bg-gradient-to-br from-purple-100 to-pink-100 opacity-60 blur-2xl"
+                ></div>
+                <div
+                  class="relative rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-sm"
+                >
+                  <img
+                    src="@/assets/banner3.png"
+                    alt="banner3"
+                    class="h-23 w-23"
+                  />
+                </div>
+              </div>
+
+              <!-- 부유하는 아이콘들 (줄임) -->
               <div
                 class="absolute -right-4 -top-4 animate-bounce rounded-full bg-green-100 p-3 shadow-lg"
               >
@@ -163,6 +186,24 @@
                     stroke-linejoin="round"
                     stroke-width="2"
                     d="M13 10V3L4 14h7v7l9-11h-7z"
+                  ></path>
+                </svg>
+              </div>
+
+              <div
+                class="animation-delay-1500 absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce rounded-full bg-blue-100 p-2 shadow-lg"
+              >
+                <svg
+                  class="h-5 w-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
                   ></path>
                 </svg>
               </div>
@@ -1412,5 +1453,14 @@ main > div[v-inview]:last-child {
 .reveal-item .cursor-default:hover {
   background-color: transparent !important;
   color: inherit !important;
+}
+
+/* === 애니메이션 지연 클래스들 === */
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-1500 {
+  animation-delay: 1.5s;
 }
 </style>

@@ -12,12 +12,9 @@
       <div class="flex h-16 items-center justify-between">
         <!-- 로고 -->
         <div class="flex items-center">
-          <RouterLink to="/">
+          <RouterLink to="/" class="flex items-center gap-2">
             <slot name="logo">
-              <i
-                class="fas fa-landmark mr-2 text-2xl text-primary"
-                aria-hidden="true"
-              ></i>
+              <img src="@/assets/logo.png" alt="가게채움" class="h-8 w-8" />
               <span class="text-xl font-bold text-gray-900">가게채움</span>
             </slot>
           </RouterLink>
