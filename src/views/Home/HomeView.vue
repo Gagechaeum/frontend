@@ -211,7 +211,7 @@
           :title="
             isLoggedIn
               ? '대출을 한눈에 비교하고, 내 조건에 맞는 상품을 확인하세요'
-              : '인기 대출 상품을 확인하고 비교해보세요'
+              : '다양한 대출 상품을 확인하고 비교해보세요'
           "
         >
           <template #description>
@@ -220,20 +220,9 @@
                 {{
                   isLoggedIn
                     ? '나에게 맞는 대출 상품을 추천해드립니다'
-                    : '많은 사용자들이 관심을 보인 인기 대출 상품입니다'
+                    : '여러 금융사에서 제공하는 대출 상품을 한 눈에 비교해보세요'
                 }}
               </p>
-              <ul class="mt-3 flex flex-wrap gap-3">
-                <li v-for="t in loanTags" :key="t" class="reveal-item">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="pointer-events-none cursor-default"
-                  >
-                    {{ t }}
-                  </UiButton>
-                </li>
-              </ul>
             </div>
           </template>
           <div
@@ -242,7 +231,7 @@
             <div
               v-for="loan in loans"
               :key="loan.id"
-              class="reveal-item card-hover-wrap"
+              class="reveal-item card-hover-wrap h-full"
             >
               <CardLg
                 :title="loan.title"
@@ -253,6 +242,7 @@
                   { label: '한도', value: loan.limit },
                 ]"
                 action-label="자세히 보기"
+                class="h-full"
                 @action="handleLoanDetail(loan)"
               />
             </div>
@@ -272,7 +262,7 @@
         class="bg-blue-50"
       >
         <div class="mx-auto max-w-6xl px-6 py-16">
-          <Section :title="'추천 정책도 한 번에 확인하세요'">
+          <Section :title="'정부 지원 정책도 한 번에 확인하세요'">
             <template #description>
               <p class="reveal-item text-lg text-gray-600">
                 내 조건에 맞는 정책을 추천해드립니다
@@ -336,13 +326,14 @@
             <div
               v-for="popular in popularProducts"
               :key="popular.id"
-              class="reveal-item card-hover-wrap"
+              class="reveal-item card-hover-wrap h-full"
             >
               <CardSm
                 :title="popular.title"
                 :label="popular.industry"
                 label-tone="yellow"
                 :meta="popular.meta"
+                class="h-full"
                 @click="handlePopularDetail(popular)"
               />
             </div>
@@ -375,13 +366,14 @@
               <div
                 v-for="urgent in urgentProducts"
                 :key="urgent.id"
-                class="reveal-item card-hover-wrap"
+                class="reveal-item card-hover-wrap h-full"
               >
                 <CardSm
                   :title="urgent.title"
                   :label="urgent.dday"
                   label-tone="red"
                   :meta="urgent.meta"
+                  class="h-full"
                   @click="handleUrgentDetail(urgent)"
                 />
               </div>
@@ -481,13 +473,12 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import { useAuthStore } from '@/stores/auth';
+import { useProductsStore } from '@/stores/products';
 import { vInview } from '@/utils/inview.js';
 import {
   getRecommendedLoans,
   getRecommendedPolicies,
-  getLoanList,
   searchProducts,
-  getPolicyList,
   FALLBACK_LOANS_DATA,
   FALLBACK_POLICIES_DATA,
 } from '@/lib/api/products.js';
@@ -502,6 +493,7 @@ import Tag from '@/components/common/Tag.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const productsStore = useProductsStore();
 
 const goDocs = () => router.push('/docs');
 const goReport = () => router.push('/report');
@@ -554,10 +546,12 @@ const fetchRecommendedLoans = async () => {
         }));
       }
     } else {
-      // 비로그인 상태: getLoanList API 호출 시도
-      try {
-        const response = await getLoanList();
-        loans.value = response.data.loans.slice(0, 4).map(loan => ({
+      // 비로그인 상태: store에서 데이터를 가져와서 bookmarkCount 기준 상위 4개 선택
+      const allLoans = productsStore.loans;
+      loans.value = allLoans
+        .sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0))
+        .slice(0, 4)
+        .map(loan => ({
           id: loan.loanId,
           title: loan.productName,
           rate: `연 ${loan.basicRate}%`,
@@ -566,22 +560,6 @@ const fetchRecommendedLoans = async () => {
               ? `최대 ${formatCurrency(loan.maxLimit)}`
               : '한도 문의',
         }));
-      } catch (apiError) {
-        // API 호출 실패 시 fallback 데이터 사용
-        console.warn(
-          '대출 목록 API 호출 실패, fallback 데이터 사용:',
-          apiError
-        );
-        loans.value = FALLBACK_LOANS_DATA.map(loan => ({
-          id: loan.loanId,
-          title: loan.productName,
-          rate: `연 ${loan.basicRate}%`,
-          limit:
-            loan.maxLimit > 0
-              ? `최대 ${formatCurrency(loan.maxLimit)}`
-              : '한도 문의',
-        }));
-      }
     }
   } catch (error) {
     console.error('대출 조회 실패:', error);
@@ -616,8 +594,10 @@ const fetchRecommendedPolicies = async () => {
           }));
       }
     } else {
-      // 비로그인: 하드코딩 데이터 사용
-      policies.value = (FALLBACK_POLICIES_DATA.data.policies || [])
+      // 비로그인: store에서 데이터를 가져와서 bookmarkCount 기준 상위 4개 선택
+      const allPolicies = productsStore.policies;
+      policies.value = allPolicies
+        .sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0))
         .slice(0, 4)
         .map(policy => ({
           id: policy.policyId,
@@ -654,61 +634,8 @@ const fetchChatRooms = async () => {
 
 const fetchUrgentProducts = async () => {
   try {
-    // 대출과 정책 데이터를 병렬로 가져오기
-    const [loansResponse, policiesResponse] = await Promise.all([
-      getLoanList(),
-      getPolicyList(),
-    ]);
-
-    const allProducts = [];
-
-    // 대출 데이터 처리
-    if (loansResponse.data?.loans) {
-      loansResponse.data.loans.forEach(loan => {
-        if (loan.endDate) {
-          const dday = calculateDDay(loan.endDate);
-          if (dday) {
-            allProducts.push({
-              id: loan.loanId,
-              title: loan.productName,
-              dday: dday,
-              meta: loan.maxLimit
-                ? `최대 ${formatCurrency(loan.maxLimit)}`
-                : '대출 상품',
-              type: 'loan',
-              endDate: loan.endDate,
-            });
-          }
-        }
-      });
-    }
-
-    // 정책 데이터 처리
-    if (policiesResponse.data?.policies) {
-      policiesResponse.data.policies.forEach(policy => {
-        if (policy.endDate) {
-          const dday = calculateDDay(policy.endDate);
-          if (dday) {
-            allProducts.push({
-              id: policy.policyId,
-              title: policy.policyName,
-              dday: dday,
-              meta: policy.supportAmount
-                ? `최대 ${formatCurrency(policy.supportAmount)}`
-                : '정책 상품',
-              type: 'policy',
-              endDate: policy.endDate,
-            });
-          }
-        }
-      });
-    }
-
-    // endDate 기준으로 오름차순 정렬 (가장 임박한 순서)
-    allProducts.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-
-    // 상위 6개만 선택
-    urgentProducts.value = allProducts.slice(0, 6);
+    // store에서 마감 임박 상품 데이터 가져오기
+    urgentProducts.value = productsStore.getUrgentProducts;
   } catch (error) {
     console.error('마감임박 상품 조회 실패:', error);
     // 에러 발생 시 빈 배열로 설정하여 '상품이 없습니다' UI 표시
@@ -724,51 +651,8 @@ const fetchPopularProducts = async () => {
   }
 
   try {
-    // 대출과 정책 데이터를 병렬로 가져오기
-    const [loansResponse, policiesResponse] = await Promise.all([
-      getLoanList({ size: 50 }), // 더 많은 데이터 가져오기
-      getPolicyList({ size: 50 }),
-    ]);
-
-    const allProducts = [];
-
-    // 대출 데이터 처리
-    if (loansResponse.data?.loans) {
-      loansResponse.data.loans.forEach(loan => {
-        allProducts.push({
-          id: loan.loanId,
-          title: loan.productName,
-          industry: loan.industryName || '대출',
-          meta: loan.maxLimit
-            ? `최대 ${formatCurrency(loan.maxLimit)}`
-            : '대출 상품',
-          type: 'loan',
-          bookmarkCount: loan.bookmarkCount || 0,
-        });
-      });
-    }
-
-    // 정책 데이터 처리
-    if (policiesResponse.data?.policies) {
-      policiesResponse.data.policies.forEach(policy => {
-        allProducts.push({
-          id: policy.policyId,
-          title: policy.policyName,
-          industry: policy.industryName || '정책',
-          meta: policy.supportAmount
-            ? `최대 ${formatCurrency(policy.supportAmount)}`
-            : '정책 상품',
-          type: 'policy',
-          bookmarkCount: policy.bookmarkCount || 0,
-        });
-      });
-    }
-
-    // bookmarkCount 기준으로 내림차순 정렬
-    allProducts.sort((a, b) => (b.bookmarkCount || 0) - (a.bookmarkCount || 0));
-
-    // 상위 5개만 선택
-    popularProducts.value = allProducts.slice(0, 5);
+    // store에서 인기 상품 데이터 가져오기
+    popularProducts.value = productsStore.getPopularProducts;
   } catch (error) {
     console.error('인기 상품 조회 실패:', error);
     // 에러 발생 시 기존 mock 데이터 유지
@@ -812,7 +696,16 @@ const calculateDDay = endDate => {
 };
 
 // 컴포넌트 마운트 시 API 데이터 로드
-onMounted(() => {
+onMounted(async () => {
+  // 비로그인 상태에서는 store에서 한 번만 데이터 로드
+  if (!isLoggedIn.value) {
+    try {
+      await productsStore.fetchAllProducts();
+    } catch (error) {
+      console.error('상품 데이터 로드 실패:', error);
+    }
+  }
+
   // API 데이터 로드
   fetchRecommendedLoans(); // 로그인 여부에 따라 분기처리됨
   fetchRecommendedPolicies();
@@ -843,21 +736,25 @@ watch(searchQuery, (newQuery, oldQuery) => {
 });
 
 // 로그인 상태 변경 시 추천 데이터 다시 조회
-watch(isLoggedIn, () => {
-  fetchRecommendedLoans();
-  fetchRecommendedPolicies();
-  fetchPopularProducts();
+watch(isLoggedIn, async newValue => {
+  // 로그인 상태가 변경될 때
+  if (newValue) {
+    // 로그인된 경우: 개인화된 데이터 로드
+    fetchRecommendedLoans();
+    fetchRecommendedPolicies();
+    fetchPopularProducts();
+  } else {
+    // 로그아웃된 경우: store에서 공통 데이터 로드
+    try {
+      await productsStore.fetchAllProducts();
+      fetchRecommendedLoans();
+      fetchRecommendedPolicies();
+      fetchPopularProducts();
+    } catch (error) {
+      console.error('상품 데이터 로드 실패:', error);
+    }
+  }
 });
-
-const loanTags = ref([
-  '# 중소기업',
-  '# 청년창업',
-  '# 소상공인',
-  '# 여성기업',
-  '# IT업종',
-  '# 제조업',
-  '# 서비스업',
-]);
 
 const loans = ref([
   {
