@@ -119,47 +119,15 @@ export async function getItems({ page = 0, size = 5 } = {}) {
     console.log('[API] Raw items data:', data);
 
     const pageData = data.data;
-    const items = Array.isArray(pageData?.content)
-      ? pageData.content.map(item => {
-          const [startDate, endDate] = item.period
-            .split('~')
-            .map(s => s.trim());
-          const isLoan = item.type.toUpperCase() === 'LOAN';
 
-          const mappedItem = {
-            id: item.itemId,
-            type: item.type.toLowerCase(),
-            name: item.name,
-            startDate,
-            endDate,
-            status: item.status.toLowerCase(),
-          };
-
-          if (isLoan) {
-            mappedItem.totalAmount = item.amount;
-            mappedItem.paidAmount =
-              item.amount * (Number(item.details.repaymentRate) / 100);
-            mappedItem.repaymentMethod = item.details.repaymentMethod;
-            mappedItem.interestRate = item.details.interestRate;
-          } else {
-            // Policy
-            mappedItem.totalAmount = item.details.totalBenefitAmount;
-            mappedItem.monthlyAmount = item.amount;
-          }
-
-          return mappedItem;
-        })
-      : [];
-
-    console.log('[API] Mapped items:', items);
-    return {
-      items,
-      hasNext: pageData ? !pageData.last : false,
-    };
+    console.log('[API] Returning pageData object directly:', pageData);
+    return pageData;
   } catch (err) {
     return handleApiError('items', err, {
-      items: [],
-      hasNext: false,
+      content: [],
+      totalPages: 0,
+      page: 0,
+      totalElements: 0,
     });
   }
 }

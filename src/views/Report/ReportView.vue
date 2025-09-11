@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50" @scroll="handleScroll">
+  <div class="min-h-screen bg-gray-50">
     <!-- 헤더 -->
     <ReportHeader
       @click-register-policy="showPolicyModal = true"
@@ -157,8 +157,6 @@ const filteredItems = computed(() => {
       (a, b) => new Date(a.startDate) - new Date(b.startDate)
     );
   }
-  console.log('[View] Items from store (items.value):', items.value);
-  console.log('[View] Items passed to ReportList (filteredItems):', list);
   return list;
 });
 
@@ -184,8 +182,12 @@ async function handlePolicyRegister(newItem) {
 }
 
 /* ===== Infinite Scroll ===== */
-const handleScroll = e => {
-  const { scrollTop, clientHeight, scrollHeight } = e.target;
+const handleScroll = () => {
+  // document.documentElement는 <html> 요소를 가리킵니다.
+  const { scrollTop, scrollHeight } = document.documentElement;
+  const clientHeight = window.innerHeight; // 현재 보이는 창의 높이
+
+  // 거의 맨 아래까지 스크롤했는지 확인 (10px 여유)
   if (scrollTop + clientHeight >= scrollHeight - 10) {
     reportStore.fetchItems();
   }
@@ -237,6 +239,9 @@ onMounted(async () => {
   // Then fetch items
   await reportStore.fetchItems();
 
+  // 컴포넌트가 마운트될 때 window에 스크롤 이벤트를 등록합니다.
+  window.addEventListener('scroll', handleScroll);
+
   // 캘린더 스켈레톤
   calendarDays.value = generateTwoWeeksAlignedToSunday(today);
 
@@ -257,7 +262,6 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  // Remove event listener if added to window
-  // window.removeEventListener('scroll', handleScroll, true);
+  window.removeEventListener('scroll', handleScroll);
 });
 </script>

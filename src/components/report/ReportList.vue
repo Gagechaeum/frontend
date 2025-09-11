@@ -1,4 +1,3 @@
-<!-- src/components/report/ReportList.vue -->
 <template>
   <!-- 컨트롤 바 -->
   <div
@@ -113,134 +112,114 @@
         </thead>
 
         <tbody>
-          <template v-for="item in filteredItems" :key="item.id">
-            <!-- ▶︎ 행 전체 클릭으로 토글 -->
+          <template v-for="item in filteredItems" :key="item.itemId">
             <tr
               class="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
-              @click="$emit('toggle-detail', item.id)"
+              @click="$emit('toggle-detail', item.itemId)"
             >
-              <!-- 구분 배지 -->
               <td class="px-4 py-4">
                 <span
                   :class="
-                    item.type === 'policy'
+                    item.type === 'POLICY'
                       ? 'bg-yellow-100 text-yellow-800'
                       : 'bg-blue-100 text-blue-800'
                   "
                   class="rounded-full px-2.5 py-0.5 text-xs"
                 >
-                  {{ item.type === 'policy' ? '정책' : '대출' }}
+                  {{ item.type === 'POLICY' ? '정책' : '대출' }}
                 </span>
               </td>
-
-              <!-- 이름 -->
               <td class="px-4 py-4">
                 <span class="font-medium text-gray-900">{{ item.name }}</span>
               </td>
-
-              <!-- 기간 -->
               <td class="px-4 py-4">
                 <div class="text-gray-600">
-                  {{ formatDate(item.startDate) }} ~
-                  {{ formatDate(item.endDate) }}
+                  {{ item.period }}
                 </div>
               </td>
-
-              <!-- 금액/잔액 -->
               <td class="px-4 py-4 text-right">
                 <div
-                  v-if="item.type === 'loan'"
-                  class="font-medium text-blue-600"
-                >
-                  ₩{{ fmt(item.totalAmount - (item.paidAmount ?? 0)) }}
-                </div>
-                <div
-                  v-else
                   class="font-medium"
                   :class="
-                    item.type === 'policy' ? 'text-yellow-500' : 'text-blue-600'
+                    item.type === 'POLICY' ? 'text-yellow-500' : 'text-blue-600'
                   "
                 >
-                  ₩{{ `${fmt(item.monthlyAmount)}/월` }}
+                  ₩{{ fmt(item.amount) }}
+                  <span v-if="item.amountLabel === '월'">/월</span>
                 </div>
               </td>
-
-              <!-- 상태 -->
               <td class="px-4 py-4 text-center">
                 <span
                   :class="
-                    item.status === 'active'
+                    item.status === '진행중'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-gray-100 text-gray-800'
                   "
                   class="rounded-full px-2.5 py-0.5 text-xs"
                 >
-                  {{ item.status === 'active' ? '진행중' : '만료' }}
+                  {{ item.status }}
                 </span>
               </td>
             </tr>
 
-            <!-- 상세 -->
-            <tr v-if="expandedItems.includes(item.id)" class="bg-gray-50">
+            <tr v-if="expandedItems.includes(item.itemId)" class="bg-gray-50">
               <td :colspan="5" class="px-4 py-4">
                 <div class="flex items-start justify-between gap-4">
-                  <!-- 상세 키:값 -->
                   <div class="w-full">
-                    <!-- 대출 3열 -->
                     <div
-                      v-if="item.type === 'loan'"
+                      v-if="item.type === 'LOAN'"
                       class="grid grid-cols-1 gap-6 md:grid-cols-3"
                     >
                       <div class="kv-row">
                         <span class="kv-key">상환률</span>
                         <span class="kv-val">
-                          {{
-                            Math.round(
-                              ((item.paidAmount ?? 0) / item.totalAmount) * 100
-                            )
-                          }}%
+                          {{ Math.round(item.details.repaymentRate * 100) }}%
                         </span>
                       </div>
                       <div class="kv-row">
                         <span class="kv-key">상환방법</span>
-                        <span class="kv-val">{{ item.repaymentMethod }}</span>
+                        <span class="kv-val">{{
+                          item.details.repaymentMethod
+                        }}</span>
                       </div>
                       <div class="kv-row">
                         <span class="kv-key">이자율</span>
-                        <span class="kv-val">{{ item.interestRate }}%</span>
+                        <span class="kv-val"
+                          >{{ item.details.interestRate }}%</span
+                        >
                       </div>
                     </div>
-
-                    <!-- 정책 2열 -->
                     <div v-else class="grid grid-cols-1 gap-6 md:grid-cols-2">
                       <div class="kv-row">
                         <span class="kv-key">지급일</span>
-                        <span class="kv-val">매월 15일</span>
+                        <span class="kv-val">{{
+                          item.details.paymentDateInfo
+                        }}</span>
                       </div>
                       <div class="kv-row">
                         <span class="kv-key">총 지급액</span>
-                        <span class="kv-val">₩{{ fmt(item.totalAmount) }}</span>
+                        <span class="kv-val"
+                          >₩{{ fmt(item.details.totalBenefitAmount) }}</span
+                        >
                       </div>
                     </div>
                   </div>
-
-                  <!-- 상세보기 버튼 (작게) -->
                   <button
                     :class="
-                      item.type === 'loan'
+                      item.type === 'LOAN'
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-yellow-100 text-yellow-800'
                     "
                     class="shrink-0 self-start rounded-full px-2 py-0.5 text-[11px] leading-4"
                     @click.stop="
                       $emit(
-                        item.type === 'loan' ? 'open-loan' : 'open-policy',
+                        item.type === 'LOAN' ? 'open-loan' : 'open-policy',
                         item
                       )
                     "
                   >
                     {{
-                      item.type === 'loan' ? '대출 상세보기' : '정책 상세보기'
+                      item.type === 'LOAN' ? '대출 상세보기' : '정책 상세보기'
                     }}
                   </button>
                 </div>

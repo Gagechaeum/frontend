@@ -28,34 +28,37 @@ export const useReportStore = defineStore('report', {
         this.loading = false;
       }
     },
+
     async savePolicy(policy) {
       this.loading = true;
       this.error = null;
       try {
         await saveUserPolicy(policy);
-        await this.fetchDashboard(); // Refresh dashboard after saving
         this.resetItems();
         await this.fetchItems();
+        await this.fetchDashboard();
       } catch (e) {
         this.error = e;
       } finally {
         this.loading = false;
       }
     },
+
     async fetchItems() {
       if (!this.hasNext || this.loading) return;
       this.loading = true;
       this.error = null;
       try {
-        const { items, hasNext } = await getItems({
+        const pageData = await getItems({
           page: this.page,
           size: this.size,
         });
-        console.log('[Store] Fetched items from API:', items);
-        this.items = this.page === 0 ? items : [...this.items, ...items];
-        console.log('[Store] Current items state:', this.items);
-        this.hasNext = hasNext;
-        if (hasNext) {
+
+        const newItems = pageData.content || [];
+        this.items = this.page === 0 ? newItems : [...this.items, ...newItems];
+        this.hasNext = pageData.page < pageData.totalPages - 1;
+
+        if (this.hasNext) {
           this.page += 1;
         }
       } catch (e) {
