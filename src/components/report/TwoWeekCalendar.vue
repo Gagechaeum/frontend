@@ -42,12 +42,14 @@
               <span
                 class="ml-2 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
                 :class="
-                  event.type === 'repayment'
+                  event.type?.toLowerCase() === 'repayment'
                     ? 'bg-blue-100 text-blue-700'
                     : 'bg-yellow-100 text-yellow-800'
                 "
               >
-                {{ event.type === 'repayment' ? '대출' : '정책' }}
+                {{
+                  event.type?.toLowerCase() === 'repayment' ? '대출' : '정책'
+                }}
               </span>
             </div>
 
@@ -90,25 +92,25 @@
               </div>
 
               <!-- 대출 전용 -->
-              <template v-if="event.type === 'repayment'">
+              <template v-if="event.type?.toLowerCase() === 'repayment'">
                 <div>
                   <dt class="text-gray-500">상환율</dt>
                   <dd class="font-medium text-gray-900">
-                    {{ toPercent(event.detail?.repaymentRate) }}
+                    {{ toPercent(event.detail?.details?.repaymentRate) }}
                   </dd>
                 </div>
                 <div>
                   <dt class="text-gray-500">상환방법</dt>
                   <dd class="font-medium text-gray-900">
-                    {{ safe(event.detail?.repaymentMethod) }}
+                    {{ safe(event.detail?.details?.repaymentMethod) }}
                   </dd>
                 </div>
                 <div>
                   <dt class="text-gray-500">이자율</dt>
                   <dd class="font-medium text-gray-900">
                     {{
-                      event.detail?.interestRate
-                        ? event.detail.interestRate + '%'
+                      event.detail?.details?.interestRate
+                        ? event.detail.details.interestRate + '%'
                         : '—'
                     }}
                   </dd>
@@ -149,11 +151,12 @@ const gridClass = computed(() =>
 );
 
 // 달력엔 '지급일/상환일'만 보이도록
-const anchorText = event => (event.type === 'repayment' ? '상환일' : '지급일');
+const anchorText = event =>
+  event.type?.toLowerCase() === 'repayment' ? '상환일' : '지급일';
 
 // 칩 색상
 const getEventClass = type =>
-  type === 'repayment'
+  type?.toLowerCase() === 'repayment'
     ? 'bg-blue-100 text-blue-700'
     : 'bg-yellow-100 text-yellow-800';
 
