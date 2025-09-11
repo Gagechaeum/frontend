@@ -531,10 +531,25 @@
               </p>
             </div>
             <button
-              class="text-yellow-500 transition-colors hover:text-red-500"
-              @click="openRemoveFavoriteModal(product)"
+              :class="[
+                'transition-colors',
+                isProductFavorited(product)
+                  ? 'text-yellow-400 hover:text-red-500'
+                  : 'text-gray-400 hover:text-yellow-400',
+              ]"
+              @click="toggleFavorite(product)"
             >
-              <i class="fas fa-star text-lg"></i>
+              <i
+                :class="[
+                  'text-lg',
+                  isProductFavorited(product) ? 'fas fa-star' : 'far fa-star',
+                ]"
+                :style="
+                  isProductFavorited(product)
+                    ? { '-webkit-text-stroke': 'none' }
+                    : {}
+                "
+              ></i>
             </button>
           </div>
         </div>
@@ -548,6 +563,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotificationStore } from '@/stores/notification';
 import { useDocsStore } from '@/stores/docs';
+import { useFavorites } from '@/stores/favorites';
 import {
   getUserDocuments,
   uploadUserDocument,
@@ -564,6 +580,7 @@ import Modal from '@/components/common/Modal.vue';
 
 const router = useRouter();
 const docsStore = useDocsStore();
+const favoritesStore = useFavorites();
 
 const props = defineProps({
   showUploadModal: {
@@ -702,7 +719,7 @@ const fetchFavoriteProducts = async () => {
     // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
     if (response && Array.isArray(response)) {
       favoriteProducts.value = response.map(product => ({
-        id: product.name, // 상품명을 ID로 사용
+        id: product.policyId || product.loanId, // 실제 ID 사용
         name: product.name,
         type: product.type === 'POLICY' ? '정책' : '대출',
         institution: product.organization,
@@ -944,9 +961,53 @@ const openProductsModal = async doc => {
   }
 };
 
+// 즐겨찾기 토글 함수
+const toggleFavorite = async product => {
+  if (!product) return;
+
+  const productType = product.type === '정책' ? 'policy' : 'loan';
+  const favId = `${productType}_${product.id}`;
+
+  try {
+    const wasFavorited = favoritesStore.has(favId);
+
+    await favoritesStore.toggle(favId, {
+      title: product.name,
+      type: productType,
+    });
+
+    // 즐겨찾기 목록 새로고침
+    await fetchFavoriteProducts();
+    await fetchFavoriteCount();
+
+    const message = wasFavorited
+      ? `'${product.name}'이(가) 즐겨찾기에서 제거되었습니다.`
+      : `'${product.name}'이(가) 즐겨찾기에 추가되었습니다.`;
+
+    notification.show('success', message);
+  } catch (error) {
+    console.error('즐겨찾기 토글 실패:', error);
+    notification.show('error', '즐겨찾기 처리 중 오류가 발생했습니다.');
+  }
+};
+
+// 즐겨찾기 상태 확인 함수
+const isProductFavorited = product => {
+  if (!product) return false;
+  const productType = product.type === '정책' ? 'policy' : 'loan';
+  const favId = `${productType}_${product.id}`;
+  const isFavorited = favoritesStore.has(favId);
+  console.log('즐겨찾기 상태 확인:', {
+    product: product.name,
+    favId,
+    isFavorited,
+  });
+  return isFavorited;
+};
+
 const openRemoveFavoriteModal = product => {
   // 바로 제거하고 토스트 표시
-  removeFromFavorites(product);
+  toggleFavorite(product);
 };
 
 const removeFromFavorites = product => {
@@ -963,6 +1024,10 @@ const removeFromFavorites = product => {
 
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
+  // 즐겨찾기 스토어 초기화
+  await favoritesStore.load();
+  console.log('즐겨찾기 스토어 상태:', favoritesStore.ids.value);
+
   // document types가 아직 로드되지 않았다면 로드
   if (docsStore.documentTypes.length === 0) {
     await docsStore.loadDocumentTypes();
