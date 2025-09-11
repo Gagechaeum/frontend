@@ -361,7 +361,7 @@
             </template>
             <div
               v-if="urgentProducts.length > 0"
-              class="reveal-item reveal-stagger grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6"
+              class="reveal-item reveal-stagger grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6"
             >
               <div
                 v-for="urgent in urgentProducts"
@@ -627,11 +627,19 @@ const fetchChatRooms = async () => {
 
 const fetchUrgentProducts = async () => {
   try {
-    // store에서 마감 임박 상품 데이터 가져오기
-    urgentProducts.value = productsStore.getUrgentProducts;
+    // store에서 마감 임박 상품 데이터 가져오기 시도
+    const storeProducts = productsStore.getUrgentProducts;
+
+    // store에 데이터가 있으면 사용, 없으면 더미데이터 사용
+    if (storeProducts && storeProducts.length > 0) {
+      urgentProducts.value = storeProducts;
+    } else {
+      // 더미데이터 사용 (이미 urgentProducts ref에 정의된 데이터)
+      console.log('마감임박 상품: 더미데이터 사용');
+    }
   } catch (error) {
-    // 에러 발생 시 빈 배열로 설정하여 '상품이 없습니다' UI 표시
-    urgentProducts.value = [];
+    // 에러 발생 시 더미데이터 사용
+    console.log('마감임박 상품: 에러 발생, 더미데이터 사용', error);
   }
 };
 
@@ -876,36 +884,42 @@ const urgentProducts = ref([
     title: '긴급 운영자금 지원',
     dday: 'D-2',
     meta: '최대 2억원',
+    type: 'loan',
   },
   {
     id: 2,
     title: '코로나19 피해지원',
     dday: 'D-3',
     meta: '무이자 대출',
+    type: 'loan',
   },
   {
     id: 3,
     title: '청년 취업지원금',
     dday: 'D-1',
     meta: '월 50만원',
+    type: 'policy',
   },
   {
     id: 4,
     title: '소상공인 임대료 지원',
     dday: 'D-4',
     meta: '월 100만원',
+    type: 'policy',
   },
   {
     id: 5,
     title: '농업인 재해지원',
     dday: 'D-2',
     meta: '최대 3천만원',
+    type: 'policy',
   },
   {
     id: 6,
     title: '문화예술인 지원',
     dday: 'D-5',
     meta: '월 80만원',
+    type: 'policy',
   },
 ]);
 
