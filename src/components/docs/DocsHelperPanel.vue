@@ -90,7 +90,7 @@
                       <div
                         class="pointer-events-none absolute bottom-full left-0 z-50 mb-2 whitespace-nowrap rounded-lg bg-gray-800 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        서류명을 클릭 시 다운로드 할 수 있습니다
+                        서류명을 클릭하면 다운로드 할 수 있습니다
                         <div
                           class="absolute left-3 top-full h-0 w-0 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"
                         ></div>
@@ -293,10 +293,7 @@
                 <td class="px-2 py-3 text-sm text-gray-600">
                   <button
                     class="cursor-pointer hover:text-[#2563EB] hover:underline"
-                    @click="
-                      showProductsModal = true;
-                      selectedRequiredDoc = doc;
-                    "
+                    @click="openProductsModal(doc)"
                   >
                     {{ doc.count }}개
                   </button>
@@ -414,7 +411,7 @@
     >
       <div class="space-y-3">
         <div
-          v-for="product in getProductsForDocument(selectedRequiredDoc?.name)"
+          v-for="product in productsForSelectedDoc"
           :key="product.id"
           class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
         >
@@ -458,7 +455,7 @@
     >
       <!-- 즐겨찾기 상품이 없을 때 -->
       <div
-        v-if="docsStore.allItems.length === 0"
+        v-if="favoriteProducts.length === 0"
         class="flex flex-col items-center justify-center py-12"
       >
         <div class="mb-4 rounded-full bg-gray-100 p-4">
@@ -482,7 +479,7 @@
       <!-- 즐겨찾기 상품 목록 -->
       <div v-else class="space-y-3">
         <div
-          v-for="product in docsStore.allItems"
+          v-for="product in favoriteProducts"
           :key="product.id"
           class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
         >
@@ -535,7 +532,12 @@ import {
   uploadUserDocument,
   downloadUserDocuments,
   deleteUserDocuments,
+  getProductsByDocument,
 } from '@/lib/api/documents.js';
+import {
+  getBookmarkDocuments,
+  getBookmarkedProducts,
+} from '@/lib/api/bookmarks.js';
 import Tag from '@/components/common/Tag.vue';
 import Modal from '@/components/common/Modal.vue';
 
@@ -583,6 +585,7 @@ const selectedDoc = ref(null);
 // 상품 리스트 모달 상태
 const showProductsModal = ref(false);
 const selectedRequiredDoc = ref(null);
+const productsForSelectedDoc = ref([]);
 
 // 즐겨찾기 관련 상태
 const showFavoritesModal = ref(false);
@@ -600,6 +603,7 @@ const newDoc = ref({
 // 실제 API에서 가져온 데이터
 const myDocuments = ref([]);
 const requiredDocuments = ref([]);
+const favoriteProducts = ref([]);
 const isLoading = ref(false);
 
 const isSelectionMode = ref(false);
@@ -635,27 +639,62 @@ const fetchMyDocuments = async () => {
 
 const fetchRequiredDocuments = async () => {
   try {
-    // TODO: 즐겨찾기 상품에 필요한 서류 목록 API 호출
-    // const response = await getFavoriteProductsRequiredDocuments();
-    // requiredDocuments.value = response.data || [];
+    const response = await getBookmarkDocuments();
+    console.log('즐겨찾기 서류 목록 API 응답:', response);
 
-    // 임시로 빈 배열로 설정 (API 구현 후 교체)
-    requiredDocuments.value = [];
+    // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
+    if (response && response.documents) {
+      requiredDocuments.value = response.documents.map(doc => ({
+        id: doc.documentName, // 서류명을 ID로 사용
+        name: doc.documentName,
+        count: doc.productCount,
+        owned: doc.possessionStatus,
+        issuingUrl: doc.issuingUrl,
+      }));
+    } else {
+      requiredDocuments.value = [];
+    }
   } catch (error) {
     console.error('필요서류 목록 조회 실패:', error);
+    notification.show('error', '필요서류 목록을 불러오는데 실패했습니다.');
   }
 };
 
 const fetchFavoriteCount = async () => {
   try {
-    // TODO: 즐겨찾기 상품 수 API 호출
-    // const response = await getFavoriteProductsCount();
-    // favoriteCount.value = response.data.count || 0;
+    const response = await getBookmarkDocuments();
+    console.log('즐겨찾기 상품 수 API 응답:', response);
 
-    // 임시로 0으로 설정 (API 구현 후 교체)
-    favoriteCount.value = 0;
+    // totalBookmarkCount를 사용하여 즐겨찾기 상품 수 설정
+    favoriteCount.value = response?.totalBookmarkCount || 0;
   } catch (error) {
     console.error('즐겨찾기 상품 수 조회 실패:', error);
+    favoriteCount.value = 0;
+  }
+};
+
+const fetchFavoriteProducts = async () => {
+  try {
+    const response = await getBookmarkedProducts();
+    console.log('즐겨찾기 상품 목록 API 응답:', response);
+
+    // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
+    if (response && Array.isArray(response)) {
+      favoriteProducts.value = response.map(product => ({
+        id: product.name, // 상품명을 ID로 사용
+        name: product.name,
+        type: product.type === 'POLICY' ? '정책' : '대출',
+        institution: product.organization,
+        deadline: product.dDay ? `D-${product.dDay}` : '상시',
+        completedDocs: product.prepared || 0,
+        totalDocs: product.required || 0,
+      }));
+    } else {
+      favoriteProducts.value = [];
+    }
+  } catch (error) {
+    console.error('즐겨찾기 상품 목록 조회 실패:', error);
+    favoriteProducts.value = [];
   }
 };
 
@@ -845,10 +884,43 @@ const goToScheduleList = () => {
   router.push('/schedule/list');
 };
 
-const getProductsForDocument = docName => {
-  // 실제 상품 데이터에서 해당 서류를 요구하는 상품들을 필터링
-  // 여기서는 간단히 모든 상품을 반환하지만, 실제로는 서류 요구사항에 따라 필터링해야 함
-  return docsStore.allItems;
+const openProductsModal = async doc => {
+  try {
+    selectedRequiredDoc.value = doc;
+    showProductsModal.value = true;
+
+    // 서류명으로 documentId 찾기
+    const documentId = docsStore.getDocumentIdByName(doc.name);
+    if (!documentId) {
+      console.error(
+        '서류명에 해당하는 documentId를 찾을 수 없습니다:',
+        doc.name
+      );
+      productsForSelectedDoc.value = [];
+      return;
+    }
+
+    const response = await getProductsByDocument(documentId);
+    console.log('서류별 상품 목록 API 응답:', response);
+
+    // API 응답 데이터를 컴포넌트에서 사용하는 필드명으로 매핑
+    if (response && response.data) {
+      productsForSelectedDoc.value = response.data.map(product => ({
+        id: product.name, // 상품명을 ID로 사용
+        name: product.name,
+        type: product.type === 'POLICY' ? '정책' : '대출',
+        institution: product.organization,
+        deadline: product.dDay ? `D-${product.dDay}` : '상시',
+        completedDocs: product.prepared || 0,
+        totalDocs: product.required || 0,
+      }));
+    } else {
+      productsForSelectedDoc.value = [];
+    }
+  } catch (error) {
+    console.error('서류별 상품 목록 조회 실패:', error);
+    productsForSelectedDoc.value = [];
+  }
 };
 
 const openRemoveFavoriteModal = product => {
@@ -870,8 +942,14 @@ const removeFromFavorites = product => {
 
 // 컴포넌트 마운트 시 데이터 로드
 onMounted(async () => {
+  // document types가 아직 로드되지 않았다면 로드
+  if (docsStore.documentTypes.length === 0) {
+    await docsStore.loadDocumentTypes();
+  }
+
   await fetchMyDocuments();
   await fetchRequiredDocuments();
   await fetchFavoriteCount();
+  await fetchFavoriteProducts();
 });
 </script>

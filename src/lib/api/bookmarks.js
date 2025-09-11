@@ -62,3 +62,78 @@ export async function removeServerBookmark({ type, id } = {}) {
     throw e;
   }
 }
+
+/**
+ * 북마크 진행률 조회
+ * GET /api/me/bookmarks/progress
+ */
+export async function getBookmarksProgress() {
+  try {
+    const res = await api.get(apiPath('/me/bookmarks/progress'));
+    // 실제 API 응답 구조에 맞게 수정: { status: 200, data: [...] }
+    return res.data || res;
+  } catch (error) {
+    console.error('북마크 진행률 조회 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 정책 상태 업데이트
+ * PATCH /api/me/policies/{id}/status
+ */
+export async function updatePolicyStatus(id, status) {
+  try {
+    const res = await api.patch(apiPath(`/me/policies/${id}/status`), {
+      status,
+    });
+    return unwrap(res);
+  } catch (error) {
+    console.error('정책 상태 업데이트 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 대출 상태 업데이트
+ * PATCH /api/me/loans/{id}/status
+ */
+export async function updateLoanStatus(id, status) {
+  try {
+    const res = await api.patch(apiPath(`/me/loans/${id}/status`), {
+      status,
+    });
+    return unwrap(res);
+  } catch (error) {
+    console.error('대출 상태 업데이트 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 즐겨찾기 상품에 필요한 서류 목록 조회
+ * GET /api/me/bookmarks/documents
+ */
+export async function getBookmarkDocuments() {
+  try {
+    const res = await api.get(apiPath('/me/bookmarks/documents'));
+    return unwrap(res);
+  } catch (error) {
+    console.error('즐겨찾기 서류 목록 조회 실패:', error);
+    throw error;
+  }
+}
+
+/**
+ * 즐겨찾기 상품 목록 조회
+ * GET /api/me/bookmarks/products
+ */
+export async function getBookmarkedProducts() {
+  try {
+    const res = await api.get(apiPath('/me/bookmarks/products'));
+    return unwrap(res);
+  } catch (error) {
+    console.error('즐겨찾기 상품 목록 조회 실패:', error);
+    throw error;
+  }
+}

@@ -7,8 +7,8 @@ const unwrap = res => res?.data?.data ?? res?.data ?? res;
 // baseURL이 /api 로 끝나는지에 따라 경로 자동 보정
 function apiPath(p) {
   const base = api?.defaults?.baseURL || '';
-  if (base.endsWith('/api')) return p; // 예: http://localhost:8080/api + /loans
-  return `/api${p}`; // 예: http://localhost:8080 + /api/loans
+  if (base.endsWith('/api')) return p;
+  return `/api${p}`;
 }
 
 /**

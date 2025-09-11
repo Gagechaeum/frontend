@@ -5,7 +5,13 @@ import {
   uploadUserDocument,
   downloadUserDocuments,
   deleteUserDocuments,
+  getDocumentTypes,
 } from '@/lib/api/documents.js';
+import {
+  getBookmarksProgress,
+  updatePolicyStatus,
+  updateLoanStatus,
+} from '@/lib/api/bookmarks.js';
 
 export const useDocsStore = defineStore('docs', () => {
   // 상태
@@ -19,6 +25,7 @@ export const useDocsStore = defineStore('docs', () => {
   // 데이터
   const allItems = ref([]);
   const userDocuments = ref([]);
+  const documentTypes = ref([]);
   const isLoading = ref(false);
   const error = ref(null);
 
@@ -91,6 +98,106 @@ export const useDocsStore = defineStore('docs', () => {
     const index = allItems.value.findIndex(item => item.id === id);
     if (index !== -1) {
       allItems.value[index].status = newStatus;
+      allItems.value[index].processStage = mapStatusToProcessStage(newStatus);
+    }
+  };
+
+  // 북마크 진행률 데이터 로드
+  const fetchBookmarksProgress = async () => {
+    try {
+      isLoading.value = true;
+      error.value = null;
+      const response = await getBookmarksProgress();
+
+      let progressData = [];
+      if (response && response.data) {
+        progressData = response.data;
+      } else if (Array.isArray(response)) {
+        progressData = response;
+      }
+
+      console.log('API 응답:', response);
+      console.log('진행률 데이터:', progressData);
+
+      // API 응답을 칸반보드/리스트뷰 형식으로 변환
+      const transformedItems = progressData.map(item => {
+        const idParts = item.bookmarkId.split('_');
+        const type = idParts[0];
+        const num = idParts[1];
+
+        return {
+          id: item.bookmarkId,
+          name: item.productName,
+          institution: item.providerName,
+          type: item.productType,
+          status: mapProcessStageToStatus(item.processStage),
+          processStage: item.processStage, // 원본 processStage 값 보존
+          completedDocs: item.completedDocsCount || 0,
+          totalDocs: item.totalDocsCount || 0,
+          progress: item.progressPercentage || 0,
+          originalType: type,
+          originalId: num,
+          policyId: item.policyId,
+          loanId: item.loanId,
+        };
+      });
+
+      allItems.value = transformedItems;
+    } catch (err) {
+      error.value = err.message || '북마크 진행률을 불러오는데 실패했습니다.';
+      console.error('북마크 진행률 조회 실패:', err);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const mapProcessStageToStatus = processStage => {
+    const stageMap = {
+      요건확인: 'requirements',
+      '서류 수집/업로드': 'collecting',
+      '제출 준비': 'preparing',
+      '제출 완료/결과': 'completed',
+    };
+    return stageMap[processStage] || 'requirements';
+  };
+
+  const mapStatusToProcessStage = status => {
+    const stageMap = {
+      requirements: '요건확인',
+      collecting: '서류 수집/업로드',
+      preparing: '제출 준비',
+      completed: '제출 완료/결과',
+    };
+    return stageMap[status] || '요건확인';
+  };
+
+  // 상태 업데이트 (API 호출 포함)
+  const updateItemStatusWithAPI = async (id, newStatus) => {
+    const item = allItems.value.find(item => item.id === id);
+    if (!item) return false;
+
+    try {
+      const idParts = id.split('_');
+      const type = idParts[0];
+      const koreanStatus = mapStatusToProcessStage(newStatus);
+
+      if (type === 'policy') {
+        const bookmarkPolicyId = parseInt(idParts[1]);
+        await updatePolicyStatus(bookmarkPolicyId, koreanStatus);
+      } else if (type === 'loan') {
+        const bookmarkLoanId = parseInt(idParts[1]);
+        await updateLoanStatus(bookmarkLoanId, koreanStatus);
+      } else {
+        throw new Error(`알 수 없는 타입: ${type}`);
+      }
+
+      // 로컬 상태 업데이트
+      updateItemStatus(id, newStatus);
+      return true;
+    } catch (err) {
+      error.value = err.message || '상태 업데이트에 실패했습니다.';
+      console.error('상태 업데이트 실패:', err);
+      return false;
     }
   };
 
@@ -189,6 +296,26 @@ export const useDocsStore = defineStore('docs', () => {
     }
   };
 
+  // Document Types 관련 함수들
+  const loadDocumentTypes = async () => {
+    try {
+      isLoading.value = true;
+      const response = await getDocumentTypes();
+      documentTypes.value = response.data?.list || [];
+    } catch (error) {
+      console.error('서류 유형 로드 실패:', error);
+      error.value = error.message;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  // 서류명으로 documentId 찾기
+  const getDocumentIdByName = documentName => {
+    const document = documentTypes.value.find(doc => doc.name === documentName);
+    return document ? document.id : null;
+  };
+
   return {
     // 상태
     viewMode,
@@ -196,6 +323,7 @@ export const useDocsStore = defineStore('docs', () => {
     filters,
     allItems,
     userDocuments,
+    documentTypes,
     isLoading,
     error,
 
@@ -216,5 +344,13 @@ export const useDocsStore = defineStore('docs', () => {
     addDocument,
     downloadDocuments,
     removeDocuments,
+    fetchBookmarksProgress,
+    updateItemStatusWithAPI,
+    mapProcessStageToStatus,
+    mapStatusToProcessStage,
+
+    // Document Types 액션
+    loadDocumentTypes,
+    getDocumentIdByName,
   };
 });

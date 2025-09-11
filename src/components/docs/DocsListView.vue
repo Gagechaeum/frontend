@@ -29,9 +29,6 @@
                 진행률
               </th>
               <th class="px-6 py-4 text-left text-sm font-medium text-gray-600">
-                신청 마감
-              </th>
-              <th class="px-6 py-4 text-left text-sm font-medium text-gray-600">
                 체크리스트
               </th>
             </tr>
@@ -43,10 +40,7 @@
               class="border-b border-gray-50 hover:bg-gray-50"
             >
               <td class="px-6 py-4">
-                <Tag
-                  :variant="item.type === '정책' ? 'blue' : 'green'"
-                  size="sm"
-                >
+                <Tag :tone="item.type === '정책' ? 'yellow' : 'blue'" size="sm">
                   {{ item.type }}
                 </Tag>
               </td>
@@ -67,7 +61,7 @@
                   }"
                   class="rounded-full px-2 py-1 text-xs font-medium"
                 >
-                  {{ getStatusText(item.status) }}
+                  {{ item.processStage || getStatusText(item.status) }}
                 </span>
               </td>
               <td class="px-6 py-4 text-sm text-gray-600">
@@ -82,25 +76,6 @@
                     >{{ item.progress }}%</span
                   >
                 </div>
-              </td>
-              <td class="px-6 py-4">
-                <span
-                  :class="{
-                    'font-semibold text-red-600':
-                      item.deadline.includes('D-') &&
-                      parseInt(item.deadline.replace('D-', '')) <= 7,
-                    'font-semibold text-orange-600':
-                      item.deadline.includes('D-') &&
-                      parseInt(item.deadline.replace('D-', '')) <= 14,
-                    'font-semibold text-blue-600':
-                      item.deadline.includes('D-') &&
-                      parseInt(item.deadline.replace('D-', '')) > 14,
-                    'font-semibold text-green-600': item.deadline === '완료',
-                  }"
-                  class="text-sm font-medium"
-                >
-                  {{ item.deadline }}
-                </span>
               </td>
               <td class="px-6 py-4">
                 <button
@@ -136,7 +111,10 @@ const docsStore = useDocsStore();
 const showChecklistModal = ref(false);
 const selectedItem = ref(null);
 
-const allItems = computed(() => docsStore.filteredItems);
+const allItems = computed(() => {
+  const items = docsStore.filteredItems;
+  return items;
+});
 
 const getStatusText = status => {
   const statusMap = {
