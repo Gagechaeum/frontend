@@ -1,5 +1,6 @@
 // src/stores/mypage.js
 import { defineStore } from 'pinia';
+import { useAuthStore } from './auth';
 import {
   hydrateMypageBundle,
   updateUser,
@@ -218,9 +219,10 @@ export const useMyPageStore = defineStore('mypage', {
     /** 계정 탈퇴 */
     async doWithdraw() {
       await apiWithdraw();
-      // 필요 시 로그아웃/스토어 초기화
+      const auth = useAuthStore();
+      await auth.doLogout();
       this.rawUser = null;
-      this.rawBusinesses = [];
+      this.businesses = [];
     },
   },
 });
