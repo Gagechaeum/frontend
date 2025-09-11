@@ -5,17 +5,18 @@
     <div class="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       <slot name="featured">
         <div
-          v-for="n in 8"
-          :key="'top-' + n"
+          v-for="room in regions"
+          :key="room.id"
           class="relative cursor-pointer overflow-hidden rounded-xl transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+          @click="$emit('enter-room', room)"
         >
-          <img :src="fallbackImages[n - 1]" class="h-32 w-full object-cover" />
+          <img class="h-32 w-full object-cover" />
           <div
             class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"
           ></div>
           <div class="absolute inset-x-0 bottom-0 p-3">
-            <h3 class="text-base font-bold text-white">CITY {{ n }}</h3>
-            <p class="text-xs text-white/80">Highlights</p>
+            <h3 class="text-base font-bold text-white">{{ room.name }}</h3>
+            <p class="text-xs text-white/80">{{ room.participantCount }}명 참여중</p>
           </div>
         </div>
       </slot>
@@ -26,17 +27,18 @@
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       <slot name="featured-bottom">
         <div
-          v-for="n in 8"
-          :key="'bottom-' + n"
+          v-for="room in businessCategories"
+          :key="room.id"
           class="relative cursor-pointer overflow-hidden rounded-xl transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+          @click="$emit('enter-room', room)"
         >
-          <img :src="fallbackImages[n + 7]" class="h-32 w-full object-cover" />
+          <img class="h-32 w-full object-cover" />
           <div
             class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"
           ></div>
           <div class="absolute inset-x-0 bottom-0 p-3">
-            <h3 class="text-base font-bold text-white">CITY {{ n + 8 }}</h3>
-            <p class="text-xs text-white/80">Highlights</p>
+            <h3 class="text-base font-bold text-white">{{ room.name }}</h3>
+            <p class="text-xs text-white/80">{{ room.participantCount }}명 참여중</p>
           </div>
         </div>
       </slot>
@@ -45,25 +47,24 @@
 </template>
 
 <script setup>
-const fallbackImages = [
-  // 상단 8개
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop', // 1 바다
-  'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1200&auto=format&fit=crop', // 2 산
-  'https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=1200&auto=format&fit=crop', // 3 도시
-  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1200&auto=format&fit=crop', // 4 숲
-  'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop', // 5 사막
-  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1200&auto=format&fit=crop', // ✅ 6 호수 (교체)
-  'https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?q=80&w=1200&auto=format&fit=crop', // 7 강
-  'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?q=80&w=1200&auto=format&fit=crop', // 8 정글
+const props = defineProps({
+  regions: { type: Array, default: () => [] },
+  businessCategories: { type: Array, default: () => [] }
+});
+defineEmits(['update:active-tab', 'enter-room']);
 
-  // 하단 8개
-  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1200&auto=format&fit=crop', // 9 산맥
-  'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1200&auto=format&fit=crop', // 10 사막 (다른 각도)
-  'https://images.unsplash.com/photo-1508921912186-1d1a45ebb3c1?q=80&w=1200&auto=format&fit=crop', // ✅ 11 호수 (교체)
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop', // ✅ 12 해변 (교체: 안정된 버전)
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop', // 13 폭포
-  'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1200&auto=format&fit=crop', // 14 오로라
-  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1200&auto=format&fit=crop', // 15 사바나
-  'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1200&auto=format&fit=crop', // ✅ 16 절벽 (교체: 산악 절벽)
-];
+const fallbackImagesMap = {
+  "서울특별시": "https://images.unsplash.com/photo-1549429188-66236b28399e?q=80&w=1200&auto=format&fit=crop",
+  "부산광역시": "https://images.unsplash.com/photo-1616788812684-18c94622b821?q=80&w=1200&auto=format&fit=crop",
+  "제주특별자치도": "https://images.unsplash.com/photo-1607593259838-8980b1e428d0?q=80&w=1200&auto=format&fit=crop",
+  "강원도": "https://images.unsplash.com/photo-1629835848529-573522f74116?q=80&w=1200&auto=format&fit=crop",
+  "경기도": "https://images.unsplash.com/photo-1522810842784-fe4566c7b049?q=80&w=1200&auto=format&fit=crop",
+  "충청북도": "https://images.unsplash.com/photo-1563829023194-9b2f6f5b9d3b?q=80&w=1200&auto=format&fit=crop",
+  "충청남도": "https://images.unsplash.com/photo-1594911466042-3e2b2020e985?q=80&w=1200&auto=format&fit=crop",
+  "경상북도": "https://images.unsplash.com/photo-1582967150935-77a8b413c6a4?q=80&w=1200&auto=format&fit=crop",
+  "경상남도": "https://images.unsplash.com/photo-1604925828751-03d15993e3e2?q=80&w=1200&auto=format&fit=crop",
+  "전라북도": "https://images.unsplash.com/photo-1598275529433-2a6d7f0e352e?q=80&w=1200&auto=format&fit=crop",
+  "전라남도": "https://images.unsplash.com/photo-1595085698372-5d4669f69796?q=80&w=1200&auto=format&fit=crop",
+};
+
 </script>

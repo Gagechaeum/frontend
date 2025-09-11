@@ -47,12 +47,12 @@
                 <span
                   class="shrink-0 rounded-full border px-2 py-0.5 text-[11px] leading-none text-gray-600"
                 >
-                  {{ mapCategoryLabel(room.category) }}
+                  {{ mapTypeLabel(room.roomType) }}
                 </span>
               </div>
 
               <p class="mt-0.5 text-sm text-gray-500">
-                {{ room.memberCount }}명 참여중
+                {{ room.participantCount }}명 참여중
               </p>
             </div>
           </div>
@@ -61,7 +61,7 @@
           <!-- 핵심: 고정 폭과 항상 렌더링되는 배지 자리 -->
           <div class="flex w-16 flex-col items-end">
             <span class="text-xs text-gray-400">{{
-              room.lastMessageTime
+              parseTime(room.lastMessageDate)
             }}</span>
 
             <!-- 항상 렌더링: 없을 때는 투명으로 공간만 차지 -->
@@ -88,16 +88,16 @@
 import { computed, watchEffect } from 'vue';
 
 const props = defineProps({
-  tabs: { type: Array, default: () => [] }, // [{ id:'all'|'business'|'region'|'loan'|'policy', name, icon }]
+  tabs: { type: Array, default: () => [] }, // [{ id:'all'|'industry'|'region'|'loan'|'policy', name, icon }]
   activeTab: { type: String, default: 'all' },
-  myRooms: { type: Array, default: () => [] }, // { id, name, memberCount, lastMessageTime, unreadCount, category }
+  myRooms: { type: Array, default: () => [] }, // { id, name, memberCount, lastMessageDate, unreadCount, category }
 });
 defineEmits(['update:active-tab', 'enter-room']);
 
 /** 탭별 필터링 */
 const filteredRooms = computed(() => {
   if (props.activeTab === 'all') return props.myRooms;
-  return props.myRooms.filter(r => r?.category === props.activeTab);
+  return props.myRooms.filter(r => r?.roomType === props.activeTab);
 });
 
 /** 정렬: 안읽은 메시지 있는 방을 위로, 그다음 이름 오름차순 */
@@ -111,9 +111,9 @@ const sortedRooms = computed(() => {
 });
 
 /** 배지 라벨 */
-const mapCategoryLabel = key => {
+const mapTypeLabel = key => {
   switch (key) {
-    case 'business':
+    case 'industry':
       return '업종';
     case 'region':
       return '지역';
@@ -126,20 +126,24 @@ const mapCategoryLabel = key => {
   }
 };
 
+function parseTime(time) {
+  return time.split("T")[1];
+}
+
 /** 안읽은 배지 표시: 10 이상이면 '9+' */
 const displayUnread = n => (n > 9 ? '9+' : String(n || 0));
 
 /** 유효성 로그(선택) */
 watchEffect(() => {
-  const valid = new Set(['business', 'region', 'loan', 'policy']);
+  const valid = new Set(['industry', 'region', 'loan', 'policy']);
   props.myRooms.forEach(r => {
-    if (!valid.has(r?.category)) {
+    if (!valid.has(r?.roomType)) {
       console.warn(
         '[MyRoomsSection] room.category가 유효하지 않습니다:',
         r?.name,
         '=>',
         r?.category,
-        '(허용값: business|region|loan|policy)'
+        '(허용값: industry|region|loan|policy)'
       );
     }
   });

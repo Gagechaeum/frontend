@@ -27,6 +27,7 @@
             :business-categories="businessCategories"
             @open-region="openRegion"
             @open-category="openBusinessCategory"
+            @enter-room="enterChatRoom"
           />
         </div>
 
@@ -39,8 +40,8 @@
           />
           <ChatWindow
             :room="selectedRoom"
-            :messages="currentRoomMessages"
-            :current-user="currentUser"
+            :messages="messages"
+            :current-user="userName"
             :current-avatar="currentAvatar"
             @back="selectedRoom = null"
             @leave="leaveRoom"
@@ -77,6 +78,8 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { getUserChatRooms, getChatRooms, getChatRoomHistory } from '@/lib/api/community.js';
+import { useAuthStore  } from '@/stores/auth';
 
 import LiveBanner from '@/components/community/LiveBanner.vue';
 import RecommendCarousel from '@/components/community/RecommendCarousel.vue';
@@ -86,6 +89,8 @@ import ChatSidebar from '@/components/community/ChatSidebar.vue';
 import ChatWindow from '@/components/community/ChatWindow.vue';
 import JoinModal from '@/components/community/JoinModal.vue';
 import ImagePreviewModal from '@/components/community/ImagePreviewModal.vue';
+
+const authStore = useAuthStore();
 
 /** 상태 */
 const activeTab = ref('all');
@@ -103,7 +108,7 @@ const showJoinModal = ref(false);
 const selectedRoomForJoin = ref(null);
 
 /** 현재 사용자 */
-const currentUser = ref('나');
+const userName = computed(() => authStore.userInfo.name);
 const currentAvatar = 'https://i.pravatar.cc/100?img=5';
 
 /** 추천 데이터(데모) */
@@ -134,42 +139,17 @@ const recommendedRooms = ref([
 /** 탭/목록 데이터 */
 const tabs = ref([
   { id: 'all', name: '전체', icon: 'fas fa-th-large' },
-  { id: 'business', name: '업종', icon: 'fas fa-briefcase' },
+  { id: 'industry', name: '업종', icon: 'fas fa-briefcase' },
   { id: 'region', name: '지역', icon: 'fas fa-map-marker-alt' },
   { id: 'loan', name: '대출', icon: 'fas fa-hand-holding-usd' },
   { id: 'policy', name: '정책', icon: 'fas fa-gavel' },
 ]);
 
-const myRooms = ref([
-  {
-    id: '5',
-    name: '서초구 맛집 사장님',
-    memberCount: 45,
-    lastMessageTime: '오후 2:30',
-    unreadCount: 3,
-    category: 'region',
-  },
-  {
-    id: '6',
-    name: '헬스장 운영자 모임',
-    memberCount: 28,
-    lastMessageTime: '오전 11:15',
-    unreadCount: 0,
-    category: 'business',
-  },
-  {
-    id: '7',
-    name: '소상공인 정책 Q&A',
-    memberCount: 120,
-    lastMessageTime: '오전 9:40',
-    unreadCount: 5,
-    category: 'policy',
-  },
-]);
+const myRooms = ref();
 
-/** (데모) 영역/업종 */
-const regions = ref([]);
-const businessCategories = ref([]);
+/** 영역/업종 */
+const regions = ref();
+const businessCategories = ref();
 
 /** 방별 메시지 저장소 */
 const messagesByRoom = ref({
@@ -233,21 +213,60 @@ const currentRoomMessages = computed(() =>
   selectedRoom.value ? messagesByRoom.value[selectedRoom.value.id] || [] : []
 );
 
+const messages = ref();
+
+onMounted(() => {
+  // API 데이터 로드
+  fetchUserChatRooms();
+  fetchChatRooms();
+});
+
+const fetchUserChatRooms = async () => {
+  try {
+    const response = await getUserChatRooms("all");
+    myRooms.value = response.data.chatRooms;
+  } catch (error) {
+    console.error('사용자 채팅방 목록 조회 실패:', error);
+  }
+};
+
+const fetchChatRooms = async () => {
+  try {
+    const regionResponse = await getChatRooms("region");
+    regions.value = regionResponse.data.chatRooms;
+    const businessResponse = await getChatRooms("industry");
+    businessCategories.value = businessResponse.data.chatRooms;
+  } catch (error) {
+    console.error('전체 채팅방 목록 조회 실패:', error);
+  }
+};
+
+const fetchChatRoomHistory = async (room_id) => {
+  try {
+    const response = await getChatRoomHistory(room_id, null);
+    messages.value = response.data.messages;
+    console.log(response.data);
+  } catch (error) {
+    console.error('채팅방 히스토리 조회 실패:', error);
+  }
+};
+
 /** 채팅 입퇴장/전송 */
 const enterChatRoom = room => {
-  if (!messagesByRoom.value[room.id]) {
-    messagesByRoom.value[room.id] = [
+  if (!messagesByRoom.value[room.roomId]) {
+    messagesByRoom.value[room.roomId] = [
       {
-        id: `hello-${room.id}`,
+        id: `hello-${room.roomId}`,
         user: '운영자',
         nickname: `${room.name} 운영자`,
         avatarUrl: 'https://i.pravatar.cc/100?img=1',
-        content: `혼저옵서예! "${room.name}" 채팅방입니다. 😊`,
+        content: `"${room.name}" 채팅방입니다.`,
         time: now(),
         type: 'text',
       },
     ];
   }
+  fetchChatRoomHistory(room.roomId, room.lastLeftAt);
   selectedRoom.value = room;
   nextTick(scrollToBottom);
 };
@@ -326,12 +345,12 @@ const closeJoinModal = () => {
 const joinRoom = () => {
   if (!selectedRoomForJoin.value) return;
   const room = selectedRoomForJoin.value;
-  if (!myRooms.value.some(r => r.id === room.id)) {
+  if (!myRooms.value.some(r => r.id === room.roomId)) {
     myRooms.value.unshift({
-      id: room.id,
+      id: room.roomId,
       name: room.name,
-      memberCount: room.memberCount ?? 0,
-      lastMessageTime: '방금 전',
+      memberCount: room.participantCount ?? 0,
+      lastMessageDate: '방금 전',
       unreadCount: 0,
     });
   }
